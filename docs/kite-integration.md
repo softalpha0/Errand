@@ -1,0 +1,63 @@
+# Kite Passport integration
+
+Errand drives Kite Passport through the `kpass` CLI (tested shapes: v6.13.1 on Windows). Commands and flags come from `kpass --help` and `kpass session create --help` on that version.
+
+| What | Command |
+|---|---|
+| Ask for a session | `kpass session create --separate --no-reuse --no-browser --task-summary "..." --max-amount-per-tx 0.50 --max-total-amount 2.00 --ttl 1h --output json --no-interactive` |
+| Wait for the passkey | `kpass session status --request-id <id> --output json` (polled every 4 s) |
+| Use it | `kpass session use --session-id <id>` |
+| Pay a call | `kpass session execute --url <url> --idempotency-key <key> --method GET|POST [--headers json] [--body json] --output json` |
+| Balance | `kpass wallet balance --output json` |
+
+`--separate` matters: without it, `session create` pays from the account **allowance** with no approval. Errand always asks for a separate, passkey-approved session per errand so the limits are the errand's own.
+
+Exit codes (from `kpass --help`): 0 success or human action needed, 1 network, 2 usage, 3 auth (login expired), 4 not found, 5 rate limited. `apps/agent/src/kite.ts` maps them to plain messages.
+
+## What is not documented, and how Errand copes
+
+The JSON field names printed by `session create`, `session status` and `session execute` are not in Kite's docs. `apps/agent/src/kite-parse.ts` searches the output for the values it needs (`request_id`, an approval URL, `session_id`, a status word, the seller's body, a transaction hash) instead of assuming one shape, and stores the raw output with every payment (server-side only).
+
+**Day-one check (`pnpm spike:kite`, costs $0.003):** it creates a $0.05 session, waits for your passkey, pays Bitrefill's `checkout/info` ($0.001) and a Nigeria MTN top-up search ($0.002), and saves every raw kpass output to `evidence/raw/`. Read those files and, if a field is named differently, add the name to the key lists in `kite-parse.ts`. Write what you found below.
+
+### Findings (fill in after the spike)
+
+- `session create` fields: …
+- Approval URL field: …
+- `session status` approved state: …
+- `session execute` body field, tx hash field, chain field: …
+- Did the Base-only seller route from a Base balance with no bridge step? …
+
+## Money and chains
+
+- Fund the Passport wallet with USDC on **Base** (the wallet has one EVM address on Base, Polygon, Avalanche, Tempo, Robinhood, Arc and Kite, plus a Solana address). Errand's sellers all accept Base USDC, so no routing is needed.
+- If funds sit on another supported chain, Kite routes the payment (changelog 8 July 2026). The route shows in the Passport dashboard.
+- Do not send USDC on BNB Chain, Tron or Ethereum mainnet to the Passport address: those chains are not tracked by Passport.
+
+## Running kpass on a server
+
+`kpass` keeps its login in `.kite-passport/` in your home folder (`config.json`, `agent.json`). To run the agent on Render:
+
+1. Log in once on your own machine (`kpass login init` / `kpass signup ...`).
+2. In Render → the service → Secret Files, add `%USERPROFILE%\.kite-passport\config.json` as `kite-passport-config.json` and `agent.json` as `kite-passport-agent.json`.
+3. The Docker entrypoint copies them to `/root/.kite-passport/` with mode 600.
+
+These files are your login. Never commit them (`.kite-passport` is in `.gitignore`). If the login expires, kpass exits with code 3 and the errand fails with "Kite Passport login expired".
+
+Approving a session still needs your passkey on your phone or laptop, so a stranger using the live site cannot spend from your wallet: every errand waits for you. Set `ERRAND_ACCESS_CODE` as well if you don't want strangers creating approval requests.
+
+**Fallback (kill switch):** if kpass will not run headless on Render by 6 Nov, run the agent on your Windows machine (`pnpm dev:agent` with `ERRAND_MODE=live`) during recording, expose it with a tunnel, and keep the hosted site in demo mode. Say so in the write-up.
+
+## Free testing on Kite testnet
+
+From Kite's `kite-x402-services` README: `kpass sandbox on` switches the CLI to testnet, and `kpass faucet drop --recipient <wallet> --token pieUSD` gives free pieUSD. Errand's own sellers (Bitrefill, StableEnrich…) charge on mainnet, so sandbox mode is for testing **Errand Guard** (`kite-service/errand-guard`, deployed with `KITE_NETWORK=testnet`), not for errands. Run `kpass sandbox off` before live errands.
+
+## Errand Guard: contributing a service to Kite
+
+`kite-service/errand-guard/` is a ready-to-PR folder for `gokite-ai/kite-x402-services` (their typescript-express template, `src/` unchanged, plus `service.yaml` validated against their schema and a README). Steps (from their CONTRIBUTING.md):
+
+1. Deploy it (Render blueprint includes it) with `KITE_NETWORK=testnet`, `UPSTREAM_URL` = your agent, a long `UPSTREAM_AUTH_VALUE` equal to the agent's `GUARD_SERVICE_TOKEN`.
+2. Confirm an unpaid request returns 402 with `accepts[0].network` = `eip155:2368` (checked locally: yes, pieUSD, payTo = your Passport wallet).
+3. Pay once with a sandbox agent; set `status: testnet` and `base_url` in `service.yaml`.
+4. Redeploy with `KITE_NETWORK=mainnet`, pay once with USDC, set `status: live`, `network: eip155:2366`.
+5. Fork `gokite-ai/kite-x402-services`, copy the folder to `services/errand-guard/`, add a row to `services/README.md`, run `npm run validate`, open a PR titled `feat(services): add errand-guard` with the paid-call output.

@@ -1,0 +1,7 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# tsx needs esbuild's install script (silences "Ignored build scripts").
+onlyBuiltDependencies:
+  - esbuild

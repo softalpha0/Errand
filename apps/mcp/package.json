@@ -1,0 +1,23 @@
+{
+  "name": "@errand/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Use Errand from Claude Desktop, Claude Code, ChatGPT or any MCP client.",
+  "bin": { "errand-mcp": "./src/index.ts" },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
+    "test": "echo \"mcp: covered by typecheck and a manual tools/list run (docs/mcp.md)\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "tsx": "4.23.15",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}

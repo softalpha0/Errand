@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+/*
+ * Errand design tokens.
+ * Feel: calm, precise, trustworthy, like a bank statement that explains itself.
+ * One accent (green = approved). Red only for blocked, amber only for "needs you".
+ * No gradients, no glass, no glow.
+ */
+:root {
+  --paper: #f6f3ed;
+  --card: #ffffff;
+  --sunken: #efebe3;
+  --ink: #1b1a17;
+  --muted: #625d53;
+  --faint: #8b857a;
+  --line: #e2dccf;
+  --line-strong: #cfc7b7;
+  --accent: #1d6a4c;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2efe8;
+  --block: #b42318;
+  --block-soft: #fbe8e6;
+  --ask: #8f5400;
+  --ask-soft: #f9eedb;
+  --focus: #1d6a4c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #13120f;
+    --card: #1b1a17;
+    --sunken: #100f0d;
+    --ink: #f1ede5;
+    --muted: #b0a99c;
+    --faint: #8a8478;
+    --line: #2f2d28;
+    --line-strong: #45423b;
+    --accent: #55b98f;
+    --accent-ink: #0d1f17;
+    --accent-soft: #15291f;
+    --block: #f2776b;
+    --block-soft: #2c1714;
+    --ask: #f0b65a;
+    --ask-soft: #2b2112;
+    --focus: #55b98f;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-block: var(--block);
+  --color-block-soft: var(--block-soft);
+  --color-ask: var(--ask);
+  --color-ask-soft: var(--ask-soft);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --radius-card: 14px;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--paper);
+  min-height: 100dvh;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Dotted rule used between receipt lines. */
+.leader {
+  flex: 1;
+  border-bottom: 1px dotted var(--line-strong);
+  transform: translateY(-4px);
+  min-width: 12px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 240ms ease-out both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .pulse-dot {
+    animation: none;
+  }
+  * {
+    transition: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff;
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "errand",
+  "private": true,
+  "version": "0.1.0",
+  "description": "An agent that researches, shops and pays through Kite Passport, checks every payment with SERV Reasoning, and learns from Reppo evaluations.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @errand/agent --filter @errand/web dev",
+    "dev:web": "pnpm --filter @errand/web dev",
+    "dev:agent": "pnpm --filter @errand/agent dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r typecheck",
+    "spike:kite": "pnpm --filter @errand/agent spike:kite",
+    "spike:reppo": "pnpm --filter @errand/agent spike:reppo",
+    "evidence": "pnpm --filter @errand/agent evidence"
+  }
+}

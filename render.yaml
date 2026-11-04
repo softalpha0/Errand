@@ -1,0 +1,59 @@
+# Render blueprint for the agent. The web app goes on Vercel (see docs/deploy.md).
+services:
+  - type: web
+    name: errand-agent
+    runtime: docker
+    dockerfilePath: ./apps/agent/Dockerfile
+    dockerContext: .
+    plan: starter # an always-on instance, so judges never hit a cold start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ERRAND_MODE
+        value: demo
+      - key: WEB_ORIGIN
+        sync: false
+      - key: SERV_API_KEY
+        sync: false
+      - key: SERV_GUARD_GRAPH_ID
+        sync: false
+      - key: SERV_GUARD_VERSION
+        sync: false
+      - key: REPPO_API_KEY
+        sync: false
+      - key: REPPO_SANDBOX
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: ERRAND_ACCESS_CODE
+        sync: false
+      - key: MAX_BUDGET_USD
+        value: "10"
+      - key: DEFAULT_COUNTRY
+        value: NG
+      - key: DOLPHIN_API_KEY
+        sync: false
+      - key: GUARD_SERVICE_TOKEN
+        sync: false
+
+  # The paid guard service other Kite Passport agents call (x402 on the Kite chain).
+  - type: web
+    name: errand-guard
+    runtime: docker
+    dockerfilePath: ./kite-service/errand-guard/Dockerfile
+    dockerContext: ./kite-service/errand-guard
+    plan: starter
+    healthCheckPath: /healthz
+    envVars:
+      - key: PAY_TO
+        sync: false
+      - key: KITE_NETWORK
+        value: testnet
+      - key: UPSTREAM_URL
+        sync: false
+      - key: UPSTREAM_AUTH_HEADER
+        value: x-guard-token
+      - key: UPSTREAM_AUTH_VALUE
+        sync: false
+      - key: PRICE_USD
+        value: "0.01"
