@@ -231,6 +231,17 @@ export function combine(rules: RuleResult, serv: RuleResult | null): RuleResult 
   return rank[serv.outcome] >= rank[rules.outcome] ? serv : rules;
 }
 
+/**
+ * The price SERV should compare a payment with. For an Amazon checkout, Kite charges the
+ * cap plus its fixed $1 fee by design, so the expected charge is cap + fee; comparing with
+ * the bare cap would make every correct checkout look 8% over plan. Rule R13 still checks
+ * the cap itself.
+ */
+export function expectedChargeUsd(c: PaymentCandidate): number | undefined {
+  if (c.endpointId === "kite.shop.checkout" && c.plannedProductUsd !== undefined) return round6(c.plannedProductUsd + SHOP_FEE_USD);
+  return c.plannedProductUsd;
+}
+
 export function endpointPrice(endpointId: string): number | null {
   return ENDPOINT_BY_ID[endpointId]?.priceUsd ?? null;
 }

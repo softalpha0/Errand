@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LIMITS, checkRules, type GuardContext } from "./guard";
+import { DEFAULT_LIMITS, checkRules, expectedChargeUsd, type GuardContext } from "./guard";
 import { checkPlan } from "./validate";
 import { SHOP_CHECKOUT_URL, SHOP_FEE_USD, allowanceCanPay, defaultShopCap } from "./catalog";
 import type { PaymentCandidate, Plan } from "./types";
@@ -127,5 +127,12 @@ describe("plan checks against the user's own words", () => {
   it("matches a phone written locally in the task", () => {
     const p: Plan = { ...gift("US", "me@example.com"), recipients: [{ label: "Mum", phone: "+2348031234567", email: "" }] };
     expect(checkPlan(p, { ...o, sourceText: "top up my mum on 0803 123 4567" }).issues.join(" ")).not.toMatch(/not in the user's task/);
+  });
+});
+
+describe("what SERV compares a payment with", () => {
+  it("is cap + Kite's fee for an Amazon checkout, the planned price otherwise", () => {
+    expect(expectedChargeUsd({ stepId: "s1", endpointId: "kite.shop.checkout", url: SHOP_CHECKOUT_URL, method: "POST", priceUsd: 13, origin: "plan", plannedProductUsd: 12 })).toBe(13);
+    expect(expectedChargeUsd({ stepId: "s3", endpointId: "bitrefill.invoice.pay", url: "https://api.bitrefill.com/x402/invoice/pay", method: "POST", priceUsd: 5.4, origin: "plan", plannedProductUsd: 6 })).toBe(6);
   });
 });

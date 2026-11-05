@@ -69,6 +69,8 @@ Feel: calm, precise, trustworthy, like a bank statement that explains itself. Wa
 - [x] SERV key connected; guard graph v1 then v2 created; demo runs on real SERV decisions.
 - [x] 4 Nov evening: partner-feedback features built (scope, R12, Reppo second opinion + opinion errands, Errand Guard x402 service, MCP server, Dolphin emails, plain-money receipts). 52 unit tests.
 - [x] 5 Nov: own Passport, standing errands (allowance), Amazon via Kite shopping + R13, private errands, Telegram bot, directory steps. 67 tests.
+- [x] 5 Nov: attack benchmark (27 cases, three setups), Results page section, landing proof band. 75 tests.
+- [ ] HUMAN: `pnpm benchmark` with SERV_API_KEY → commit evidence/benchmark.md and apps/web/src/data/benchmark.json.
 - [ ] HUMAN: connect your own Passport once in live mode; confirm the login lands in PASSPORTS_DIR.
 - [ ] HUMAN: turn on a small Kite allowance (e.g. $1/week) and run one standing errand live.
 - [ ] HUMAN: create the Telegram bot with @BotFather → TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS.

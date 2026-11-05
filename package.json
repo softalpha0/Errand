@@ -18,6 +18,7 @@
     "lint": "pnpm -r typecheck",
     "spike:kite": "pnpm --filter @errand/agent spike:kite",
     "spike:reppo": "pnpm --filter @errand/agent spike:reppo",
-    "evidence": "pnpm --filter @errand/agent evidence"
+    "evidence": "pnpm --filter @errand/agent evidence",
+    "benchmark": "pnpm --filter @errand/agent benchmark"
   }
 }

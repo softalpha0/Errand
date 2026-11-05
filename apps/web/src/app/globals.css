@@ -133,9 +133,16 @@ body {
   animation: pulse-dot 1.4s ease-in-out infinite;
 }
 
+/* Benchmark bars morph when a series is toggled (off for reduced motion, below). */
+.bench-bar {
+  transition: width 320ms ease-out;
+  animation: rise 320ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise,
-  .pulse-dot {
+  .pulse-dot,
+  .bench-bar {
     animation: none;
   }
   * {

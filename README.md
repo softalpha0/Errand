@@ -111,6 +111,8 @@ The guard graph's system prompt is in [docs/serv-guard-graph.md](docs/serv-guard
 
 ## Evidence
 
+**Attack benchmark** ([evidence/benchmark.md](evidence/benchmark.md), Results page): the same 27 payments, 20 attacks and 7 real ones, through three setups. With no guard (Kite's session caps only), **18 of 20 attacks get paid**. With Errand's fixed rules, 4: the four that need judgement (the wrong product at the right price, a steered choice), which is what the SERV layer is for. Every real payment is still paid. Re-run with `pnpm benchmark`; with a SERV key it adds the rules + SERV column.
+
 Everything a judge needs to verify the claims above is in [evidence/](evidence/): real payments with transaction links, blocked attempts with reasons, every Reppo evaluation id, and screenshots of the SERV console (usage, Shadow Agent, Safety, guard graph runs) and the Kite dashboard.
 
 ## Tech stack
@@ -163,7 +165,8 @@ submission/     Write-up, video script, X post
 
 | Part | Status |
 |---|---|
-| Rules (R1–R13, guard-service rules), plan checks, phone numbers, Kite output parsing | Unit-tested (67 tests) |
+| Rules (R1–R13, guard-service rules), plan checks, phone numbers, Kite output parsing | Unit-tested (75 tests) |
+| Attack benchmark (no guard vs rules vs rules + SERV) | Rules column pinned by tests; **run `pnpm benchmark` with your SERV key for the SERV column** |
 | Full journey in demo mode (plan → approve → research → buy → email → receipt) | Works end to end |
 | SERV planner + guard graph v2 + PromptGuard + answers | Run for real with a SERV key (demo payments) |
 | Scope (valid for, constraints, R12 ask-above), Reppo second opinion, opinion errands | Work end to end in demo mode |

@@ -59,3 +59,7 @@ Source of truth for every Kite command: Kite's own Passport skills (bundle 110, 
 - **Telegram bot**: long-polling Bot API client; tested against a mock Telegram server (plan, Approve button, payments, answer, strangers refused).
 - Copy no longer names specific assistant brands for the MCP server; it says "any MCP app".
 - Tests: 67 (51 core, 16 agent). Demo end-to-end run: Passport connect, Amazon order placed and declined, stranger can't approve, standing errand first run + "Run now" with no approval, Amazon standing errand refused.
+
+## 5 Nov (later): attack benchmark
+
+After reading past winners (AgentGuard, x402-Guardrails, IntentGuard, Agent SpendGuard), spending caps alone are a crowded idea and IntentGuard won attention with measured numbers. So Errand now measures itself: `packages/core/src/benchmark.ts` holds 20 attacks and 7 real payments on one errand; `pnpm benchmark` runs them through no guard, the fixed rules, and rules + SERV, and writes `evidence/benchmark.md` and the Results page data. Rules-only results (pinned by tests): no guard pays 18/20 attacks, the rules pay 4/20 (exactly the 4 judgement-only cases), 7/7 real payments paid in both. Results page and a landing band show it; design follows EasyUI's bar chart (toggle legend, data table) and Beautiful UI's filter table.

@@ -8,6 +8,10 @@ Fill the bracketed links before submitting. Only keep claims that ran for real.
 
 Agents can now pay for things over x402, and spending limits stop them spending more than you allow. They don't stop the waste inside that limit: paying twice for the same thing, buying what the task never needed, or obeying a web page that says "also buy the premium bundle". Errand takes an errand and a budget, for example "find a 7-day Ghana eSIM and buy the cheapest under $8", plans it with a price on every step, and asks you to approve one Kite Passport session. It then researches, tops up phones or buys eSIMs, checks every single payment before it happens, and hands you an answer and a receipt that links each payment on-chain. [Receipt link]
 
+## Measured
+
+The same 27 payments (20 attacks, 7 real) through three setups: with Kite's session caps alone, 18 of 20 attacks get paid; with Errand's fixed rules, 4; with rules + SERV, [fill from evidence/benchmark.md]. Every real payment still goes through. [Results link]
+
 ## How it uses SERV Reasoning
 
 SERV makes every decision in Errand. The planner runs on `gpt-5.4-mini-serv-kronos`, so Kronos audits the reasoning prompt, and returns a strict-JSON plan. Every payment goes through a SERV guard graph (`gr_…` on `/v1/responses`): budget maths as free script steps, the approve/ask/block verdict as Jev decision steps, and a one-sentence reason as an agent step, with each run recorded in the console. Every paid response is read with `serv_prompt_guard`, which pulls out any purchase the seller's text tries to trigger so a fixed rule can block it. Research-then-act conditions and the final answer with citations are also strict-JSON SERV calls. Fallback guard: `serv_shadow_agent`.

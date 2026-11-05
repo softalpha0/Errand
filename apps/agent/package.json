@@ -11,7 +11,8 @@
     "test": "vitest run",
     "spike:kite": "tsx --env-file-if-exists=../../.env scripts/spike-kite.ts",
     "spike:reppo": "tsx --env-file-if-exists=../../.env scripts/spike-reppo.ts",
-    "evidence": "tsx --env-file-if-exists=../../.env scripts/evidence.ts"
+    "evidence": "tsx --env-file-if-exists=../../.env scripts/evidence.ts",
+    "benchmark": "tsx --env-file-if-exists=../../.env scripts/benchmark.ts"
   },
   "dependencies": {
     "@errand/core": "workspace:*",

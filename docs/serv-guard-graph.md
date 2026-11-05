@@ -90,3 +90,7 @@ Since 4 Nov the graph input also carries `constraints` (the user's scope in plai
 ```
 
 and add `- constraints: the user's scope, one phrase each. Every purchase must respect all of them.` to the INPUT list. Set `SERV_GUARD_VERSION=guard-v3`.
+
+## Amazon checkouts and `overPlan` (5 Nov)
+
+Step 1's script computes `overPlan = (priceUsd - plannedProductUsd) / plannedProductUsd` and asks above 3%. Kite's shopping checkout always charges the order cap plus a fixed $1 fee, so Errand sends `plannedProductUsd` = cap + $1 for checkouts (`expectedChargeUsd` in packages/core/src/guard.ts). Without that, every correct checkout looked about 8% over plan and the graph asked (benchmark case C07). Rule R13 still checks the charge against the cap itself. No change to the graph is needed.

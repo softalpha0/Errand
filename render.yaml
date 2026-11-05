@@ -8,6 +8,11 @@ services:
     plan: starter # an always-on instance, so judges never hit a cold start
     healthCheckPath: /health
     autoDeploy: true
+    # Keeps connected people's Kite logins across restarts and deploys (PASSPORTS_DIR).
+    disk:
+      name: errand-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: ERRAND_MODE
         value: demo

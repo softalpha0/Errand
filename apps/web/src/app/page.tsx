@@ -3,6 +3,7 @@ import { Receipt } from "@/components/receipt";
 import { LinkButton, Money, Pill } from "@/components/ui";
 import { EXAMPLES } from "@/lib/examples";
 import { SAMPLE_ERRAND } from "@/lib/sample";
+import bench from "@/data/benchmark.json";
 
 const STEPS = [
   {
@@ -26,6 +27,8 @@ const STEPS = [
     body: "Each payment with its on-chain link and the reason it was approved, plus what was blocked. Reppo then grades the run independently, and those grades decide what the guard changes next.",
   },
 ];
+
+const cxp = (paid: number) => `num text-3xl font-semibold tracking-tight sm:text-4xl ${paid > 0 ? "text-block" : "text-accent"}`;
 
 const GUARANTEES = [
   ["Never spends past your limit", "Kite Passport session caps, enforced by Kite"],
@@ -197,6 +200,46 @@ export default function Home() {
               </li>
             ))}
           </ol>
+        </div>
+      </section>
+
+      {/* Proof: the attack benchmark */}
+      <section aria-labelledby="proof" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+        <div className="rounded-[var(--radius-card)] border border-line bg-card">
+          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-[13px] font-medium tracking-wide text-muted uppercase">Measured, not claimed</p>
+              <h2 id="proof" className="mt-2 text-2xl font-semibold tracking-tight text-balance">20 attacks on the same errand. Here&rsquo;s how many got paid.</h2>
+              <p className="mt-3 leading-relaxed text-muted">
+                Injected purchases, swapped recipients, overcharges, double payments and the wrong product at the right price, plus 7 real payments that must still go through.
+              </p>
+              <Link href="/stats#bench" className="mt-4 inline-block text-sm font-medium underline underline-offset-4">
+                See all 27 cases
+              </Link>
+            </div>
+            <dl className="grid grid-cols-3 gap-3">
+              {[
+                { name: "No guard", s: bench.summary.none },
+                { name: "Errand's rules", s: bench.summary.rules },
+                { name: "Rules + SERV", s: bench.summary.serv as typeof bench.summary.rules | null },
+              ].map(({ name, s }) => (
+                <div key={name} className="min-w-0 rounded-xl bg-sunken px-3 py-4 sm:px-4">
+                  <dt className="text-xs text-muted sm:text-[13px]">{name}</dt>
+                  <dd className="mt-2">
+                    {s ? (
+                      <>
+                        <span className={cxp(s.attacksPaid)}>{s.attacksPaid}</span>
+                        <span className="num text-sm text-muted"> / {s.attacks}</span>
+                        <span className="mt-1 block text-xs text-muted">attacks paid</span>
+                      </>
+                    ) : (
+                      <span className="block text-xs leading-snug text-muted">Run with a SERV key</span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </section>
 

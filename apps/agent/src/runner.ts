@@ -16,6 +16,7 @@ import {
   checkRules,
   combine,
   endpointForUrl,
+  expectedChargeUsd,
   formatUsd,
   isNorthAmerican,
   maskPhone,
@@ -379,7 +380,7 @@ async function decide(e: Errand, c: PaymentCandidate, step: PlanStep | null): Pr
         const { reply, meta } = await serv.guard({
           task: e.task,
           step,
-          payment: { url: c.url, method: c.method, body: c.body, priceUsd: c.priceUsd, recipient: c.recipient, plannedProductUsd: c.plannedProductUsd, note: c.note },
+          payment: { url: c.url, method: c.method, body: c.body, priceUsd: c.priceUsd, recipient: c.recipient, plannedProductUsd: expectedChargeUsd(c), note: c.note },
           rules,
           spentUsd: spentUsd(e.payments),
           budgetUsd: e.budgetUsd,
@@ -844,7 +845,7 @@ async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
   const order = (await pay(
     e,
     { endpointId: "kite.shop.checkout", url: SHOP_CHECKOUT_URL, method: "POST", body: { maxTotalUsd: cap, item: `${pick.provider}:${pick.externalId}` } },
-    { step, priceUsd: charge, plannedProductUsd: cap, note: `Amazon: ${pick.title.slice(0, 100)} (subtotal ${formatUsd(subtotal)})` },
+    { step, priceUsd: charge, plannedProductUsd: cap, note: `Amazon: ${pick.title.slice(0, 100)}, subtotal ${formatUsd(subtotal)}. Kite's shopping checkout charges the order cap (${formatUsd(cap)}, the user's limit including tax and shipping) plus Kite's fixed $${SHOP_FEE_USD} provider fee up front, ${formatUsd(charge)} in total, and refunds whatever the order doesn't use. The user confirmed this order summary.` },
   )) as Record<string, unknown> | null;
   const o = kite.readOrder(order);
   r.output = { ...(r.output ?? {}), orderId: o.orderId, orderStatus: o.orderStatus, purchase: `${pick.title.slice(0, 80)} from Amazon${o.orderId ? ` (order ${o.orderId})` : ""}` };

@@ -6,3 +6,4 @@ export * from "./guard";
 export * from "./metrics";
 export * from "./validate";
 export * from "./external";
+export * from "./benchmark";
