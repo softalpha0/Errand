@@ -33,12 +33,30 @@ export const COUNTRIES: { code: string; name: string }[] = [
   { code: "AU", name: "Australia" },
 ];
 
-/** Best guess from the browser's language setting (en-NG → NG), else Nigeria. */
+/** Time zone → country. The time zone follows where the computer is; the language often says en-US anywhere. */
+const ZONES: Record<string, string> = {
+  "Africa/Lagos": "NG", "Africa/Accra": "GH", "Africa/Nairobi": "KE", "Africa/Johannesburg": "ZA", "Africa/Cairo": "EG",
+  "Africa/Douala": "CM", "Africa/Abidjan": "CI", "Africa/Dakar": "SN", "Africa/Kampala": "UG", "Africa/Dar_es_Salaam": "TZ",
+  "Africa/Kigali": "RW", "Africa/Addis_Ababa": "ET", "Africa/Casablanca": "MA", "Europe/London": "GB", "Europe/Dublin": "IE",
+  "Europe/Berlin": "DE", "Europe/Paris": "FR", "Europe/Amsterdam": "NL", "Europe/Madrid": "ES", "Europe/Rome": "IT",
+  "Asia/Dubai": "AE", "Asia/Riyadh": "SA", "Asia/Kolkata": "IN", "Asia/Calcutta": "IN", "Asia/Karachi": "PK", "Asia/Manila": "PH",
+  "Asia/Jakarta": "ID", "America/Sao_Paulo": "BR", "America/Mexico_City": "MX", "America/Toronto": "CA", "America/Vancouver": "CA",
+  "Australia/Sydney": "AU", "Australia/Melbourne": "AU",
+};
+
+/** Best guess for this visitor: their time zone first, then the browser language, else Nigeria. */
 export function guessCountry(): string {
   if (typeof navigator === "undefined") return "NG";
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (ZONES[zone]) return ZONES[zone]!;
+    if (zone?.startsWith("America/") && !zone.includes("Sao_Paulo")) return "US";
+  } catch {
+    /* no Intl time zone: fall through to the language */
+  }
   for (const lang of navigator.languages ?? [navigator.language]) {
     const region = lang.split("-")[1]?.toUpperCase();
-    if (region && COUNTRIES.some((c) => c.code === region)) return region;
+    if (region && region !== "US" && COUNTRIES.some((c) => c.code === region)) return region;
   }
   return "NG";
 }
