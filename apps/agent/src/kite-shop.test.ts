@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePrice, readAllowance, readCart, readOrder, readShipping, readShopItems } from "./kite";
+import { parsePrice, readAllowance, readCart, readOrder, readShipping, readShopItems, sessionLimits } from "./kite";
 
 // Shapes copied from Kite's own skill references (passport-skills 3.6.7): shopping/references/commands.md
 // and kite-passport/SKILL.md ("How the Account Allowance Works").
@@ -54,5 +54,16 @@ describe("kpass allowance status", () => {
   it("treats unknown states as unknown, not active", () => {
     expect(readAllowance({ state: "weird" }).state).toBe("unknown");
     expect(readAllowance(null).state).toBe("unknown");
+  });
+});
+
+describe("session limits sent to Kite", () => {
+  it("never asks for a per-payment limit above the total (Kite rejects it)", () => {
+    expect(sessionLimits(1, 0.34)).toEqual({ perTx: "0.34", total: "0.34" });
+  });
+  it("rounds up to whole cents so the session is never too small", () => {
+    expect(sessionLimits(0.5, 0.707)).toEqual({ perTx: "0.50", total: "0.71" });
+    expect(sessionLimits(0.68, 0.704)).toEqual({ perTx: "0.68", total: "0.71" });
+    expect(sessionLimits(0.01, 0.05)).toEqual({ perTx: "0.01", total: "0.05" });
   });
 });

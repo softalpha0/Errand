@@ -120,7 +120,8 @@ async function byToken(token: string | undefined | null): Promise<PassportRecord
   if (!token) return null;
   const h = hash(token);
   const all = await store.listDocs<PassportRecord>("passport");
-  return all.find((r) => r.state === "connected" && r.tokenHash === h) ?? null;
+  // A connection made in demo mode is never valid on a live site (and the other way round).
+  return all.find((r) => r.state === "connected" && r.tokenHash === h && r.simulated === (env.mode === "demo")) ?? null;
 }
 
 /** The connected Passport for a request's x-passport-token header, or null. Throws if a token was sent but is unknown. */
@@ -244,7 +245,7 @@ export async function redeemTelegramLink(code: string, tg: { id: number; usernam
 /** The connected Passport linked to this Telegram account, or null. */
 export async function passportForTelegram(telegramUserId: number): Promise<{ id: string; email: string } | null> {
   const all = await store.listDocs<PassportRecord>("passport");
-  const rec = all.find((r) => r.state === "connected" && r.telegramUserId === telegramUserId);
+  const rec = all.find((r) => r.state === "connected" && r.telegramUserId === telegramUserId && r.simulated === (env.mode === "demo"));
   return rec ? { id: rec.id, email: rec.email } : null;
 }
 

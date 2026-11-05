@@ -50,11 +50,15 @@ export function usePassport(): { passport: PassportPublic | null; loading: boole
       return;
     }
     // Imported here to avoid a cycle with api.ts, which reads the token from this file.
-    void import("./api").then(({ api }) =>
+    void import("./api").then(({ api, ApiError }) =>
       api
         .passportMe()
         .then((p) => live && setPassport(p))
-        .catch(() => live && setPassport(null))
+        .catch((err) => {
+          // The agent no longer knows this connection (logged out, or made in demo mode): forget it here too.
+          if (err instanceof ApiError && err.status === 404) savePassportToken(null);
+          if (live) setPassport(null);
+        })
         .finally(() => live && setLoading(false)),
     );
     return () => {

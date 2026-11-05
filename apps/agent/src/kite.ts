@@ -130,6 +130,18 @@ async function withRegistration<T>(home: string | null | undefined, fn: () => Pr
   }
 }
 
+/**
+ * Kite rejects a session whose per-payment limit is above its total (seen live on 5 Nov:
+ * "max_amount_per_tx is required" for $1.00 per payment with a $0.34 total). Cents are
+ * rounded up so the session is never a fraction of a cent smaller than the plan needs.
+ */
+export function sessionLimits(maxPerTxUsd: number, maxTotalUsd: number): { perTx: string; total: string } {
+  const up = (x: number) => Math.ceil(Math.round(x * 1_000_000) / 10_000) / 100;
+  const total = Math.max(0.01, up(maxTotalUsd));
+  const perTx = Math.max(0.01, Math.min(up(maxPerTxUsd), total));
+  return { perTx: perTx.toFixed(2), total: total.toFixed(2) };
+}
+
 export async function createSession(opts: {
   taskSummary: string;
   maxPerTxUsd: number;
@@ -137,6 +149,7 @@ export async function createSession(opts: {
   ttl?: string;
   home?: string | null;
 }): Promise<SessionRequest> {
+  const limits = sessionLimits(opts.maxPerTxUsd, opts.maxTotalUsd);
   const raw = await withRegistration(opts.home, () => kpass([
     "session",
     "create",
@@ -146,9 +159,9 @@ export async function createSession(opts: {
     "--task-summary",
     opts.taskSummary.slice(0, 120),
     "--max-amount-per-tx",
-    opts.maxPerTxUsd.toFixed(2),
+    limits.perTx,
     "--max-total-amount",
-    opts.maxTotalUsd.toFixed(2),
+    limits.total,
     "--ttl",
     opts.ttl ?? env.kite.sessionTtl,
   ], { home: opts.home }));
