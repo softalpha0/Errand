@@ -51,7 +51,7 @@ Create a project at neon.tech, copy the connection string into `DATABASE_URL` (i
 1. New → Blueprint → pick the GitHub repo. Render reads `render.yaml` and builds `apps/agent/Dockerfile` from the repo root.
 2. Environment: set `WEB_ORIGIN` to your Vercel address, plus `SERV_API_KEY`, `SERV_GUARD_GRAPH_ID`, `SERV_GUARD_VERSION`, `REPPO_API_KEY`, `DATABASE_URL`, `ERRAND_ACCESS_CODE`.
 3. For live mode: Secret Files → add `kite-passport-config.json` (contents of `%USERPROFILE%\.kite-passport\config.json`) and `kite-passport-agent.json` (contents of `agent.json`). Then set `ERRAND_MODE=live`.
-4. Keep the instance on an always-on plan during judging.
+4. The blueprint uses Render's **free plan** (no card needed). It sleeps after 15 idle minutes and takes about a minute to wake. Keep it awake for free: at cron-job.org, create a job that opens `https://<your-agent>.onrender.com/health` every 10 minutes. One always-on free service fits in Render's 750 free hours a month; let errand-guard sleep. The free plan has no disk, so connected Passports are forgotten on restart (errands and receipts stay in Neon).
 5. Check `https://<your-agent>.onrender.com/health`. It should show `"mode":"live"`, a `kpass` version and `"serv":"graph"`.
 
 To see your secret file names without printing their contents:

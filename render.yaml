@@ -5,14 +5,13 @@ services:
     runtime: docker
     dockerfilePath: ./apps/agent/Dockerfile
     dockerContext: .
-    plan: starter # an always-on instance, so judges never hit a cold start
+    region: frankfurt # next to the Neon database
+    # Free plan: sleeps after 15 idle minutes. Keep it awake with a free pinger hitting /health every 10 minutes (docs/deploy.md).
+    plan: free
     healthCheckPath: /health
     autoDeploy: true
-    # Keeps connected people's Kite logins across restarts and deploys (PASSPORTS_DIR).
-    disk:
-      name: errand-data
-      mountPath: /data
-      sizeGB: 1
+    # On a paid plan, add a disk so connected people's Kite logins survive restarts:
+    # disk: { name: errand-data, mountPath: /data, sizeGB: 1 }
     envVars:
       - key: ERRAND_MODE
         value: demo
@@ -44,9 +43,9 @@ services:
         sync: false
       - key: TELEGRAM_ALLOWED_USERS
         sync: false
-      # Connected people's Kite logins. Mount a persistent disk here so they survive restarts.
+      # Connected people's Kite logins. On the free plan this folder is wiped on restart.
       - key: PASSPORTS_DIR
-        value: /data/passports
+        value: /tmp/passports
 
   # The paid guard service other Kite Passport agents call (x402 on the Kite chain).
   - type: web
@@ -54,7 +53,8 @@ services:
     runtime: docker
     dockerfilePath: ./kite-service/errand-guard/Dockerfile
     dockerContext: ./kite-service/errand-guard
-    plan: starter
+    region: frankfurt
+    plan: free # sleeps when idle; a caller waits for it to wake
     healthCheckPath: /healthz
     envVars:
       - key: PAY_TO
