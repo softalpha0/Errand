@@ -30,6 +30,7 @@ const sample: Errand = {
   funding: "session",
   passportId: null,
   privacy: "public",
+  country: "NG",
   standingId: null,
   plan: {
     summary: "Research prices, then buy if under $8.",

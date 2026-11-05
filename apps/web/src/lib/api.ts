@@ -67,7 +67,7 @@ export interface StatsResponse {
 export const api = {
   config: () => request<AgentConfig>("/config"),
   create: (
-    input: { task: string; budgetUsd: number; maxPerPaymentUsd: number; email?: string; validFor?: "1h" | "24h" | "7d"; askAboveUsd?: number | null; privacy?: Privacy },
+    input: { task: string; budgetUsd: number; maxPerPaymentUsd: number; email?: string; validFor?: "1h" | "24h" | "7d"; askAboveUsd?: number | null; privacy?: Privacy; country?: string },
     accessCode?: string,
   ) =>
     request<{ id: string }>("/errands", { method: "POST", body: JSON.stringify(input), headers: accessCode ? { "x-access-code": accessCode } : {} }),
@@ -89,7 +89,7 @@ export const api = {
 
   // Standing errands, paid from the Kite allowance
   standingCreate: (
-    input: { task: string; every: "day" | "week"; capPerRunUsd: number; maxPerPaymentUsd: number; email?: string; privacy?: Privacy },
+    input: { task: string; every: "day" | "week"; capPerRunUsd: number; maxPerPaymentUsd: number; email?: string; privacy?: Privacy; country?: string },
     accessCode?: string,
   ) => request<{ id: string; errandId: string }>("/standing", { method: "POST", body: JSON.stringify(input), headers: accessCode ? { "x-access-code": accessCode } : {} }),
   standingList: () => request<StandingErrand[]>("/standing"),

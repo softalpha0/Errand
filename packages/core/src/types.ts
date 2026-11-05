@@ -185,6 +185,8 @@ export interface Errand {
   passportId: string | null;
   /** "private": nothing about this errand goes to Reppo's public network. */
   privacy: Privacy;
+  /** ISO country for phone numbers written without a country code, and the planner's default. */
+  country: string;
   /** Set when this run belongs to a standing errand ("keep Mum's data topped up"). */
   standingId: string | null;
   status: ErrandStatus;
@@ -222,6 +224,8 @@ export const CreateErrandSchema = z.object({
   validFor: z.enum(VALID_FOR).default("1h"),
   askAboveUsd: z.number().positive().max(50).nullable().optional(),
   privacy: z.enum(PRIVACY).default("public"),
+  /** Two-letter country code, e.g. NG. Omitted = the site's DEFAULT_COUNTRY. */
+  country: z.string().trim().regex(/^[A-Za-z]{2}$/, "Pick a country.").transform((c) => c.toUpperCase()).optional(),
 });
 export type CreateErrandInput = z.infer<typeof CreateErrandSchema>;
 
@@ -238,6 +242,7 @@ export const CreateStandingSchema = z.object({
   maxPerPaymentUsd: z.number().min(0.01).max(50),
   email: z.string().email().optional(),
   privacy: z.enum(PRIVACY).default("private"),
+  country: z.string().trim().regex(/^[A-Za-z]{2}$/, "Pick a country.").transform((c) => c.toUpperCase()).optional(),
 });
 export type CreateStandingInput = z.infer<typeof CreateStandingSchema>;
 
@@ -258,6 +263,7 @@ export interface StandingErrand {
   capPerRunUsd: number;
   maxPerPaymentUsd: number;
   privacy: Privacy;
+  country: string;
   passportId: string | null;
   /** The plan the person approved on the first run; every later run repeats it. */
   plan: Plan | null;

@@ -17,6 +17,7 @@ export const SAMPLE_ERRAND: Errand = {
   funding: "session",
   passportId: null,
   privacy: "public",
+  country: "NG",
   standingId: null,
   status: "done",
   plan: null,

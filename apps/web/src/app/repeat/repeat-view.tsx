@@ -8,6 +8,7 @@ import { ModeNote } from "@/components/errand-parts";
 import { Button, Card, CardHeader, ErrorNote, Field, Money, Pill, Skeleton, cx, inputClass } from "@/components/ui";
 import { api, type AgentConfig } from "@/lib/api";
 import { dateOf, STATUS_TEXT } from "@/lib/format";
+import { COUNTRIES, guessCountry } from "@/lib/countries";
 import { usePassport } from "@/lib/passport";
 
 const EXAMPLE = "Send NGN 1,000 MTN data to my mum on 0803 123 4567.";
@@ -118,6 +119,8 @@ export function RepeatView() {
   const [cap, setCap] = useState("1");
   const [per, setPer] = useState("1");
   const [privateRun, setPrivateRun] = useState(true);
+  const [country, setCountry] = useState("NG");
+  useEffect(() => setCountry(guessCountry()), []);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -171,7 +174,7 @@ export function RepeatView() {
           setBusy(true);
           setError(null);
           try {
-            const r = await api.standingCreate({ task: task.trim(), every, capPerRunUsd: capN, maxPerPaymentUsd: perN, privacy: privateRun ? "private" : "public" }, code || undefined);
+            const r = await api.standingCreate({ task: task.trim(), every, capPerRunUsd: capN, maxPerPaymentUsd: perN, privacy: privateRun ? "private" : "public", country }, code || undefined);
             router.push(`/e/${r.errandId}`);
           } catch (e) {
             setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -199,6 +202,15 @@ export function RepeatView() {
             <input id="st-per" inputMode="decimal" className={cx(inputClass, "num")} value={per} onChange={(ev) => setPer(ev.target.value)} />
           </Field>
         </div>
+        <Field label="Your country" htmlFor="st-country" hint="Phone numbers written without a + code are read as this country's, and the plan assumes it unless you say otherwise.">
+          <select id="st-country" className={inputClass} value={country} onChange={(ev) => setCountry(ev.target.value)}>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
         <label className="flex items-start gap-3 text-sm">
           <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-ink)]" checked={privateRun} onChange={(ev) => setPrivateRun(ev.target.checked)} />
           <span>

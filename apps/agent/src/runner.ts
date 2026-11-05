@@ -175,6 +175,7 @@ export async function createErrand(input: CreateErrandInput, opts: CreateOptions
     funding: opts.funding ?? "session",
     passportId: opts.passportId ?? null,
     privacy: input.privacy ?? "public",
+    country: input.country ?? env.defaultCountry,
     standingId: opts.standingId ?? null,
     status: "planning",
     plan: null,
@@ -211,14 +212,14 @@ export async function createErrand(input: CreateErrandInput, opts: CreateOptions
 }
 
 function planCheck(e: Errand) {
-  return checkPlan(e.plan!, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry, funding: e.funding });
+  return checkPlan(e.plan!, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: e.country, funding: e.funding });
 }
 
 // ---------- lifecycle ----------
 
 async function lifecycle(e: Errand, preset: Plan | null) {
   if (preset) {
-    const check = checkPlan(preset, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry, funding: e.funding });
+    const check = checkPlan(preset, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: e.country, funding: e.funding });
     if (!check.ok) throw new Error(`The approved plan no longer fits its limits: ${check.issues.join(" ")}`);
     e.plan = preset;
     e.steps = preset.steps.map((s) => ({ stepId: s.id, status: "pending", note: "", facts: [], sources: [], suggestions: [] }));
@@ -274,10 +275,10 @@ async function planPhase(e: Errand) {
     for (let attempt = 0; attempt < 2 && !accepted; attempt++) {
       checkCancelled(e);
       const plan = useServ
-        ? (await serv.plan({ task: e.task, budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, feedback, answers })).plan
+        ? (await serv.plan({ task: e.task, budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, country: e.country, feedback, answers })).plan
         : scriptedPlan(e.task, e.budgetUsd);
       const sourceText = [e.task, ...answers.map((x) => x.a)].join("\n");
-      const check = checkPlan(plan, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry, funding: e.funding, sourceText });
+      const check = checkPlan(plan, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: e.country, funding: e.funding, sourceText });
       if (check.ok) {
         e.plan = plan;
         accepted = true;
@@ -361,7 +362,7 @@ function guardContext(e: Errand): GuardContext {
     payments: e.payments,
     limits: { ...DEFAULT_LIMITS, totalMaxUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, askAboveUsd: e.askAboveUsd },
     approvedRecipients: check.approvedRecipients,
-    defaultCountry: env.defaultCountry,
+    defaultCountry: e.country,
   };
 }
 
@@ -699,7 +700,7 @@ async function runBuy(e: Errand, step: PlanStep, r: StepResult) {
   const amountUsd = Number(stepInput(step, "amountUsd"));
   let packageValue = stepInput(step, "packageValue");
   const recipientRaw = stepInput(step, "recipient");
-  const recipient = recipientRaw ? (normalizePhone(recipientRaw, country ?? env.defaultCountry) ?? undefined) : undefined;
+  const recipient = recipientRaw ? (normalizePhone(recipientRaw, country ?? e.country) ?? undefined) : undefined;
   if (kind === "topup" && !recipient) throw new Blocked("No valid phone number to top up.");
 
   // 1. Search

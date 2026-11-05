@@ -47,6 +47,7 @@ function errandInput(s: StandingErrand, email?: string) {
     validFor: "1h" as const,
     askAboveUsd: null,
     privacy: s.privacy,
+    country: s.country ?? env.defaultCountry,
     ...(email ? { email } : {}),
   };
 }
@@ -61,6 +62,7 @@ export async function createStanding(input: CreateStandingInput, passportId: str
     capPerRunUsd: Math.min(input.capPerRunUsd, env.maxBudgetUsd),
     maxPerPaymentUsd: input.maxPerPaymentUsd,
     privacy: input.privacy,
+    country: input.country ?? env.defaultCountry,
     passportId,
     plan: null,
     state: "pending_approval",

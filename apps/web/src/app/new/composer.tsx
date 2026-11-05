@@ -7,6 +7,7 @@ import { ModeNote } from "@/components/errand-parts";
 import { Button, ErrorNote, Field, cx, inputClass } from "@/components/ui";
 import { api, type AgentConfig } from "@/lib/api";
 import { EXAMPLES } from "@/lib/examples";
+import { COUNTRIES, guessCountry } from "@/lib/countries";
 import { usePassport } from "@/lib/passport";
 
 export function Composer({ initial }: { initial: number | null }) {
@@ -19,6 +20,8 @@ export function Composer({ initial }: { initial: number | null }) {
   const [validFor, setValidFor] = useState<"1h" | "24h" | "7d">("1h");
   const [askAbove, setAskAbove] = useState<string>("");
   const [privateRun, setPrivateRun] = useState(false);
+  const [country, setCountry] = useState("NG");
+  useEffect(() => setCountry(guessCountry()), []);
   const { passport } = usePassport();
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +62,7 @@ export function Composer({ initial }: { initial: number | null }) {
     try {
       const askN = askAbove.trim() ? Number(askAbove) : null;
       const { id } = await api.create(
-        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, privacy: privateRun ? "private" : "public" },
+        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, privacy: privateRun ? "private" : "public", country },
         code || undefined,
       );
       router.push(`/e/${id}`);
@@ -133,6 +136,18 @@ export function Composer({ initial }: { initial: number | null }) {
         </Field>
         <Field label="Always ask me above (USD, optional)" htmlFor="askabove" hint="Errand pauses for your OK before any single payment larger than this.">
           <input id="askabove" inputMode="decimal" className={cx(inputClass, "num")} value={askAbove} onChange={(ev) => setAskAbove(ev.target.value)} placeholder="e.g. 5" />
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Your country" htmlFor="country" hint="Phone numbers written without a + code are read as this country's, and the plan assumes it unless you say otherwise.">
+          <select id="country" className={inputClass} value={country} onChange={(ev) => setCountry(ev.target.value)}>
+            {COUNTRIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 

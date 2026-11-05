@@ -73,6 +73,8 @@ export async function plan(input: {
   task: string;
   budgetUsd: number;
   maxPerPaymentUsd: number;
+  /** The user's country (from the form), else the site default. */
+  country?: string;
   feedback?: string[];
   answers?: { q: string; a: string }[];
 }): Promise<{ plan: Plan; meta: ServMeta }> {
@@ -86,7 +88,7 @@ export async function plan(input: {
     .join("\n\n");
   const { value, meta } = await structured<unknown>({
     model: env.serv.planModel,
-    system: plannerSystemPrompt({ defaultCountry: env.defaultCountry, today: new Date().toISOString().slice(0, 10) }),
+    system: plannerSystemPrompt({ defaultCountry: input.country ?? env.defaultCountry, today: new Date().toISOString().slice(0, 10) }),
     user,
     schemaName: PLAN_JSON_SCHEMA.name,
     schema: PLAN_JSON_SCHEMA.schema as unknown as Record<string, unknown>,
