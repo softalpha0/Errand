@@ -27,6 +27,10 @@ const sample: Errand = {
   status: "done",
   validFor: "1h",
   askAboveUsd: null,
+  funding: "session",
+  passportId: null,
+  privacy: "public",
+  standingId: null,
   plan: {
     summary: "Research prices, then buy if under $8.",
     constraints: ["Ghana", "7 days", "under $8"],

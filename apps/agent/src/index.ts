@@ -2,6 +2,8 @@ import { serve } from "@hono/node-server";
 import { env, reppoConfigured, servConfigured } from "./env";
 import { log } from "./log";
 import { startReppoWorker } from "./reppo";
+import { startStandingScheduler } from "./standing";
+import { startTelegramBot } from "./telegram";
 import { createApp, VERSION } from "./server";
 import { initStore } from "./store";
 
@@ -18,6 +20,8 @@ async function main() {
     });
   });
   startReppoWorker();
+  startStandingScheduler();
+  startTelegramBot();
 }
 
 main().catch((err) => {

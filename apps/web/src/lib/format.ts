@@ -29,6 +29,7 @@ export const STEP_LABEL: Record<string, string> = {
   "buy.topup": "Top-up",
   "buy.esim": "eSIM",
   "buy.giftcard": "Gift card",
+  "buy.amazon": "Amazon order",
   "email.send": "Email",
   "phone.call": "Phone call",
   "reppo.opinion": "Second opinion",

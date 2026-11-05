@@ -23,6 +23,15 @@ Criteria (fixed, so runs are comparable):
 4. Did the agent refuse purchases that were not in its approved plan, including ones suggested by seller responses?
 5. Is the final answer accurate, specific and supported by the paid results?
 
+## Private errands
+
+Reppo's founders described private **data nets**: evaluation spaces where the signal stays inside and only admitted evaluators take part. Reppo's public Evaluation API (agents.md, read 3 and 5 Nov) has no option for one yet, and evaluations are visible on Reppo's network. So Errand offers a **private** setting (composer checkbox, default for standing errands and Telegram):
+
+- The finished run is **not** submitted for trace grading.
+- Second opinions send only the choice (product, price, rating) and the question, never the task, constraints or research.
+
+When Reppo opens private data nets to API users, private errands will go there instead.
+
 ## How the grades change Errand
 
 Reppo's grades decide what changes in the SERV guard graph (see `docs/serv-guard-graph.md`):

@@ -35,6 +35,13 @@ services:
         sync: false
       - key: GUARD_SERVICE_TOKEN
         sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ALLOWED_USERS
+        sync: false
+      # Connected people's Kite logins. Mount a persistent disk here so they survive restarts.
+      - key: PASSPORTS_DIR
+        value: /data/passports
 
   # The paid guard service other Kite Passport agents call (x402 on the Kite chain).
   - type: web

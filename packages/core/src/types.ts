@@ -176,6 +176,17 @@ export interface Errand {
   validFor: ValidFor;
   /** Ask the user before any single payment above this amount. Null = only when the guard is unsure. */
   askAboveUsd: number | null;
+  /**
+   * Who pays: "session" = a passkey-approved Kite Passport session for this errand;
+   * "allowance" = the person's Kite allowance (approved once on Kite, used by standing errands).
+   */
+  funding: Funding;
+  /** The person's own connected Kite Passport, or null for the operator's Passport. */
+  passportId: string | null;
+  /** "private": nothing about this errand goes to Reppo's public network. */
+  privacy: Privacy;
+  /** Set when this run belongs to a standing errand ("keep Mum's data topped up"). */
+  standingId: string | null;
   status: ErrandStatus;
   plan: Plan | null;
   guardVersion: string;
@@ -195,6 +206,10 @@ export interface Errand {
   error: string | null;
 }
 
+export type Funding = "session" | "allowance";
+export const PRIVACY = ["public", "private"] as const;
+export type Privacy = (typeof PRIVACY)[number];
+
 export const VALID_FOR = ["1h", "24h", "7d"] as const;
 export type ValidFor = (typeof VALID_FOR)[number];
 export const VALID_FOR_LABEL: Record<ValidFor, string> = { "1h": "1 hour", "24h": "1 day", "7d": "7 days" };
@@ -206,8 +221,88 @@ export const CreateErrandSchema = z.object({
   email: z.string().email().optional(),
   validFor: z.enum(VALID_FOR).default("1h"),
   askAboveUsd: z.number().positive().max(50).nullable().optional(),
+  privacy: z.enum(PRIVACY).default("public"),
 });
 export type CreateErrandInput = z.infer<typeof CreateErrandSchema>;
+
+// ---------- standing errands (metered: "keep Mum's data topped up, at most $1 a day") ----------
+
+export const EVERY = ["day", "week"] as const;
+export type Every = (typeof EVERY)[number];
+
+export const CreateStandingSchema = z.object({
+  task: z.string().trim().min(8, "Describe the errand in a sentence or two.").max(2000),
+  every: z.enum(EVERY).default("day"),
+  /** Most one run may spend. The Kite allowance is the outer limit. */
+  capPerRunUsd: z.number().min(0.01).max(50),
+  maxPerPaymentUsd: z.number().min(0.01).max(50),
+  email: z.string().email().optional(),
+  privacy: z.enum(PRIVACY).default("private"),
+});
+export type CreateStandingInput = z.infer<typeof CreateStandingSchema>;
+
+export interface StandingRun {
+  errandId: string;
+  at: string;
+  status: ErrandStatus | "skipped";
+  spentUsd: number;
+  note: string;
+}
+
+export interface StandingErrand {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  task: string;
+  every: Every;
+  capPerRunUsd: number;
+  maxPerPaymentUsd: number;
+  privacy: Privacy;
+  passportId: string | null;
+  /** The plan the person approved on the first run; every later run repeats it. */
+  plan: Plan | null;
+  /** "pending_approval" until the first run's plan is approved. */
+  state: "pending_approval" | "active" | "paused" | "stopped";
+  pausedReason: string | null;
+  nextRunAt: string | null;
+  runs: StandingRun[];
+}
+
+// ---------- each person's own Kite Passport ----------
+
+export interface PassportPublic {
+  id: string;
+  email: string;
+  connectedAt: string;
+  simulated: boolean;
+  walletAddress: string | null;
+  allowance: AllowanceStatus | null;
+}
+
+/** `kpass allowance status --output json` (Kite "kite-passport" skill). */
+export interface AllowanceStatus {
+  state: "active" | "used_up" | "none" | "inactive" | "no_feature" | "unknown";
+  amount: number | null;
+  period: string | null;
+  spent: number | null;
+  left: number | null;
+  resetAt: string | null;
+  dashboardUrl: string | null;
+  userMessage: string | null;
+}
+
+export const ShippingSchema = z.object({
+  name: z.string().trim().min(3).max(120).refine((v) => v.includes(" "), "Give a first and last name."),
+  email: z.string().email(),
+  line1: z.string().trim().min(3).max(200),
+  line2: z.string().trim().max(200).optional(),
+  city: z.string().trim().min(2).max(100),
+  state: z.string().trim().min(2).max(100),
+  postal: z.string().trim().min(2).max(20),
+  country: z.string().trim().length(2).default("US"),
+  phone: z.string().trim().min(7).max(20),
+});
+export type ShippingInput = z.infer<typeof ShippingSchema>;
 
 /** JSON schema handed to SERV structured outputs for the planner. Mirrors PlanSchema. */
 export const PLAN_JSON_SCHEMA = {

@@ -2,7 +2,7 @@
 
 **Ask before you pay.** A paid x402 service on the Kite chain that any Kite Passport agent can call before making a payment. It answers `approve`, `ask` or `block` with a one-sentence reason.
 
-Built from the [typescript-express template](https://github.com/gokite-ai/kite-x402-services/tree/main/templates/typescript-express) of `gokite-ai/kite-x402-services`. `src/index.ts` and `src/kite.ts` are the template files, unchanged; only `.env` is configured. The upstream is the [Errand](https://github.com/softalpha0/errand) agent's `POST /check`, which:
+Built from the [typescript-express template](https://github.com/gokite-ai/kite-x402-services/tree/main/templates/typescript-express) of `gokite-ai/kite-x402-services`. `src/index.ts` and `src/kite.ts` are the template files, unchanged; only `.env` is configured. The upstream is the [Errand](https://github.com/softalpha0/Errand) agent's `POST /check`, which:
 
 1. runs fixed spending rules (https only, per-payment and total budget, recipient checks, and purchases steered by text inside earlier paid responses), then
 2. asks Errand's **SERV Reasoning guard graph** (script steps for the maths, Jev decision steps for the verdict, an agent step for the reason). SERV can only make a rule's decision stricter, never looser.

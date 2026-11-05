@@ -170,13 +170,45 @@ export function QuestionCard({ q, onAnswer }: { q: Question; onAnswer: (answer: 
 export function ApprovalCard({ e, onDemoApprove }: { e: Errand; onDemoApprove: () => Promise<void> }) {
   const total = e.plan ? Math.min(e.budgetUsd, e.plan.steps.reduce((a, s) => a + s.maxUsd, 0)) : e.budgetUsd;
   const [busy, setBusy] = useState(false);
+  if (e.funding === "allowance") {
+    return (
+      <Card className="border-ink/20">
+        <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-[17px] font-medium">Approve this plan to repeat it</p>
+            <p className="mt-1 text-sm text-muted">
+              Up to <Money usd={total} className="text-ink" /> a run, at most <Money usd={e.maxPerPaymentUsd} className="text-ink" /> per payment, paid from your Kite allowance. You approved the
+              allowance on Kite with your passkey; every payment is still checked here first, and you can pause or stop it on the Repeat page.
+              {e.mode === "demo" ? " Demo mode: no money moves." : ""}
+            </p>
+          </div>
+          <Button
+            size="lg"
+            className="shrink-0"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onDemoApprove();
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            Approve plan
+          </Button>
+        </div>
+      </Card>
+    );
+  }
   return (
     <Card className="border-ink/20">
       <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[17px] font-medium">Approve the spending session</p>
           <p className="mt-1 text-sm text-muted">
-            Up to <Money usd={total} className="text-ink" /> in total, at most <Money usd={e.maxPerPaymentUsd} className="text-ink" /> per payment, for one hour.
+            Up to <Money usd={total} className="text-ink" /> in total, at most <Money usd={e.maxPerPaymentUsd} className="text-ink" /> per payment, for {e.validFor === "7d" ? "7 days" : e.validFor === "24h" ? "1 day" : "one hour"}.
+            {e.passportId ? " From your own Kite Passport." : ""}
             {e.mode === "live" ? " Kite Passport enforces these limits even if Errand's code is wrong." : " In demo mode no passkey is needed and no money moves."}
           </p>
         </div>

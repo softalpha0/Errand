@@ -11,6 +11,9 @@ flowchart LR
   K --> E[StableEnrich]
   K --> M[StableEmail]
   K --> P[StablePhone]
+  K --> Z[Amazon via Kite shopping]
+  T[Telegram bot] --> A
+  X[MCP apps] --> A
   A -->|finished trace| R[Reppo Evaluation API]
   A --- D[(Postgres / memory)]
 ```
@@ -101,6 +104,7 @@ Every request has a system message, and nothing streams (Shadow Agent and graphs
 | Rule | Effect |
 |---|---|
 | R12 ask above | Ask before any single payment above the user's own threshold |
+| R13 checkout | An Amazon checkout must charge exactly the approved cap + Kite's $1 fee, and the cap can't exceed the plan's |
 | R3 (extended) | A Reppo payment is only allowed from a step that asked for a second opinion |
 
 Public guard service rules (`packages/core/src/external.ts`, behind `POST /check` and Errand Guard on Kite): E1 https only · E2 price present · E3 per-payment cap · E4 budget left · E5 steered by earlier seller text · E6 recipient (approved list, or mentioned in the task; otherwise ask).
@@ -122,3 +126,33 @@ sequenceDiagram
     A->>A: ask the user, quoting the evaluators
   end
 ```
+
+## Added on 5 Nov: who pays, and how often
+
+| Funding | Approved by | Used for |
+|---|---|---|
+| Separate Kite session (`kpass session create --separate`) | The payer's passkey, per errand | One-off errands, Amazon checkouts |
+| Kite allowance (`kpass session execute --use-allowance`) | The payer's passkey, once on Kite; the plan once in Errand | Standing errands (repeat daily or weekly). Never Amazon. |
+
+The payer is the person's own connected Passport (`/connect`, one login folder each under `PASSPORTS_DIR`) or, if they didn't connect one, Errand's own Passport (access code required in live mode).
+
+```mermaid
+sequenceDiagram
+  participant P as Person
+  participant E as Errand
+  participant K as Kite Passport
+  P->>E: "keep Mum's data topped up, at most $1 a day"
+  E->>E: SERV plans the first run
+  P->>E: approve the plan (allowance already approved on Kite)
+  loop every day
+    E->>K: allowance status (free)
+    alt allowance covers the run
+      E->>E: repeat the approved plan, every payment through the guard
+      E->>K: session execute --use-allowance
+    else
+      E->>E: skip this run with Kite's message
+    end
+  end
+```
+
+Amazon orders: `shop:search` (free) → pick the best-rated item within the cap → optional Reppo second opinion → `shop:cart` → `shop:shipping view` → **order summary the person must confirm** → guard (R13) → `shop:checkout --confirmed --max-total <cap>`.

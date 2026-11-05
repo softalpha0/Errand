@@ -46,6 +46,15 @@ export const EXAMPLES = [
     cost: "about $5.25",
   },
   {
+    kind: "Shop on Amazon",
+    title: "Order something real",
+    task: "Order a 6 ft USB-C charging cable from Amazon, under $12 including tax and shipping. Pick a well-reviewed one.",
+    budgetUsd: 13.5,
+    maxPerPaymentUsd: 13.5,
+    sellers: "Amazon via Kite, Reppo",
+    cost: "the order + $1 Kite fee",
+  },
+  {
     kind: "Find and book",
     title: "Call a restaurant (US only)",
     task: "Find a well-rated sushi place in Austin open Friday at 8pm, call them to book a table for 2 under the name Ben, and email me what they said at me@example.com.",

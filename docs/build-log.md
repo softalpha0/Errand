@@ -28,7 +28,7 @@ From the OpenServ × Kite × Reppo space, added in one pass:
 - **Scope** like Kite's own demo: valid for 1 hour / 1 day / 7 days (the session TTL), constraints extracted by the planner and checked on every purchase, and rule **R12** "ask me above $X".
 - **Reppo second opinion**: "Jev for the predictable, Reppo for the subjective". Judgement-call purchases get Reppo's instant lite evaluation ($0.22, paid through Kite); a new `reppo.opinion` step answers "is it worth it?" errands. Receipts list each evaluator's score and note.
 - **Plain money on receipts**: "Paid with Kite", settlement chain behind a "proof" link.
-- **MCP server** (`apps/mcp`): run errands from Claude, ChatGPT or Cursor.
+- **MCP server** (`apps/mcp`): run errands from any MCP app.
 - **Dolphin** writes the email wording on an open-source model; no decisions.
 - Tests: 43 core + 9 agent; end-to-end demo runs for second opinion, R12 ask, opinion errand, /check; MCP checked over stdio.
 
@@ -46,3 +46,16 @@ From the OpenServ × Kite × Reppo space, added in one pass:
 | Creativity | | | |
 | User readiness | | | |
 | Revenue potential | | | |
+
+## 5 Nov: everything on the "what's next" list
+
+Source of truth for every Kite command: Kite's own Passport skills (bundle 110, skills 3.6.7, downloaded from cli.gokite.ai and checksum-verified), plus `kpass --help` from 3 Nov.
+
+- **Your own Kite Passport** (`/connect`): email → Kite's 8-character code → a login folder of your own. Errands you start use your wallet and your passkey. Logout deletes the folder.
+- **Standing errands** (`/repeat`): approve a plan once, Errand repeats it daily or weekly from your Kite **allowance** (`--use-allowance`), capped per run; `allowance status` is read before every run. Kite's allowance never pays checkouts, so Amazon is refused there.
+- **Amazon through Kite** (`buy.amazon`): `kpass shop:*` exactly as Kite's shopping skill documents; the person confirms an order summary; new rule **R13** checks the charge is exactly the cap + Kite's $1 fee.
+- **Private errands**: not sent to Reppo's public network; second opinions see only the choice. (Reppo has no public API for private data nets yet.)
+- **Kite agent directory**: `docs/kite-directory.md` with the exact `kpass` steps (needs the owner's identity check) and `GET /agent-card`.
+- **Telegram bot**: long-polling Bot API client; tested against a mock Telegram server (plan, Approve button, payments, answer, strangers refused).
+- Copy no longer names specific assistant brands for the MCP server; it says "any MCP app".
+- Tests: 67 (51 core, 16 agent). Demo end-to-end run: Passport connect, Amazon order placed and declined, stranger can't approve, standing errand first run + "Run now" with no approval, Amazon standing errand refused.

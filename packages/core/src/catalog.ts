@@ -10,7 +10,7 @@
  * this table, so an unlisted URL can never be paid.
  */
 
-export type SellerId = "bitrefill" | "stableenrich" | "stableemail" | "stablephone" | "reppo";
+export type SellerId = "bitrefill" | "stableenrich" | "stableemail" | "stablephone" | "reppo" | "kiteshop";
 
 export type EndpointKind = "research" | "shop" | "notify" | "call" | "assess";
 
@@ -69,7 +69,23 @@ export const SELLERS: Record<SellerId, Seller> = {
     kiteServiceId: null,
     summary: "Independent evaluators judge a subjective question; the lite endpoint answers at once, paid over x402.",
   },
+  kiteshop: {
+    id: "kiteshop",
+    name: "Amazon (Kite shopping)",
+    baseUrl: "kpass:shop",
+    kiteServiceId: null,
+    summary: "Physical products from Amazon through Kite Passport's own shopping checkout (`kpass shop:*`). Paid from a passkey-approved session only, never the allowance.",
+  },
 };
+
+/** Pseudo-URL for Kite's shopping checkout: it is a kpass command, not an HTTP call Errand makes. */
+export const SHOP_CHECKOUT_URL = "kpass:shop:checkout";
+/** Kite's provider fee on every shopping checkout (Kite "shopping" skill). */
+export const SHOP_FEE_USD = 1;
+/** Kite's default price cap when none is given: subtotal + max(20%, $5). */
+export function defaultShopCap(subtotalUsd: number): number {
+  return Math.round((subtotalUsd + Math.max(subtotalUsd * 0.2, 5)) * 100) / 100;
+}
 
 export const ENDPOINTS: CatalogEndpoint[] = [
   // Research (StableEnrich, prices from https://stableenrich.dev/openapi.json)
@@ -99,6 +115,11 @@ export const ENDPOINTS: CatalogEndpoint[] = [
 
   // Independent second opinion (Reppo lite evaluation: $0.22 in USDC on Base via x402, verdict returned at once)
   { id: "reppo.lite", seller: "reppo", kind: "assess", method: "POST", url: "https://eval.reppo.xyz/api/v1/x402/evals/lite", priceUsd: 0.22, summary: "Independent second opinion from Reppo's evaluators." },
+
+  // Physical goods: Kite Passport's shopping checkout (Amazon). Searching and the cart are free;
+  // only the checkout is paid. Kite charges the price cap + a $1 provider fee up front and the
+  // provider refunds the unused part of the cap to the wallet (Kite "shopping" skill 3.6.7).
+  { id: "kite.shop.checkout", seller: "kiteshop", kind: "shop", method: "POST", url: SHOP_CHECKOUT_URL, priceUsd: null, summary: "Place the Amazon order: cap + $1 fee charged up front, unused cap refunded." },
 ];
 
 export const ENDPOINT_BY_ID: Record<string, CatalogEndpoint> = Object.fromEntries(
@@ -118,6 +139,7 @@ export const PLANNABLE_STEP_TYPES = [
   "buy.topup",
   "buy.esim",
   "buy.giftcard",
+  "buy.amazon",
   "email.send",
   "phone.call",
   "reppo.opinion",
@@ -138,6 +160,7 @@ export const STEP_ENDPOINTS: Record<StepType, string[]> = {
   "buy.topup": ["bitrefill.topups.search", "bitrefill.product.detail", "bitrefill.invoice.create", "bitrefill.invoice.pay", "bitrefill.invoice.status", "reppo.lite"],
   "buy.esim": ["bitrefill.esims.search", "bitrefill.product.detail", "bitrefill.invoice.create", "bitrefill.invoice.pay", "bitrefill.invoice.status", "reppo.lite"],
   "buy.giftcard": ["bitrefill.giftcards.search", "bitrefill.product.detail", "bitrefill.invoice.create", "bitrefill.invoice.pay", "bitrefill.invoice.status", "reppo.lite"],
+  "buy.amazon": ["kite.shop.checkout", "reppo.lite"],
   "email.send": ["email.send"],
   "phone.call": ["phone.call", "reppo.lite"],
   "reppo.opinion": ["reppo.lite"],
@@ -151,6 +174,11 @@ export function requiredEndpoints(type: StepType, secondOpinion: boolean): strin
   const all = STEP_ENDPOINTS[type];
   if (type === "reppo.opinion") return all;
   return secondOpinion ? all : all.filter((id) => id !== "reppo.lite");
+}
+
+/** Step types that may run on the Kite allowance (no shopping: Kite's allowance never pays checkouts). */
+export function allowanceCanPay(type: StepType): boolean {
+  return type !== "buy.amazon";
 }
 
 /** Fixed fees a buy step pays on top of the product (search + detail + create + 2 status checks). */

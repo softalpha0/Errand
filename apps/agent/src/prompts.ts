@@ -1,4 +1,4 @@
-import { ENDPOINTS, PLANNABLE_STEP_TYPES, SELLERS, fixedStepCost, BUY_OVERHEAD_USD, SECOND_OPINION_USD } from "@errand/core";
+import { ENDPOINTS, PLANNABLE_STEP_TYPES, SELLERS, fixedStepCost, BUY_OVERHEAD_USD, SECOND_OPINION_USD, SHOP_FEE_USD } from "@errand/core";
 
 function catalogText(): string {
   const lines = PLANNABLE_STEP_TYPES.map((t) => {
@@ -11,10 +11,12 @@ function catalogText(): string {
           ? "Buy a prepaid eSIM data plan for a country or region (Bitrefill)."
           : t === "buy.giftcard"
             ? "Buy a gift card or voucher (Bitrefill). The code is tied to the paying wallet."
+            : t === "buy.amazon"
+              ? "Order a physical product from Amazon through Kite Passport's shopping checkout. Kite charges your price cap + a $1 fee up front and refunds the unused part. The user always confirms the order summary first."
             : t === "reppo.opinion"
               ? "Get an independent second opinion from Reppo's evaluators on a subjective question (worth it? good choice? better option?)."
               : (ep?.summary ?? "");
-    const price = cost === null ? `product price + $${BUY_OVERHEAD_USD.toFixed(3)} fees` : `$${cost}`;
+    const price = t === "buy.amazon" ? `maxTotalUsd + $${SHOP_FEE_USD} Kite fee` : cost === null ? `product price + $${BUY_OVERHEAD_USD.toFixed(3)} fees` : `$${cost}`;
     return `- ${t}: ${desc} Cost: ${price}.`;
   });
   return lines.join("\n");
@@ -41,7 +43,8 @@ Rules:
    - maps.search: "query". maps.details: "placeId" (only after a maps.search step, set it to "from:<stepId>").
    - buy.topup: "query" (carrier name, e.g. MTN), "country" (ISO code), "recipient" (phone number exactly as the user gave it), "amountUsd" (USD to spend), optional "packageValue" (local denomination, e.g. 1000 for NGN 1,000).
    - buy.esim: "query" (country or region), "country" (ISO code), "amountUsd", optional "packageValue".
-   - buy.giftcard: "query" (brand), "country", "amountUsd", optional "packageValue".
+   - buy.giftcard: "query" (brand), "country" (the country of the STORE the card is for: "Amazon US" = US, "Amazon UK" = GB; not where the user lives), "amountUsd", optional "packageValue". Gift cards have no recipient input.
+   - buy.amazon: "query" (the product in plain words), "maxTotalUsd" (the most the order may cost including tax and shipping; the user's price ceiling). maxUsd = maxTotalUsd + ${SHOP_FEE_USD}, plus ${SECOND_OPINION_USD} with secondOpinion. Only for physical products the user asked to buy; never for gift cards, airtime or eSIMs (use Bitrefill for those).
    - email.send: "to" (an email the user gave), "subject". The body is written after the errand finishes.
    - phone.call: "phone" (+1 number only), "task" (what to say or ask, max 4000 chars).
    - reppo.opinion: "question" (the subjective question, in plain words). Put it after the research it should weigh.

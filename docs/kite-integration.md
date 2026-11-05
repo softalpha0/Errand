@@ -61,3 +61,21 @@ From Kite's `kite-x402-services` README: `kpass sandbox on` switches the CLI to 
 3. Pay once with a sandbox agent; set `status: testnet` and `base_url` in `service.yaml`.
 4. Redeploy with `KITE_NETWORK=mainnet`, pay once with USDC, set `status: live`, `network: eip155:2366`.
 5. Fork `gokite-ai/kite-x402-services`, copy the folder to `services/errand-guard/`, add a row to `services/README.md`, run `npm run validate`, open a PR titled `feat(services): add errand-guard` with the paid-call output.
+
+## Each person's own Passport (added 5 Nov)
+
+From Kite's `authenticate-user` skill: `kpass login init --email <email> --client agent` emails an 8-character code, and `KPASS_LOGIN_CODE=<code> kpass login verify --login-id <id>` finishes the login (the code goes in an environment variable so it never shows in the process list). Kite's skill also says: "With a local (project) install, each project keeps its own login in its `.kite-passport/` folder."
+
+Errand uses that: each person who connects on `/connect` gets a folder under `PASSPORTS_DIR` with its own `.kite-passport/`, and every `kpass` call for their errands runs in that folder with `HOME`/`USERPROFILE` pointed there too. After the login Errand checks the login really landed in that folder; if it didn't, it logs out and refuses, so one person's login can never pay for another's errand. The browser keeps a random token for the connection; the agent stores only its SHA-256 hash. Disconnect runs `kpass logout` and deletes the folder.
+
+**Verify once with your own email** (live mode): connect on `/connect`, then check that `PASSPORTS_DIR\pp_…\.kite-passport\` holds files and your home folder's `.kite-passport` is unchanged.
+
+## Allowance and standing errands
+
+From Kite's docs ("Allowance and sessions") and `kite-passport` skill: the **allowance** is one weekly, two-weekly or monthly budget (up to $100) approved once with your passkey on agentpassport.ai/overview. `kpass allowance status` is free and read-only. `kpass session execute ... --use-allowance` pays from it, and Kite requires `--idempotency-key` for allowance payments. **The allowance never pays shopping checkouts**, and it is live mode only (not in sandbox).
+
+Standing errands use it: the first run's plan is approved in Errand, later runs repeat that plan on schedule, and Errand reads `allowance status` before each run and skips the run (with Kite's own `user_message`) if the allowance can't cover it.
+
+## Amazon through Kite's shopping checkout
+
+From Kite's `shopping` skill (references/commands.md): `kpass shop:search --query` (free), `shop:cart clear|add|view`, `shop:shipping view|update`, then `shop:checkout --confirmed [--max-total <usd>]`. Kite charges the price cap plus a $1 provider fee up front and the provider refunds the unused part of the cap to the wallet. Checkout needs a separate, passkey-approved session whose per-payment limit covers cap + $1. Kite's rule is never to check out without the person's explicit yes to an order summary; Errand always asks. Errand passes your limit as `--max-total`, and rule R13 blocks any charge other than that cap + $1.

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Use Errand from Claude Desktop, Claude Code, ChatGPT or any MCP client.",
+  "description": "Use Errand from any MCP app: desktop AI assistants, ChatGPT, Cursor.",
   "bin": { "errand-mcp": "./src/index.ts" },
   "scripts": {
     "start": "tsx src/index.ts",

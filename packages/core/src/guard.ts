@@ -4,7 +4,7 @@
  *
  * Order matters: the cheapest, most certain checks come first.
  */
-import { ENDPOINT_BY_ID, endpointForUrl, requiredEndpoints } from "./catalog";
+import { ENDPOINT_BY_ID, SHOP_FEE_USD, endpointForUrl, requiredEndpoints } from "./catalog";
 import { round6, sumUsd } from "./money";
 import { normalizePhone } from "./phone";
 import { stepInput, type DecisionOutcome, type PaymentCandidate, type PaymentRecord, type Plan } from "./types";
@@ -192,6 +192,21 @@ export function checkRules(c: PaymentCandidate, ctx: GuardContext): RuleResult {
         rule: "R11.invoice",
         reason: `The invoice is $${c.priceUsd}, ${Math.round(over * 100)}% above the planned $${planned}. Pay it?`,
       };
+    }
+  }
+
+  // R13. Amazon checkout: Kite charges exactly the approved price cap + its $1 fee, never more.
+  if (endpoint.id === "kite.shop.checkout") {
+    const cap = c.plannedProductUsd;
+    const planned = Number(stepInput(step, "maxTotalUsd"));
+    if (cap === undefined || cap <= 0) {
+      return { outcome: "block", rule: "R13.checkout", reason: "No price cap for this order." };
+    }
+    if (Number.isFinite(planned) && cap > planned + 0.000001) {
+      return { outcome: "block", rule: "R13.checkout", reason: `The order cap $${cap} is above the $${planned} you approved.` };
+    }
+    if (c.priceUsd > round6(cap + SHOP_FEE_USD) + 0.000001) {
+      return { outcome: "block", rule: "R13.checkout", reason: `Kite should charge the $${cap} cap + $${SHOP_FEE_USD} fee, but the charge is $${c.priceUsd}.` };
     }
   }
 

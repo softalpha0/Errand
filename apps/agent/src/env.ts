@@ -1,4 +1,5 @@
 import os from "node:os";
+import path from "node:path";
 
 function str(name: string, fallback = ""): string {
   const v = process.env[name];
@@ -24,7 +25,7 @@ export const env = {
   /** Optional: require this code in the x-access-code header to start a live errand. */
   accessCode: str("ERRAND_ACCESS_CODE"),
   defaultCountry: str("DEFAULT_COUNTRY", "NG"),
-  maxBudgetUsd: num("MAX_BUDGET_USD", 10),
+  maxBudgetUsd: num("MAX_BUDGET_USD", 25),
 
   serv: {
     apiKey: str("SERV_API_KEY"),
@@ -44,6 +45,25 @@ export const env = {
     workdir: str("KPASS_WORKDIR", os.homedir()),
     sessionTtl: str("KITE_SESSION_TTL", "1h"),
     approvalTimeoutMs: num("KITE_APPROVAL_TIMEOUT_MS", 15 * 60_000),
+    /** `kpass agent:register --type` value for connected people's Passports. */
+    agentType: str("KITE_AGENT_TYPE", "errand"),
+    /** One folder per connected person; each holds that person's own `.kite-passport/` login. */
+    passportsDir: str("PASSPORTS_DIR", path.join(os.homedir(), ".errand", "passports")),
+  },
+
+  /** Standing errands: how often the scheduler looks for due runs. */
+  standingPollMs: num("STANDING_POLL_MS", 60_000),
+
+  telegram: {
+    /** From @BotFather. Empty = no Telegram bot. */
+    token: str("TELEGRAM_BOT_TOKEN"),
+    /** Only changed for tests. */
+    apiBase: str("TELEGRAM_API_BASE", "https://api.telegram.org"),
+    /** Telegram user ids or @usernames allowed to start errands. Required in live mode. */
+    allowed: str("TELEGRAM_ALLOWED_USERS").split(",").map((s) => s.trim().replace(/^@/, "").toLowerCase()).filter(Boolean),
+    budgetUsd: num("TELEGRAM_BUDGET_USD", 1),
+    /** 0 = same as the errand budget. */
+    maxPerPaymentUsd: num("TELEGRAM_MAX_PER_PAYMENT_USD", 0),
   },
 
   reppo: {

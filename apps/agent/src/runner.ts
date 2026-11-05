@@ -10,6 +10,8 @@ import {
   DEFAULT_LIMITS,
   ENDPOINT_BY_ID,
   SELLERS,
+  SHOP_CHECKOUT_URL,
+  SHOP_FEE_USD,
   checkPlan,
   checkRules,
   combine,
@@ -25,8 +27,10 @@ import {
   type Errand,
   type ErrandEvent,
   type GuardContext,
+  type Funding,
   type GuardDecision,
   type PaymentCandidate,
+  type Plan,
   type PlanStep,
   type Question,
   type StepResult,
@@ -34,10 +38,12 @@ import {
 import { publish } from "./bus";
 import * as dolphin from "./dolphin";
 import { redact } from "./reppo";
-import { demoExecute, scriptedCondition, scriptedGuard, scriptedPlan, scriptedRead, scriptedSummary } from "./demo";
+import { demoExecute, demoShipping, demoShopSearch, scriptedCondition, scriptedGuard, scriptedPlan, scriptedRead, scriptedSummary } from "./demo";
 import { env, reppoConfigured, servConfigured } from "./env";
 import * as kite from "./kite";
+import { explorerUrl } from "./kite-parse";
 import { log } from "./log";
+import { allowanceFor, passportHome } from "./passports";
 import { emailBody } from "./prompts";
 import * as sellers from "./sellers";
 import * as serv from "./serv";
@@ -48,6 +54,25 @@ const newId = (prefix: string) => `${prefix}_${randomBytes(6).toString("base64ur
 
 class Blocked extends Error {}
 class Cancelled extends Error {}
+
+/** Standing errands listen here (standing.ts), so this file doesn't import it. */
+export const runnerHooks: {
+  onPlanApproved?: (e: Errand) => Promise<void>;
+  onFinished?: (e: Errand) => Promise<void>;
+} = {};
+
+/** The kpass folder for this errand: the person's own Passport, or null for the operator's. */
+function homeOf(e: Errand): string | null {
+  return e.passportId ? passportHome(e.passportId) : null;
+}
+
+export interface CreateOptions {
+  passportId?: string | null;
+  funding?: Funding;
+  standingId?: string | null;
+  /** A plan the person already approved (later runs of a standing errand). */
+  presetPlan?: Plan | null;
+}
 
 // ---------- persistence helpers ----------
 
@@ -95,6 +120,7 @@ export async function answerQuestion(errandId: string, questionId: string, answe
   return true;
 }
 
+/** In-app approval: demo errands, and allowance-funded errands (the allowance itself was approved with a passkey on Kite). */
 export async function approveDemo(errandId: string): Promise<boolean> {
   const fn = waiters.get(`${errandId}:approve`);
   if (!fn) return false;
@@ -120,16 +146,18 @@ function checkCancelled(e: Errand) {
 
 // ---------- one Kite session at a time ----------
 
-let kiteChain: Promise<unknown> = Promise.resolve();
-function withKiteLock<T>(fn: () => Promise<T>): Promise<T> {
-  const next = kiteChain.then(fn, fn);
-  kiteChain = next.catch(() => undefined);
+// kpass keeps "the current session" per login folder, so errands on the same folder take turns.
+const kiteChains = new Map<string, Promise<unknown>>();
+function withKiteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = kiteChains.get(key) ?? Promise.resolve();
+  const next = prev.then(fn, fn);
+  kiteChains.set(key, next.catch(() => undefined));
   return next;
 }
 
 // ---------- create ----------
 
-export async function createErrand(input: CreateErrandInput): Promise<Errand> {
+export async function createErrand(input: CreateErrandInput, opts: CreateOptions = {}): Promise<Errand> {
   const t = now();
   const task = input.email && !input.task.includes(input.email) ? `${input.task}\n\nMy email: ${input.email}` : input.task;
   const e: Errand = {
@@ -142,6 +170,10 @@ export async function createErrand(input: CreateErrandInput): Promise<Errand> {
     maxPerPaymentUsd: Math.min(input.maxPerPaymentUsd, input.budgetUsd, env.maxBudgetUsd),
     validFor: input.validFor ?? "1h",
     askAboveUsd: input.askAboveUsd ?? null,
+    funding: opts.funding ?? "session",
+    passportId: opts.passportId ?? null,
+    privacy: input.privacy ?? "public",
+    standingId: opts.standingId ?? null,
     status: "planning",
     plan: null,
     guardVersion: env.serv.guardVersion,
@@ -156,28 +188,77 @@ export async function createErrand(input: CreateErrandInput): Promise<Errand> {
     error: null,
   };
   event(e, "status", env.mode === "demo" ? "Errand created in demo mode: payments are simulated." : "Errand created.");
+  if (e.passportId) event(e, "log", "Paid from your own Kite Passport.");
+  if (e.privacy === "private") event(e, "log", "Private errand: nothing about it is sent to Reppo's public network.");
   await save(e);
-  void lifecycle(e).catch(async (err) => {
-    const fresh = (await store.get(e.id)) ?? e;
-    if (err instanceof Cancelled) return;
-    fresh.status = "failed";
-    fresh.error = err instanceof Error ? err.message : String(err);
-    event(fresh, "error", fresh.error);
-    log.error("errand.failed", { id: e.id, error: fresh.error });
-    await save(fresh);
-  });
+  void lifecycle(e, opts.presetPlan ?? null)
+    .catch(async (err) => {
+      const fresh = (await store.get(e.id)) ?? e;
+      if (err instanceof Cancelled) return;
+      fresh.status = "failed";
+      fresh.error = err instanceof Error ? err.message : String(err);
+      event(fresh, "error", fresh.error);
+      log.error("errand.failed", { id: e.id, error: fresh.error });
+      await save(fresh);
+    })
+    .finally(async () => {
+      const last = await store.get(e.id);
+      if (last && runnerHooks.onFinished) await runnerHooks.onFinished(last).catch((err) => log.error("standing.hook_failed", { error: String(err) }));
+    });
   return e;
+}
+
+function planCheck(e: Errand) {
+  return checkPlan(e.plan!, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry, funding: e.funding });
 }
 
 // ---------- lifecycle ----------
 
-async function lifecycle(e: Errand) {
-  await planPhase(e);
-  await approvalPhase(e);
-  await withKiteLock(async () => {
-    if (env.mode === "live" && e.kite.sessionId) await kite.useSession(e.kite.sessionId);
+async function lifecycle(e: Errand, preset: Plan | null) {
+  if (preset) {
+    const check = checkPlan(preset, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry, funding: e.funding });
+    if (!check.ok) throw new Error(`The approved plan no longer fits its limits: ${check.issues.join(" ")}`);
+    e.plan = preset;
+    e.steps = preset.steps.map((s) => ({ stepId: s.id, status: "pending", note: "", facts: [], sources: [], suggestions: [] }));
+    event(e, "plan_ready", preset.summary, { totalMaxUsd: check.totalMaxUsd, repeat: true });
+    await save(e);
+  } else {
+    await planPhase(e);
+  }
+  if (e.funding === "allowance") await allowancePhase(e, preset !== null);
+  else await approvalPhase(e);
+  await withKiteLock(homeOf(e) ?? "operator", async () => {
+    if (env.mode === "live" && e.funding === "session" && e.kite.sessionId) await kite.useSession(e.kite.sessionId, homeOf(e));
     await runPhase(e);
   });
+}
+
+/**
+ * Standing errands pay from the person's Kite allowance: approved once, on Kite, with
+ * their passkey. The first run's plan still needs their yes in Errand; later runs repeat
+ * that exact plan. Kite's allowance never pays shopping checkouts (checked in checkPlan).
+ */
+async function allowancePhase(e: Errand, alreadyApproved: boolean) {
+  const total = planCheck(e).totalMaxUsd;
+  const allowance = await allowanceFor(e.passportId);
+  if (allowance.state !== "active") {
+    throw new Error(allowance.userMessage ?? `Your Kite allowance is ${allowance.state.replace("_", " ")}. Set one up at agentpassport.ai/overview.`);
+  }
+  if (allowance.left !== null && allowance.left + 0.000001 < total) {
+    throw new Error(allowance.userMessage ?? `Your Kite allowance has $${allowance.left} left; this run may need $${total}.`);
+  }
+  if (!alreadyApproved) {
+    e.status = "awaiting_approval";
+    event(e, "awaiting_approval", `Approve this plan to repeat it on its schedule, paid from your Kite allowance (up to ${formatUsd(total)} a run). No passkey needed: you approved the allowance on Kite.`, { allowance: true });
+    await save(e);
+    await waitFor(`${e.id}:approve`);
+    checkCancelled(e);
+  }
+  e.kite.approvedAt = now();
+  e.status = "running";
+  event(e, "status", `${env.mode === "demo" ? "Simulated: " : ""}paying from your Kite allowance${allowance.left !== null ? ` ($${allowance.left} left this ${allowance.period ?? "period"})` : ""}.`);
+  await save(e);
+  if (!alreadyApproved && runnerHooks.onPlanApproved) await runnerHooks.onPlanApproved(e);
 }
 
 async function planPhase(e: Errand) {
@@ -193,7 +274,8 @@ async function planPhase(e: Errand) {
       const plan = useServ
         ? (await serv.plan({ task: e.task, budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, feedback, answers })).plan
         : scriptedPlan(e.task, e.budgetUsd);
-      const check = checkPlan(plan, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry });
+      const sourceText = [e.task, ...answers.map((x) => x.a)].join("\n");
+      const check = checkPlan(plan, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry, funding: e.funding, sourceText });
       if (check.ok) {
         e.plan = plan;
         accepted = true;
@@ -206,7 +288,7 @@ async function planPhase(e: Errand) {
     }
     const plan = e.plan!;
     e.steps = plan.steps.map((s) => ({ stepId: s.id, status: "pending", note: "", facts: [], sources: [], suggestions: [] }));
-    event(e, "plan_ready", plan.summary, { totalMaxUsd: checkPlan(plan, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry }).totalMaxUsd });
+    event(e, "plan_ready", plan.summary, { totalMaxUsd: planCheck(e).totalMaxUsd });
     await save(e);
 
     if (plan.questions.length && round === 0) {
@@ -223,7 +305,7 @@ async function planPhase(e: Errand) {
 }
 
 async function approvalPhase(e: Errand) {
-  const total = checkPlan(e.plan!, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry }).totalMaxUsd;
+  const total = planCheck(e).totalMaxUsd;
   const maxTotal = Math.min(e.budgetUsd, Math.max(total, 0.01));
   e.status = "awaiting_approval";
 
@@ -239,7 +321,7 @@ async function approvalPhase(e: Errand) {
     return;
   }
 
-  const req = await kite.createSession({ taskSummary: `Errand: ${e.task}`, maxPerTxUsd: e.maxPerPaymentUsd, maxTotalUsd: maxTotal, ttl: e.validFor });
+  const req = await kite.createSession({ taskSummary: `Errand: ${e.task}`, maxPerTxUsd: e.maxPerPaymentUsd, maxTotalUsd: maxTotal, ttl: e.validFor, home: homeOf(e) });
   e.kite.requestId = req.requestId;
   e.kite.sessionId = req.sessionId;
   e.kite.approvalUrl = req.approvalUrl;
@@ -253,7 +335,7 @@ async function approvalPhase(e: Errand) {
   while (Date.now() < deadline) {
     checkCancelled(e);
     await new Promise((r) => setTimeout(r, 4000));
-    const st = await kite.sessionStatus(req.requestId);
+    const st = await kite.sessionStatus(req.requestId, homeOf(e));
     if (st.state === "approved") {
       e.kite.sessionId = st.sessionId ?? e.kite.sessionId;
       if (!e.kite.sessionId) throw new Error("Kite approved the session but returned no session id.");
@@ -271,7 +353,7 @@ async function approvalPhase(e: Errand) {
 // ---------- the guarded payment ----------
 
 function guardContext(e: Errand): GuardContext {
-  const check = checkPlan(e.plan!, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: env.defaultCountry });
+  const check = planCheck(e);
   return {
     plan: e.plan!,
     payments: e.payments,
@@ -338,7 +420,21 @@ async function decide(e: Errand, c: PaymentCandidate, step: PlanStep | null): Pr
 
 function sellerName(url: string): string {
   const ep = endpointForUrl(url, "GET") ?? endpointForUrl(url, "POST");
-  return ep ? SELLERS[ep.seller].name : new URL(url).host;
+  if (ep) return SELLERS[ep.seller].name;
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+async function liveExecute(e: Errand, req: sellers.SellerRequest, key: string): Promise<kite.ExecuteResult> {
+  if (req.endpointId === "kite.shop.checkout") {
+    const cap = Number((req.body as { maxTotalUsd?: number }).maxTotalUsd);
+    const order = await kite.shopCheckout(cap, homeOf(e));
+    return { body: order.raw, txHash: order.txHash, chain: order.chain, amountUsd: order.chargedUsd, explorerUrl: explorerUrl(order.chain, order.txHash), raw: order.raw };
+  }
+  return kite.execute({ url: req.url, method: req.method, body: req.body, idempotencyKey: key, useAllowance: e.funding === "allowance", home: homeOf(e) });
 }
 
 async function pay(
@@ -372,6 +468,16 @@ async function pay(
   };
 
   let d = await decide(e, candidate, opts.step);
+  // You already said yes to this step's purchase: SERV's judgement-call "ask" isn't repeated.
+  // Fixed-rule asks (R11 price above plan, R12 your own threshold) always ask again.
+  const alreadyConfirmed = e.decisions.some((x) => x.rule === "user.answer" && x.decision === "approve" && x.candidate.stepId === opts.step.id);
+  if (d.decision === "ask" && d.source === "serv" && alreadyConfirmed) {
+    const follow: GuardDecision = { ...d, id: newId("d"), at: now(), decision: "approve", rule: "user.earlier", reason: "You already confirmed this purchase earlier in this step." };
+    e.decisions.push(follow);
+    event(e, "decision", `Approved: ${formatUsd(price)} to ${sellerName(req.url)}. You already confirmed this purchase.`, { decisionId: follow.id });
+    await save(e);
+    d = follow;
+  }
   if (d.decision === "ask") {
     const answer = await ask(e, `${d.reason} Pay ${formatUsd(price)} to ${sellerName(req.url)}?`, ["Pay it", "Don't pay"], `Step: ${opts.step.purpose}`);
     const yes = /^(pay|yes|y|ok|approve)/i.test(answer.trim());
@@ -391,10 +497,7 @@ async function pay(
   }
   if (d.decision !== "approve") throw new Blocked(d.reason);
 
-  const result =
-    env.mode === "demo"
-      ? demoExecute(req)
-      : await kite.execute({ url: req.url, method: req.method, body: req.body, idempotencyKey: `${e.id}-${d.id}` });
+  const result = env.mode === "demo" ? demoExecute(req) : await liveExecute(e, req, `${e.id}-${d.id}`);
 
   e.payments.push({
     id: newId("p"),
@@ -413,7 +516,7 @@ async function pay(
     used: null,
     raw: env.mode === "live" ? result.raw : undefined,
   });
-  event(e, "payment", `${env.mode === "demo" ? "Simulated payment" : "Paid"} ${formatUsd(result.amountUsd ?? price)} to ${sellerName(req.url)}.`, {
+  event(e, "payment", `${env.mode === "demo" ? "Simulated payment" : "Paid"} ${formatUsd(result.amountUsd ?? price)} to ${sellerName(req.url)}${e.funding === "allowance" ? " from your Kite allowance" : ""}.`, {
     txHash: result.txHash,
     explorerUrl: result.explorerUrl,
   });
@@ -495,7 +598,8 @@ async function runPhase(e: Errand) {
     event(e, "step", `Started: ${step.purpose}`, { stepId: step.id });
     await save(e);
     try {
-      if (step.type.startsWith("buy.")) await runBuy(e, step, r);
+      if (step.type === "buy.amazon") await runAmazon(e, step, r);
+      else if (step.type.startsWith("buy.")) await runBuy(e, step, r);
       else if (step.type === "phone.call") await runCall(e, step, r);
       else if (step.type === "reppo.opinion") await runOpinion(e, step, r);
       else await runResearch(e, step, r);
@@ -525,7 +629,7 @@ async function runPhase(e: Errand) {
   e.answer = { text: summary.text, citations: summary.citations };
   for (const p of e.payments) {
     const step = plan.steps.find((s) => s.id === p.stepId);
-    p.used = step?.type.startsWith("buy.") || step?.type === "phone.call" ? true : summary.usedStepIds.includes(p.stepId ?? "");
+    p.used = step?.type.startsWith("buy.") || step?.type === "phone.call" || step?.type === "reppo.opinion" ? true : summary.usedStepIds.includes(p.stepId ?? "");
   }
   event(e, "answer", "Answer ready.");
   await save(e);
@@ -553,7 +657,8 @@ async function runPhase(e: Errand) {
   }
 
   e.status = "done";
-  e.evaluation = !reppoConfigured() ? null : { evalId: "", status: "QUEUED", submittedAt: null, minSettleAt: null, settledAt: null, score: null, decision: null, confidence: null, verdicts: [], assessments: [], sandbox: env.reppo.sandbox };
+  if (e.privacy === "private") event(e, "log", "Private errand: the run was not sent to Reppo's public evaluation network.");
+  e.evaluation = !reppoConfigured() || e.privacy === "private" ? null : { evalId: "", status: "QUEUED", submittedAt: null, minSettleAt: null, settledAt: null, score: null, decision: null, confidence: null, verdicts: [], assessments: [], sandbox: env.reppo.sandbox };
   event(e, "status", `Done. Spent ${formatUsd(spentUsd(e.payments))} of ${formatUsd(e.budgetUsd)}.`);
   await save(e);
 }
@@ -597,7 +702,17 @@ async function runBuy(e: Errand, step: PlanStep, r: StepResult) {
 
   // 1. Search
   const found = await pay(e, sellers.bitrefillSearch(kind, query, country), { step });
-  const product = sellers.pickProduct(found, query, country);
+  let product = sellers.pickProduct(found, query, country);
+  if (!product && country) {
+    // Nothing for that country, but the same product exists elsewhere: ask instead of failing or guessing.
+    const elsewhere = sellers.pickProduct(found, query);
+    if (elsewhere) {
+      const where = elsewhere.country ? elsewhere.country.toUpperCase() : "another country";
+      const a = await ask(e, `Bitrefill has no ${query} for ${country}, but it has ${elsewhere.name} for ${where}. Buy that one?`, [`Buy the ${where} one`, "Don't buy"], step.purpose);
+      if (/^buy/i.test(a.trim())) product = elsewhere;
+      else throw new Blocked("You chose not to buy a product from another country.");
+    }
+  }
   if (!product) throw new Error(`Bitrefill has no in-stock ${kind} matching "${query}"${country ? ` in ${country}` : ""}.`);
   r.facts.push(`Bitrefill product: ${product.name} (${product.slug}).`);
 
@@ -655,6 +770,87 @@ async function runBuy(e: Errand, step: PlanStep, r: StepResult) {
   if (kind !== "topup") r.facts.push("Bitrefill ties the code to the paying wallet; it can be retrieved with that wallet.");
 }
 
+// ---------- Amazon through Kite Passport's shopping checkout ----------
+// Follows Kite's shopping skill: search (free) -> cart -> shipping -> an order summary the
+// person must confirm -> `shop:checkout --confirmed`. Kite charges the price cap + $1 up front
+// and the provider refunds the unused part of the cap to the wallet.
+
+function pickShopItem(items: kite.ShopItem[], capUsd: number): kite.ShopItem | null {
+  const fits = items.filter((i) => i.priceUsd !== null && i.priceUsd <= capUsd);
+  const score = (i: kite.ShopItem) => (i.rating ?? 0) * Math.log10((i.reviews ?? 0) + 10);
+  fits.sort((a, b) => score(b) - score(a) || (a.priceUsd ?? 0) - (b.priceUsd ?? 0));
+  return fits[0] ?? null;
+}
+
+async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
+  const home = homeOf(e);
+  const query = stepInput(step, "query") ?? "";
+  const cap = Number(stepInput(step, "maxTotalUsd"));
+  if (e.funding === "allowance") throw new Blocked("Kite's allowance never pays shopping checkouts.");
+
+  // 1. Search (free, no session needed)
+  const items = env.mode === "demo" ? demoShopSearch(query) : await kite.shopSearch(query, home);
+  event(e, "step", `Searched Amazon through Kite for "${query}" (free): ${items.length} results.`, { stepId: step.id });
+  r.facts.push(...items.slice(0, 3).map((i) => `Amazon: ${i.title.slice(0, 90)}, ${i.priceUsd !== null ? formatUsd(i.priceUsd) : "no price"}${i.rating ? `, ${i.rating} stars (${i.reviews ?? 0} reviews)` : ""}.`));
+  const pick = pickShopItem(items, cap);
+  if (!pick) throw new Blocked(`No Amazon result for "${query}" fits your ${formatUsd(cap)} limit.`);
+  r.facts.push(`Chosen: ${pick.title.slice(0, 120)} at ${formatUsd(pick.priceUsd ?? 0)} (best rated within your limit).`);
+  await save(e);
+
+  // 2. Judgement call? Reppo's evaluators look at the choice first.
+  if (stepInput(step, "secondOpinion") === "yes") {
+    await secondOpinion(e, step, r, `Is this the right product for the errand? ${pick.title.slice(0, 160)} at ${formatUsd(pick.priceUsd ?? 0)}.`, {
+      product: pick.title.slice(0, 200),
+      priceUsd: pick.priceUsd,
+      rating: pick.rating,
+      reviews: pick.reviews,
+    });
+  }
+
+  // 3. Cart (free)
+  let subtotal = pick.priceUsd;
+  let payWith = "USDC";
+  if (env.mode === "live") {
+    await kite.shopCartClear(home);
+    await kite.shopCartAdd(pick, home);
+    const cart = await kite.shopCartView(home);
+    subtotal = cart.subtotalUsd;
+    payWith = `${cart.currency ?? "USDC"}${cart.chain ? ` on ${cart.chain}` : ""}`;
+    if (cart.items.length !== 1 || cart.items[0]?.externalId !== pick.externalId) throw new Error("The Kite cart does not hold exactly the chosen item.");
+  }
+  if (subtotal === null || subtotal > cap) throw new Blocked(`The cart subtotal ${subtotal === null ? "is unknown" : formatUsd(subtotal)}, above your ${formatUsd(cap)} limit.`);
+
+  // 4. Shipping lives in the person's Kite profile. Errand never stores it.
+  let ship = env.mode === "demo" ? demoShipping() : await kite.shopShippingView(home);
+  if (!ship.complete) {
+    const a = await ask(e, `Your Kite shipping profile is missing: ${ship.missing.join(", ")}. Add it on the Connect page (it goes straight to Kite), then choose "Done".`, ["Done", "Cancel the order"], step.purpose);
+    if (!/^done/i.test(a.trim())) throw new Blocked("You cancelled the order.");
+    ship = await kite.shopShippingView(home);
+    if (!ship.complete) throw new Blocked(`The shipping profile is still missing: ${ship.missing.join(", ")}.`);
+  }
+
+  // 5. Kite's rule: never check out without an explicit yes to the order summary.
+  const charge = Math.round((cap + SHOP_FEE_USD) * 100) / 100;
+  const shipTo = [ship.name, ship.city, ship.state, ship.country].filter(Boolean).join(", ");
+  const a = await ask(
+    e,
+    `Order summary: ${pick.title.slice(0, 120)}, ${formatUsd(subtotal)}. Ship to ${shipTo || "your Kite address"}. Kite charges ${formatUsd(charge)} up front (your ${formatUsd(cap)} limit including tax and shipping, plus Kite's $${SHOP_FEE_USD} fee) in ${payWith}; the unused part is refunded to your wallet. Place this order?`,
+    ["Place order", "Don't buy"],
+    step.purpose,
+  );
+  if (!/^(place|yes|y|confirm|buy)/i.test(a.trim())) throw new Blocked("You chose not to place the order.");
+
+  // 6. The guarded payment (R13 checks the charge is exactly the cap + Kite's fee).
+  const order = (await pay(
+    e,
+    { endpointId: "kite.shop.checkout", url: SHOP_CHECKOUT_URL, method: "POST", body: { maxTotalUsd: cap, item: `${pick.provider}:${pick.externalId}` } },
+    { step, priceUsd: charge, plannedProductUsd: cap, note: `Amazon: ${pick.title.slice(0, 100)} (subtotal ${formatUsd(subtotal)})` },
+  )) as Record<string, unknown> | null;
+  const o = kite.readOrder(order);
+  r.output = { ...(r.output ?? {}), orderId: o.orderId, orderStatus: o.orderStatus, purchase: `${pick.title.slice(0, 80)} from Amazon${o.orderId ? ` (order ${o.orderId})` : ""}` };
+  r.facts.push(`Order ${o.orderId ?? "(no id)"}: ${o.orderStatus ?? "pending"}. Kite's provider refunds whatever the order costs below ${formatUsd(cap)} to the wallet.`);
+}
+
 // ---------- Reppo: independent opinions on subjective calls ----------
 // Jev (inside the SERV guard graph) handles the predictable checks; Reppo's
 // evaluators judge the subjective ones: "is this the right eSIM, gift, restaurant?"
@@ -663,13 +859,18 @@ const OPINION_CONTEXT =
   "Errand is an AI agent running an errand for a user who set a budget and constraints. It asks independent evaluators for a second opinion on a subjective choice before acting. Judge the proposal against the user's task, constraints and the facts gathered. accept = good choice, revise = acceptable but a better option likely exists, reject = wrong choice.";
 
 async function askReppo(e: Errand, step: PlanStep, question: string, proposal: Record<string, unknown>) {
-  const payload = JSON.stringify({
-    question,
-    proposal,
-    task: redact(e.task),
-    constraints: (e.plan?.constraints ?? []).map(redact),
-    facts: allFacts(e).slice(-15).map(redact),
-  });
+  // Private errands share only the choice itself, never the task, constraints or research.
+  const payload = JSON.stringify(
+    e.privacy === "private"
+      ? { question: redact(question), proposal }
+      : {
+          question,
+          proposal,
+          task: redact(e.task),
+          constraints: (e.plan?.constraints ?? []).map(redact),
+          facts: allFacts(e).slice(-15).map(redact),
+        },
+  );
   const body = await pay(
     e,
     sellers.reppoLiteRequest({

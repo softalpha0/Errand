@@ -2,7 +2,7 @@
 
 **Give an agent the errand. Keep control of the money.** Errand researches, books by phone, tops up phones, and buys eSIMs and gift cards for you. It pays sellers through **Kite Agent Passport** within the scope you approve, checks every payment with **SERV Reasoning** before it happens, asks **Reppo**'s independent evaluators for a second opinion on judgement calls, and gets graded by Reppo after every run. Emails are worded by an open-source model on **Dolphin**.
 
-![CI](https://github.com/softalpha0/errand/actions/workflows/ci.yml/badge.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-black) ![Built on SERV Reasoning](https://img.shields.io/badge/built%20on-SERV%20Reasoning-1d6a4c) ![Kite Passport](https://img.shields.io/badge/pays%20with-Kite%20Passport-1d6a4c)
+![CI](https://github.com/softalpha0/Errand/actions/workflows/ci.yml/badge.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-black) ![Built on SERV Reasoning](https://img.shields.io/badge/built%20on-SERV%20Reasoning-1d6a4c) ![Kite Passport](https://img.shields.io/badge/pays%20with-Kite%20Passport-1d6a4c)
 
 **Demo video:** _add link_ · **Live app:** _add link_ · **Example receipt:** _add link_ · **Track:** SERV Hackathon 02, Track 02 (Kite)
 
@@ -28,8 +28,8 @@ Agents can now pay for things by themselves over x402. Spending limits stop an a
 
 1. **You set the errand and its scope.** "I fly to Accra on Friday. Find a 7-day Ghana eSIM and buy the cheapest one if it is under $8." Budget $8, at most $7 per payment, valid for 7 days, ask me above $5. The planner turns your words into constraints (Ghana coverage, 7 days, under $8) that every purchase is checked against.
 2. **SERV writes a plan with a price on every step**: a cited answer ($0.01), a Reddit search ($0.02), then buy the eSIM only if the research says it's under $8.
-3. **You approve one Kite Passport session** with exactly those limits, using your passkey.
-4. **Every payment is checked before it happens**: 12 fixed rules (including your own "ask me above"), then a SERV guard graph. Paid responses are read with SERV PromptGuard, and any purchase a seller's text suggests is blocked. Judgement calls (which eSIM, which gift, which restaurant) also get an **independent second opinion from Reppo** before any money moves: Jev for the predictable, Reppo for the subjective. When Errand isn't sure, it asks you.
+3. **You approve one Kite Passport session** with exactly those limits, using your passkey. Connect your own Passport on `/connect` and it's your wallet and your passkey; otherwise Errand's own Passport pays (access code on the live site).
+4. **Every payment is checked before it happens**: 13 fixed rules (including your own "ask me above"), then a SERV guard graph. Paid responses are read with SERV PromptGuard, and any purchase a seller's text suggests is blocked. Judgement calls (which eSIM, which gift, which restaurant) also get an **independent second opinion from Reppo** before any money moves: Jev for the predictable, Reppo for the subjective. When Errand isn't sure, it asks you.
 5. **You get the answer and a receipt**: each payment with its on-chain link and reason, what was blocked, and, about 15 minutes later, Reppo's independent grade.
 
 What it can do today, all paid through sellers in the Kite Passport catalog:
@@ -43,6 +43,8 @@ What it can do today, all paid through sellers in the Kite Passport catalog:
 | Find a business and phone it with a task (US and Canada) | StableEnrich + StablePhone |
 | "Is it worth it?" answered with research plus an independent verdict | StableEnrich + Reppo |
 | Second opinion before any judgement-call purchase | Reppo (paid through Kite) |
+| Order a physical product from Amazon (you confirm the order summary first) | Kite Passport shopping (`kpass shop:*`) |
+| Repeat an errand every day or week, paid from your Kite allowance ("keep Mum's data topped up, at most $1 a day") | Any of the above except Amazon |
 
 ## Try it
 
@@ -84,7 +86,9 @@ The guard graph's system prompt is in [docs/serv-guard-graph.md](docs/serv-guard
 ### Errand for other agents
 
 - **Errand Guard on Kite** ([kite-service/errand-guard](kite-service/errand-guard)): a paid x402 service on the Kite chain, built from Kite's own `kite-x402-services` template. Any Kite Passport agent pays $0.01 to ask "should I make this payment?" and gets approve, ask or block with a reason. Its manifest validates against Kite's schema; it is ready to PR to `gokite-ai/kite-x402-services`.
-- **Errand inside your assistant** ([apps/mcp](apps/mcp), [docs/mcp.md](docs/mcp.md)): an MCP server so Claude Desktop, Claude Code, ChatGPT desktop or Cursor can start errands. Payments still need your passkey.
+- **Errand inside your assistant** ([apps/mcp](apps/mcp), [docs/mcp.md](docs/mcp.md)): an MCP server so any MCP app (desktop AI assistants, ChatGPT desktop, Cursor) can start errands. Payments still need your passkey.
+- **Errand on Telegram** ([apps/agent/src/telegram.ts](apps/agent/src/telegram.ts)): message the bot an errand; it shows the plan, sends the Kite approval link, asks questions with buttons and replies with the answer and receipt. Set `TELEGRAM_BOT_TOKEN` (from @BotFather) and, for live mode, `TELEGRAM_ALLOWED_USERS`.
+- **Errand in Kite's agent directory** ([docs/kite-directory.md](docs/kite-directory.md)): the exact `kpass` steps to list Errand as a seller agent (needs Kite's identity check), and a public profile at `GET /agent-card`.
 
 ## What Errand promises
 
@@ -99,6 +103,10 @@ The guard graph's system prompt is in [docs/serv-guard-graph.md](docs/serv-guard
 | Stays inside your scope | Kite session TTL ("valid for"), constraints checked by the guard graph, R12 "ask me above $X" |
 | Gets a second opinion on judgement calls | Reppo lite evaluation before the purchase |
 | Asks when unsure | The guard can approve, ask or block, and can never loosen a rule |
+| Never checks out on Amazon without your yes | An order summary you must confirm (Kite's own rule), then R13: the charge must be exactly your cap + Kite's $1 fee |
+| Repeats only what you approved | Standing errands repeat the exact plan you approved, capped per run; Kite's allowance caps the total and never pays checkouts |
+| Keeps private errands private | "Private" errands are not sent to Reppo's public network; second opinions see only the choice, not your task |
+| Uses your wallet only with your approval | Each connected Passport has its own login folder; sessions need your passkey; Disconnect logs Errand out of Kite |
 | Every run is graded by someone else | Reppo evaluation of the full trace |
 
 ## Evidence
@@ -138,13 +146,14 @@ pnpm typecheck
 
 ```
 apps/
-  agent/        Hono server: runner, SERV client, kpass wrapper, sellers, Reppo worker + second opinions, Dolphin, demo mode
-  web/          Next.js app: landing, composer, live errand, receipt, results, guard test page
-  mcp/          MCP server: use Errand from Claude, ChatGPT, Cursor
+  agent/        Hono server: runner, SERV client, kpass wrapper (sessions, allowance, shopping), sellers, Reppo, Dolphin,
+                per-person Passports, standing errands scheduler, Telegram bot, demo mode
+  web/          Next.js app: landing, composer, live errand, receipt, results, guard test page, connect your Passport, repeat
+  mcp/          MCP server: use Errand from any MCP app
 kite-service/
   errand-guard/ Paid x402 guard service on the Kite chain (Kite template), ready to PR to kite-x402-services
 packages/
-  core/         Types, seller catalog, rules R1–R11, plan checks, phone numbers, metrics (unit-tested)
+  core/         Types, seller catalog, rules R1–R13, plan checks, phone numbers, metrics (unit-tested)
 docs/           Architecture, guard graph prompt, sellers, Kite, Reppo, deploy, testing, build log
 evidence/       Payments, blocks, Reppo results, screenshots
 submission/     Write-up, video script, X post
@@ -154,12 +163,16 @@ submission/     Write-up, video script, X post
 
 | Part | Status |
 |---|---|
-| Rules (R1–R12, guard-service rules), plan checks, phone numbers, parsing | Unit-tested (52 tests) |
+| Rules (R1–R13, guard-service rules), plan checks, phone numbers, Kite output parsing | Unit-tested (67 tests) |
 | Full journey in demo mode (plan → approve → research → buy → email → receipt) | Works end to end |
 | SERV planner + guard graph v2 + PromptGuard + answers | Run for real with a SERV key (demo payments) |
 | Scope (valid for, constraints, R12 ask-above), Reppo second opinion, opinion errands | Work end to end in demo mode |
 | Errand Guard x402 service | Typechecks; unpaid call returns a correct Kite testnet 402; manifest validates against Kite's schema; **pay once on testnet** |
-| MCP server | Tested over stdio: tools/list, start_errand, approve_demo |
+| MCP server | Tested over stdio: tools/list, start_errand, approve |
+| Connect your own Kite Passport | Works in demo mode (simulated login). Live: built to Kite's authenticate-user skill; **log in once with your own email to verify** |
+| Amazon through Kite (`kpass shop:*`) | Works end to end in demo mode, including declining at the order summary. Live: built to Kite's shopping skill; **one real order costs the item + $1** |
+| Standing errands on the allowance | Work end to end in demo mode (approve once, "Run now" repeats without approval, Amazon refused). Live: **turn on an allowance at agentpassport.ai first** |
+| Telegram bot | Tested against a mock Telegram API: plan, Approve button, payments, answer, strangers refused. **Create your bot with @BotFather** |
 | Dolphin email wording | Built to Dolphin's docs; **verify with your key** |
 | Web app at 390 px and 1280 px | Screenshotted, no horizontal scroll |
 | SERV calls (planner, Shadow Agent guard, PromptGuard reader, answer) | Built to SERV's docs; **verify with your key** |
@@ -171,7 +184,10 @@ Update this table as each part is proven. Only claim in the video what has run f
 
 ## Known limitations
 
-- One Kite Passport (the owner's) pays for live errands; every errand still needs the owner's passkey approval. Per-user Passport connection is next.
+- People who don't connect their own Passport use the owner's; those errands need the access code and the owner's passkey. Connected Passports keep their Kite login on the agent's disk (`PASSPORTS_DIR`); on Render, mount a persistent disk there.
+- Kite's metered and subscription payments aren't released yet, so standing errands meter on top of the allowance: one run per day or week, capped per run.
+- Reppo has no public API for private data nets yet. "Private" errands therefore skip Reppo's public network (no trace grading), and second opinions send only the choice itself.
+- Amazon orders ship to the address in your Kite profile; Kite's provider buys from its own retailer account and refunds the unused part of your cap to your wallet.
 - Reppo's lite evaluation charges in USDC on Base; Kite Passport routes the payment. Run one real second opinion before relying on it.
 - Gift card codes and eSIM QR codes are tied to the paying wallet on Bitrefill; Errand confirms delivery but does not display the code.
 - StablePhone calls only +1 numbers and is marked "Retest" in the Kite catalog.
@@ -183,12 +199,12 @@ All of it. The research, design and code are from 3–15 Nov 2026; see [docs/bui
 
 ## What's next
 
-- Each person connects their own Kite Passport.
-- Metered top-ups: "keep Mum's data topped up, at most $1 a day", on Kite's allowance or its upcoming metered and subscription payments.
-- Physical shopping (Amazon) through Kite's `shopping` skill, with the same scope checks.
-- Private Reppo data nets for personal errands.
-- List Errand in Kite's agent directory so other agents can hire it per errand.
-- Telegram front end.
+Built on 5 Nov (see the status table for what still needs a live run): your own Kite Passport, standing errands on the allowance, Amazon through Kite's checkout, private errands, the Kite agent directory steps and the Telegram bot.
+
+- Switch standing errands to Kite's metered and subscription payments when Kite releases them.
+- Send private errands to a private Reppo data net as soon as Reppo opens one to API users.
+- List Errand in Kite's agent directory once the owner's identity check clears.
+- Seller-side Errand: other agents hire it per errand through Kite's agent directory.
 
 ## Credits
 

@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ModeNote } from "@/components/errand-parts";
 import { Button, ErrorNote, Field, cx, inputClass } from "@/components/ui";
 import { api, type AgentConfig } from "@/lib/api";
 import { EXAMPLES } from "@/lib/examples";
+import { usePassport } from "@/lib/passport";
 
 export function Composer({ initial }: { initial: number | null }) {
   const router = useRouter();
@@ -16,6 +18,8 @@ export function Composer({ initial }: { initial: number | null }) {
   const [code, setCode] = useState("");
   const [validFor, setValidFor] = useState<"1h" | "24h" | "7d">("1h");
   const [askAbove, setAskAbove] = useState<string>("");
+  const [privateRun, setPrivateRun] = useState(false);
+  const { passport } = usePassport();
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -55,7 +59,7 @@ export function Composer({ initial }: { initial: number | null }) {
     try {
       const askN = askAbove.trim() ? Number(askAbove) : null;
       const { id } = await api.create(
-        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null },
+        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, privacy: privateRun ? "private" : "public" },
         code || undefined,
       );
       router.push(`/e/${id}`);
@@ -68,6 +72,16 @@ export function Composer({ initial }: { initial: number | null }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
       {config ? <ModeNote mode={config.mode} /> : null}
+
+      <div className="flex flex-col gap-1 rounded-xl border border-line bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-muted">
+          Paying from:{" "}
+          <span className="font-medium text-ink">{passport ? `your Kite Passport (${passport.email})` : config?.mode === "live" ? "Errand's own Kite Passport" : "a simulated wallet"}</span>
+        </p>
+        <Link href="/connect" className="text-muted underline underline-offset-2 hover:text-ink">
+          {passport ? "Manage" : "Use your own Passport"}
+        </Link>
+      </div>
 
       <Field label="What should Errand do?" htmlFor="task" hint="Name who it's for, how much, and any condition. Errand only buys what you write here.">
         <textarea
@@ -122,7 +136,15 @@ export function Composer({ initial }: { initial: number | null }) {
         </Field>
       </div>
 
-      {config?.accessCodeRequired ? (
+      <label className="flex items-start gap-3 text-sm">
+        <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-ink)]" checked={privateRun} onChange={(ev) => setPrivateRun(ev.target.checked)} />
+        <span>
+          <span className="font-medium">Keep this errand private.</span>{" "}
+          <span className="text-muted">The run isn&rsquo;t sent to Reppo&rsquo;s public evaluation network, and second opinions see only the choice, not your task.</span>
+        </span>
+      </label>
+
+      {config?.accessCodeRequired && !passport ? (
         <Field label="Access code" htmlFor="code" hint="Live errands spend real money, so the owner hands out a code. Without one, use the demo site.">
           <input id="code" className={inputClass} value={code} onChange={(ev) => setCode(ev.target.value)} autoComplete="off" />
         </Field>

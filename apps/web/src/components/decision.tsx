@@ -13,7 +13,9 @@ function ruleLabel(rule: string): string {
   if (rule.startsWith("serv.unavailable")) return "SERV unavailable";
   if (rule.startsWith("demo.")) return "Scripted demo check";
   if (rule === "user.answer") return "Your answer";
+  if (rule === "user.earlier") return "You confirmed earlier";
   if (rule.startsWith("R12")) return "Your rule: ask above an amount";
+  if (rule.startsWith("R13")) return "Amazon checkout amount";
   if (rule === "rules.pass") return "Rules";
   return `Rule ${rule.split(".")[0]}`;
 }

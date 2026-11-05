@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LinkButton } from "./ui";
 
-const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/softalpha0/errand";
+const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/softalpha0/Errand";
 
 export function Logo() {
   return (
@@ -24,8 +24,15 @@ export function Header() {
           <Link href="/#how" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
             How it works
           </Link>
-          <Link href="/stats" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
+          <Link href="/repeat" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
+            Repeat
+          </Link>
+          <Link href="/stats" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink md:block">
             Results
+          </Link>
+          <Link href="/connect" className="rounded-full px-3 py-2 text-muted hover:text-ink">
+            <span className="sm:hidden">Passport</span>
+            <span className="hidden sm:inline">Your Passport</span>
           </Link>
           <LinkButton href="/new" size="sm" className="ml-2">
             Start an errand
@@ -58,6 +65,12 @@ export function Footer() {
           </Link>
           <Link href="/trap" className="hover:text-ink">
             Guard test page
+          </Link>
+          <Link href="/repeat" className="hover:text-ink">
+            Repeat an errand
+          </Link>
+          <Link href="/connect" className="hover:text-ink">
+            Connect your Passport
           </Link>
           <a href={REPO_URL} className="hover:text-ink" rel="noreferrer">
             Source code

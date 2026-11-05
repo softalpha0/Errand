@@ -38,8 +38,9 @@ A user on the live site runs one real errand that pays at least two real sellers
 11. Reppo second opinion on judgement calls (lite evaluation, paid through Kite) and `reppo.opinion` errands; receipts list evaluators.
 12. Errand Guard (kite-service/errand-guard): Kite's x402 template wrapping `/check`, manifest ready to PR to gokite-ai/kite-x402-services.
 13. MCP server (apps/mcp). Dolphin writes email wording only.
+14. Each person's own Kite Passport (`/connect`, one login folder each). Standing errands on the Kite allowance (`/repeat`). Amazon through `kpass shop:*` with an order summary the person confirms and rule R13. Private errands. Telegram bot. Kite agent directory steps (docs/kite-directory.md).
 
-Should: phone call booking (StablePhone, +1 only), evidence export, guard test page used in the video. Could: Telegram front end, allowance-based repeat errands, Errand as a seller in Kite's agent directory. Won't: accounts and logins, mobile app, physical goods.
+Should: phone call booking (StablePhone, +1 only), evidence export, guard test page used in the video. Could: Errand as a seller in Kite's agent directory (needs the owner's KYC). Won't: Errand accounts and passwords (Kite's login is the account), mobile app.
 
 ## Tools
 
@@ -67,6 +68,11 @@ Feel: calm, precise, trustworthy, like a bank statement that explains itself. Wa
 - [x] 4 Nov: monorepo scaffolded; core rules + tests; agent with demo mode end to end; web app built and screenshotted.
 - [x] SERV key connected; guard graph v1 then v2 created; demo runs on real SERV decisions.
 - [x] 4 Nov evening: partner-feedback features built (scope, R12, Reppo second opinion + opinion errands, Errand Guard x402 service, MCP server, Dolphin emails, plain-money receipts). 52 unit tests.
+- [x] 5 Nov: own Passport, standing errands (allowance), Amazon via Kite shopping + R13, private errands, Telegram bot, directory steps. 67 tests.
+- [ ] HUMAN: connect your own Passport once in live mode; confirm the login lands in PASSPORTS_DIR.
+- [ ] HUMAN: turn on a small Kite allowance (e.g. $1/week) and run one standing errand live.
+- [ ] HUMAN: create the Telegram bot with @BotFather → TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS.
+- [ ] HUMAN: Kite identity check → `kpass agent create` (docs/kite-directory.md).
 - [ ] HUMAN: data collection ON in console.openserv.ai/settings/organization (screenshot).
 - [ ] HUMAN: Dolphin API key (app.dphn.ai) → DOLPHIN_API_KEY (optional).
 - [ ] Deploy Errand Guard with KITE_NETWORK=testnet; `kpass sandbox on` + faucet; pay once; then mainnet; PR to gokite-ai/kite-x402-services.

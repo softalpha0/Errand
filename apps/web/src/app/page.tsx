@@ -38,6 +38,8 @@ const GUARANTEES = [
   ["Never goes past your own limits", "Rule R12 asks you before any payment above the amount you set; the session expires when you said"],
   ["Gets a second opinion on judgement calls", "Reppo's independent evaluators review subjective purchases before any money moves"],
   ["Every run is graded by someone else", "Reppo evaluation of the full trace, with each evaluator's note on the receipt"],
+  ["Never checks out on Amazon without your yes", "An order summary you confirm, then rule R13: the charge must be exactly your cap plus Kite's $1 fee"],
+  ["Repeats only what you approved", "Standing errands repeat the exact plan you approved, capped per run; your Kite allowance caps the total"],
 ];
 
 const STACK = [
@@ -51,7 +53,7 @@ const STACK = [
     name: "Kite Agent Passport",
     role: "Holds the money and the limits",
     detail:
-      "One session per errand with a total and per-payment cap, approved with your passkey. Pays sellers from the Kite catalog over x402, and routes across chains when a seller settles on Base.",
+      "Your own Passport, connected with Kite's email code. One session per errand with a total and per-payment cap, approved with your passkey; repeating errands pay from your Kite allowance. Pays sellers from the Kite catalog over x402, checks out Amazon orders through Kite's own shopping, and routes across chains when a seller settles on Base.",
   },
   {
     name: "Reppo",
@@ -69,12 +71,16 @@ const STACK = [
 
 const FAQ = [
   ["Is this real money?", "On the live site, yes: every payment is a real x402 payment through Kite Passport, with a transaction link on the receipt. Demo mode simulates payments and says so on every screen."],
-  ["What can Errand buy?", "Mobile airtime and data in 180+ countries, travel eSIMs and gift cards through Bitrefill; research from StableEnrich (web answers, Reddit, news, Google Maps); emails through StableEmail; AI phone calls to US and Canadian numbers through StablePhone; and independent second opinions from Reppo. Gift card codes are tied to the paying wallet, so Errand confirms delivery and you collect the code from your Kite wallet."],
-  ["Can I use it from Claude or ChatGPT?", "Yes. Errand ships an MCP server, so you can run errands from Claude Desktop, Claude Code, ChatGPT desktop or Cursor. Plans and checks still run on SERV, and live payments still need your passkey."],
+  ["What can Errand buy?", "Mobile airtime and data in 180+ countries, travel eSIMs and gift cards through Bitrefill; physical products from Amazon through Kite Passport's own checkout; research from StableEnrich (web answers, Reddit, news, Google Maps); emails through StableEmail; AI phone calls to US and Canadian numbers through StablePhone; and independent second opinions from Reppo. Gift card codes are tied to the paying wallet, so Errand confirms delivery and you collect the code from your Kite wallet."],
+  ["Whose wallet pays?", "Yours, if you connect your Kite Passport on the Connect page: Kite emails you a code, and every spending session is approved with your own passkey. Without a connection, the demo simulates payments and the live site uses the owner's Passport with an access code."],
+  ["How do repeating errands work?", "You approve a plan once, for example a daily ₦1,000 top-up. Errand repeats exactly that plan every day or week and pays from your Kite allowance, which you set up once on Kite. Every payment is still checked, each run is capped, and you can pause or stop it. Amazon orders can't repeat: Kite's allowance never pays checkouts."],
+  ["How does an Amazon order work?", "Errand searches Amazon through Kite for free, picks the best-rated item within your limit, can get a Reppo second opinion, then shows you an order summary. Only after you say yes does Kite check out. Kite charges your limit plus a $1 fee up front and refunds the unused part to your wallet."],
+  ["Can I use it from Telegram?", "Yes, if the site's owner runs the Telegram bot. Message it an errand; it shows the plan, sends the Kite approval link and asks questions with buttons."],
+  ["Can I use it from my AI assistant?", "Yes. Errand ships an MCP server, so any app that supports MCP (desktop AI assistants, ChatGPT desktop, Cursor) can run errands. Plans and checks still run on SERV, and live payments still need your passkey."],
   ["Can other agents use Errand's guard?", "Yes. Errand Guard is a paid x402 service on the Kite chain: any Kite Passport agent pays $0.01 to ask whether a payment should happen, and gets approve, ask or block with a reason."],
-  ["Is my data shared with the evaluators?", "Errand masks phone numbers and removes emails before anything goes to Reppo, and never sends wallet details. Reppo's private data nets are the next step for personal errands."],
+  ["Is my data shared with the evaluators?", "Errand masks phone numbers and removes emails before anything goes to Reppo, and never sends wallet details. Tick \"keep this errand private\" and the run isn't sent to Reppo's public network at all; second opinions then see only the choice, not your task. Reppo's private data nets come next."],
   ["What if a seller's page tries to trick the agent?", "Paid responses are untrusted. SERV PromptGuard reads them and pulls out anything that asks the agent to buy or pay. Each of those goes to the guard, and rule R1 blocks it. Try the guard test page to see it."],
-  ["Who approves the spending?", "You do, once per errand, in Kite Passport with your passkey. Errand cannot raise its own limits."],
+  ["Who approves the spending?", "You do, once per errand, in Kite Passport with your passkey (for repeating errands: once, when you set up your Kite allowance, and once for the plan). Errand cannot raise its own limits."],
   ["Why do grades take 15 minutes?", "Reppo's evaluators judge the trace after a settlement window. The receipt updates when the verdict is in."],
 ];
 
@@ -91,9 +97,9 @@ export default function Home() {
             Give an agent the errand. Keep control of the money.
           </h1>
           <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted">
-            Errand researches, books by phone, tops up phones, and buys eSIMs and gift cards for you. It pays sellers through Kite Passport within the limit you
-            approve, checks every payment with SERV before it happens, gets an independent second opinion from Reppo on judgement calls, and hands you a receipt
-            that explains each dollar.
+            Errand researches, books by phone, tops up phones, buys eSIMs and gift cards, and orders from Amazon for you. It pays from your own Kite Passport within the
+            limit you approve, checks every payment with SERV before it happens, gets an independent second opinion from Reppo on judgement calls, and hands you a receipt
+            that explains each dollar. Errands can repeat too: &ldquo;keep Mum&rsquo;s data topped up, at most $1 a day.&rdquo;
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <LinkButton href="/new" size="lg">
@@ -106,11 +112,11 @@ export default function Home() {
           <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6">
             <div>
               <dt className="text-xs text-muted">Paid services</dt>
-              <dd className="num mt-1 text-xl">5</dd>
+              <dd className="num mt-1 text-xl">6</dd>
             </div>
             <div>
               <dt className="text-xs text-muted">Checks per payment</dt>
-              <dd className="num mt-1 text-xl">12 + SERV</dd>
+              <dd className="num mt-1 text-xl">13 + SERV</dd>
             </div>
             <div>
               <dt className="text-xs text-muted">Cheapest errand</dt>
@@ -255,10 +261,24 @@ export default function Home() {
           <div className="min-w-0 rounded-[var(--radius-card)] border border-line bg-card p-6">
             <p className="font-semibold">Errand inside your assistant</p>
             <p className="mt-2 leading-relaxed text-muted">
-              Add the Errand MCP server to Claude Desktop, Claude Code, ChatGPT desktop or Cursor and say “top up Mum’s MTN line with ₦1,000, budget $2”. The
+              Add the Errand MCP server to any MCP app (a desktop AI assistant, ChatGPT desktop, Cursor) and say “top up Mum’s MTN line with ₦1,000, budget $2”. The
               assistant starts the errand; you still approve the spending in Kite Passport, and the receipt link comes back in the chat.
             </p>
-            <pre className="num mt-4 overflow-x-auto rounded-xl bg-sunken p-3 text-xs leading-relaxed whitespace-pre-wrap break-words">tools: start_errand · get_errand · answer_question · stop_errand</pre>
+            <pre className="num mt-4 overflow-x-auto rounded-xl bg-sunken p-3 text-xs leading-relaxed whitespace-pre-wrap break-words">tools: start_errand · repeat_errand · get_errand · answer_question · approve · stop_errand</pre>
+          </div>
+          <div className="min-w-0 rounded-[var(--radius-card)] border border-line bg-card p-6">
+            <p className="font-semibold">Errand on Telegram</p>
+            <p className="mt-2 leading-relaxed text-muted">
+              Message the bot &ldquo;$2 send ₦1,000 MTN airtime to Mum on 0803 123 4567&rdquo;. It replies with the plan, the Kite approval link and an Approve button, asks its
+              questions with buttons, and sends the answer and receipt when it&rsquo;s done.
+            </p>
+          </div>
+          <div className="min-w-0 rounded-[var(--radius-card)] border border-line bg-card p-6">
+            <p className="font-semibold">Errand in Kite&rsquo;s agent directory</p>
+            <p className="mt-2 leading-relaxed text-muted">
+              Errand describes itself at <span className="num text-ink">/agent-card</span>, and the repo has the exact <span className="num text-ink">kpass agent create</span> steps to list it as a
+              seller agent once the owner&rsquo;s identity check with Kite clears.
+            </p>
           </div>
         </div>
       </section>

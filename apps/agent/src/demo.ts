@@ -8,8 +8,8 @@
  * bundle") so the guard's block can be seen without spending money. In live
  * mode the same check runs on real seller text; see the /trap page.
  */
-import { BUY_OVERHEAD_USD, normalizePhone, type Plan, type PlanStep } from "@errand/core";
-import type { ExecuteResult } from "./kite";
+import { BUY_OVERHEAD_USD, SECOND_OPINION_USD, SHOP_FEE_USD, normalizePhone, type Plan, type PlanStep } from "@errand/core";
+import type { ExecuteResult, Shipping, ShopItem } from "./kite";
 import type { ConditionReply, GuardReply, ReadReply, SummaryReply } from "./serv";
 
 const DEMO_NOTE = "Simulated seller response (demo mode). No money moved.";
@@ -140,6 +140,20 @@ function fixture(endpointId: string, q: string, url: string, reqBody: unknown): 
       return { _demo: DEMO_NOTE, id: "demo-email", status: "queued" };
     case "phone.call":
       return { _demo: DEMO_NOTE, call_id: "demo-call", status: "queued" };
+    case "kite.shop.checkout": {
+      const cap = Number((reqBody as { maxTotalUsd?: number })?.maxTotalUsd ?? 0);
+      return {
+        _demo: DEMO_NOTE,
+        order_id: `ord_demo_${Date.now().toString(36)}`,
+        provider: "demo",
+        order_status: "pending",
+        total_amount: `$${(cap + SHOP_FEE_USD).toFixed(2)}`,
+        max_total: cap.toFixed(2),
+        currency: "usdc",
+        chain: "simulated",
+        status: "success",
+      };
+    }
     case "reppo.lite":
       return {
         _demo: DEMO_NOTE,
@@ -148,14 +162,28 @@ function fixture(endpointId: string, q: string, url: string, reqBody: unknown): 
         result: { score: 81, decision: "accept", confidence: 0.78, verdicts: [{ criterion: "Fit", verdict: "accept", critique: "Matches the task and constraints; price is in the normal range." }] },
         peerAssessmentCount: 3,
         peerAssessments: [
-          { agentName: "demo-evaluator-1", modelName: "demo", score: 84, decision: "accept", critique: "Good fit for a one-week trip; 5 GB covers maps and messaging." },
-          { agentName: "demo-evaluator-2", modelName: "demo", score: 79, decision: "accept", critique: "Price is fair; a local SIM is cheaper but needs ID registration." },
+          { agentName: "demo-evaluator-1", modelName: "demo", score: 84, decision: "accept", critique: "Fits the task and the limits the user set." },
+          { agentName: "demo-evaluator-2", modelName: "demo", score: 79, decision: "accept", critique: "Price is in the normal range for this kind of item." },
           { agentName: "demo-evaluator-3", modelName: "demo", score: 80, decision: "accept", critique: "No clearly better option in the facts given." },
         ],
       };
     default:
       return { _demo: DEMO_NOTE };
   }
+}
+
+/** Simulated `kpass shop:search` results, in the shape Kite's shopping skill documents. */
+export function demoShopSearch(query: string): ShopItem[] {
+  const q = query.trim() || "item";
+  return [
+    { provider: "demo", externalId: "DEMO0001", title: `${q} (demo listing, 6 ft)`, priceUsd: 7.99, rating: 4.6, reviews: 12800, link: null },
+    { provider: "demo", externalId: "DEMO0002", title: `${q} 2-pack (demo listing)`, priceUsd: 11.49, rating: 4.7, reviews: 30400, link: null },
+    { provider: "demo", externalId: "DEMO0003", title: `Budget ${q} (demo listing)`, priceUsd: 4.25, rating: 3.9, reviews: 410, link: null },
+  ];
+}
+
+export function demoShipping(): Shipping {
+  return { complete: true, missing: [], name: "Demo Person", city: "Austin", state: "TX", country: "US" };
 }
 
 // ---------- scripted SERV stand-in (only when no SERV key in demo mode) ----------
@@ -169,7 +197,7 @@ export function scriptedPlan(task: string, budgetUsd: number): Plan {
   if (phone) recipients.push({ label: "Recipient", phone, email: "" });
   if (email) recipients.push({ label: "You", phone: "", email });
 
-  if (/airtime|top.?up|recharge/i.test(task) && phone) {
+  if (/airtime|\bdata\b|top.?up|topped up|recharge/i.test(task) && phone && !/esim/i.test(task)) {
     const steps: PlanStep[] = [
       step({
         id: "s1",
@@ -187,6 +215,31 @@ export function scriptedPlan(task: string, budgetUsd: number): Plan {
     ];
     if (email) steps.push(step({ id: "s2", type: "email.send", purpose: "Email the receipt", inputs: [{ key: "to", value: email }, { key: "subject", value: "Airtime sent" }], maxUsd: 0.02 }));
     return { summary: "Buy NGN 1,000 MTN airtime for the number given, then email a receipt.", steps, recipients, questions: [], constraints: ["MTN Nigeria only", `only to ${phone}`, "NGN 1,000"] };
+  }
+
+  if (/amazon|order (a|an|me)|ship (it|to)|deliver/i.test(task) && !/gift ?card|voucher/i.test(task)) {
+    const limit = Number(task.match(/under \$(\d+(\.\d+)?)/i)?.[1] ?? 10);
+    const what = task.match(/(?:buy|order|get)(?: me)? (?:a |an )?(.+?)(?: on amazon| from amazon| under| for|,|\.|$)/i)?.[1]?.trim() || "usb-c cable";
+    const cap = Math.max(limit, 1);
+    return {
+      summary: `Find the best-rated ${what} on Amazon within your limit, get an independent second opinion, then ask you to confirm the order before Kite checks out.`,
+      constraints: [`under $${cap} including tax and shipping`, what],
+      recipients,
+      questions: [],
+      steps: [
+        step({
+          id: "s1",
+          type: "buy.amazon",
+          purpose: `Order ${what} from Amazon`,
+          inputs: [
+            { key: "query", value: what },
+            { key: "maxTotalUsd", value: String(cap) },
+            { key: "secondOpinion", value: "yes" },
+          ],
+          maxUsd: Number((cap + SHOP_FEE_USD + SECOND_OPINION_USD).toFixed(3)),
+        }),
+      ],
+    };
   }
 
   const isOpinion = /worth it|should i|is it (good|better)|second opinion|recommend/i.test(task);

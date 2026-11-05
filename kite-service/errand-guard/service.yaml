@@ -13,7 +13,7 @@ network: eip155:2366
 pay_to: "0x7B769107634A0370AF5FcEB53989F894e948107C"   # quote it: bare 0x... parses as a YAML integer
 upstream:
   name: Errand (SERV Reasoning guard)
-  url: https://github.com/softalpha0/errand
+  url: https://github.com/softalpha0/Errand
   requires_api_key: true
 source: typescript-express
 endpoints:
