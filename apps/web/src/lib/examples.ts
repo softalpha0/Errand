@@ -48,9 +48,9 @@ export const EXAMPLES = [
   {
     kind: "Shop on Amazon",
     title: "Order something real",
-    task: "Order a 6 ft USB-C charging cable from Amazon, under $12 including tax and shipping. Pick a well-reviewed one.",
-    budgetUsd: 13.5,
-    maxPerPaymentUsd: 13.5,
+    task: "Order a 6 ft USB-C charging cable from Amazon, under $8 including tax and shipping. Pick a well-reviewed one.",
+    budgetUsd: 9.5,
+    maxPerPaymentUsd: 9.5,
     sellers: "Amazon via Kite, Reppo",
     cost: "the order + $1 Kite fee",
   },
