@@ -242,6 +242,27 @@ export function expectedChargeUsd(c: PaymentCandidate): number | undefined {
   return c.plannedProductUsd;
 }
 
+/**
+ * The small fixed-price calls a buy step makes around the purchase itself (search, product
+ * details, create the invoice, check delivery). The fixed rules cover them completely: exact
+ * seller URL (R2), only inside the approved step (R3), the catalog price (R4), never twice (R8).
+ * SERV judged them as if each were the purchase and blocked them, so they skip SERV. Every
+ * payment that moves real money (invoice payment, checkout, call, email, Reppo) and every
+ * research call still goes to SERV.
+ */
+export const PLUMBING_ENDPOINTS = new Set([
+  "bitrefill.topups.search",
+  "bitrefill.esims.search",
+  "bitrefill.giftcards.search",
+  "bitrefill.product.detail",
+  "bitrefill.invoice.create",
+  "bitrefill.invoice.status",
+]);
+
+export function servReviews(c: PaymentCandidate): boolean {
+  return !(c.origin === "plan" && c.endpointId !== null && PLUMBING_ENDPOINTS.has(c.endpointId));
+}
+
 /** Added to the constraints SERV checks for Amazon steps, so Kite's fixed fee isn't read as breaking the user's limit. */
 export const CHECKOUT_FEE_CONSTRAINT =
   "For Amazon checkouts Kite charges the order limit plus its fixed $1 provider fee up front and refunds the unused part, so a charge of exactly the limit + $1 keeps to the limit.";

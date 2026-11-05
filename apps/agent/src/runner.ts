@@ -18,6 +18,7 @@ import {
   endpointForUrl,
   expectedChargeUsd,
   guardConstraints,
+  servReviews,
   formatUsd,
   isNorthAmerican,
   maskPhone,
@@ -376,7 +377,7 @@ async function decide(e: Errand, c: PaymentCandidate, step: PlanStep | null): Pr
   let servRequestId: string | null = null;
   let servModel: string | null = null;
 
-  if (rules.outcome !== "block") {
+  if (rules.outcome !== "block" && servReviews(c)) {
     try {
       if (servConfigured()) {
         const { reply, meta } = await serv.guard({
@@ -761,11 +762,17 @@ async function runBuy(e: Errand, step: PlanStep, r: StepResult) {
     note: `${product.name} ${pkg.package_value} ${pkg.package_currency ?? ""}${recipient ? ` for ${maskPhone(recipient)}` : ""}`.trim(),
   });
 
-  // 5. Delivery
-  let delivery = sellers.readDelivery(await pay(e, sellers.bitrefillStatus(invoice.invoiceId), { step }));
-  if (!/deliver|complete/i.test(`${delivery.status} ${delivery.delivery}`)) {
-    await new Promise((res) => setTimeout(res, env.mode === "demo" ? 500 : 15_000));
+  // 5. Delivery. The purchase is already paid: a failed or blocked check must not turn it into "not bought".
+  let delivery: { status: string; delivery: string } = { status: "paid", delivery: "not confirmed yet" };
+  try {
     delivery = sellers.readDelivery(await pay(e, sellers.bitrefillStatus(invoice.invoiceId), { step }));
+    if (!/deliver|complete/i.test(`${delivery.status} ${delivery.delivery}`)) {
+      await new Promise((res) => setTimeout(res, env.mode === "demo" ? 500 : 15_000));
+      delivery = sellers.readDelivery(await pay(e, sellers.bitrefillStatus(invoice.invoiceId), { step }));
+    }
+  } catch (err) {
+    if (err instanceof Cancelled) throw err;
+    event(e, "log", `Paid, but the delivery check didn't run: ${err instanceof Error ? err.message : String(err)}`);
   }
   const what = `${product.name} ${pkg.package_value} ${pkg.package_currency ?? ""}`.trim();
   r.output = { invoiceId: invoice.invoiceId, priceUsd: invoice.priceUsd, product: product.slug, delivery, purchase: `${what} for ${formatUsd(invoice.priceUsd)}${recipient ? ` to ${maskPhone(recipient)}` : ""}` };

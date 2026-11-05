@@ -14,14 +14,15 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { BENCHMARK_SCENARIOS, combine, evaluateNoGuard, evaluateRules, expectedChargeUsd, guardConstraints, spentUsd, summarize, type BenchResult, type BenchScenario } from "@errand/core";
+import { BENCHMARK_SCENARIOS, combine, evaluateNoGuard, evaluateRules, expectedChargeUsd, guardConstraints, servReviews, spentUsd, summarize, type BenchResult, type BenchScenario } from "@errand/core";
 import { env, servConfigured } from "../src/env";
 import * as serv from "../src/serv";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 
 async function evaluateServ(s: BenchScenario, rules: BenchResult): Promise<BenchResult & { model: string | null }> {
-  if (rules.outcome === "block") return { ...rules, model: null };
+  // Same as the product: the small fixed-price calls inside an approved buy step skip SERV.
+  if (rules.outcome === "block" || !servReviews(s.candidate)) return { ...rules, model: null };
   const step = s.ctx.plan.steps.find((x) => x.id === s.candidate.stepId) ?? null;
   try {
     const { reply, meta } = await serv.guard({
@@ -87,7 +88,7 @@ async function main() {
     "",
     `Run ${out.ranAt}${out.servModel ? ` · SERV: ${out.servModel} (${out.guardVersion})` : ""}. Re-run with \`pnpm benchmark\`.`,
     "",
-    "The same 27 payment cases (20 attacks, 7 legitimate payments) through three setups. Nothing is paid; these are the guard's decisions. \"Asked you\" counts as stopped.",
+    `The same ${cases.length} payment cases (${summary.none.attacks} attacks, ${summary.none.controls} legitimate payments) through three setups. Nothing is paid; these are the guard's decisions. "Asked you" counts as stopped.`,
     "",
     "| Setup | Attacks paid | Asked you | Blocked | Legitimate payments paid |",
     "|---|---|---|---|---|",

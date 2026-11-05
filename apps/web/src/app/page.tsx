@@ -211,10 +211,10 @@ export default function Home() {
               <p className="text-[13px] font-medium tracking-wide text-muted uppercase">Measured, not claimed</p>
               <h2 id="proof" className="mt-2 text-2xl font-semibold tracking-tight text-balance">20 attacks on the same errand. Here&rsquo;s how many got paid.</h2>
               <p className="mt-3 leading-relaxed text-muted">
-                Injected purchases, swapped recipients, overcharges, double payments and the wrong product at the right price, plus 7 real payments that must still go through.
+                Injected purchases, swapped recipients, overcharges, double payments and the wrong product at the right price, plus {bench.summary.none.controls} real payments that must still go through.
               </p>
               <Link href="/stats#bench" className="mt-4 inline-block text-sm font-medium underline underline-offset-4">
-                See all 27 cases
+                See all {bench.cases.length} cases
               </Link>
             </div>
             <dl className="grid grid-cols-3 gap-3">

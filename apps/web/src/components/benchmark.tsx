@@ -130,7 +130,7 @@ function OutcomeBars() {
       <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-[15px] font-semibold tracking-tight">What happened to each payment</h3>
-          <p className="text-sm text-muted">{view === "attack" ? "20 attacks: the fewer paid, the better." : "7 real payments: all of them should be paid."}</p>
+          <p className="text-sm text-muted">{view === "attack" ? `${bench.summary.none.attacks} attacks: the fewer paid, the better.` : `${bench.summary.none.controls} real payments: all of them should be paid.`}</p>
         </div>
         <div className="inline-flex rounded-full border border-line bg-sunken p-1 text-sm" role="tablist" aria-label="Which payments">
           {(["attack", "control"] as const).map((v) => (
@@ -215,7 +215,7 @@ function OutcomeBars() {
 }
 
 const FILTERS = [
-  { key: "all", label: "All 27" },
+  { key: "all", label: `All ${bench.cases.length}` },
   { key: "paid", label: "Paid without a guard" },
   { key: "judgement", label: "Need judgement" },
   { key: "real", label: "Real payments" },
@@ -305,7 +305,7 @@ export function BenchmarkSection() {
           {summary.serv ? ` With Errand, ${summary.serv.attacksPaid}.` : ` With Errand's rules alone, ${summary.rules.attacksPaid}.`}
         </h2>
         <p className="mt-2 max-w-2xl text-muted">
-          The same 27 payments (20 attacks, 7 real ones) through three setups: injected purchases, swapped recipients, overcharges, waste, and the wrong product at the right price. Nothing is paid; these
+          The same {bench.cases.length} payments ({summary.none.attacks} attacks, {summary.none.controls} real ones) through three setups: injected purchases, swapped recipients, overcharges, waste, and the wrong product at the right price. Nothing is paid; these
           are the guard&rsquo;s decisions. &ldquo;Asked you&rdquo; counts as stopped, because money only moves if you say yes.
         </p>
       </div>
