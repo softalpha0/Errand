@@ -70,6 +70,7 @@ Feel: calm, precise, trustworthy, like a bank statement that explains itself. Wa
 - [x] 4 Nov evening: partner-feedback features built (scope, R12, Reppo second opinion + opinion errands, Errand Guard x402 service, MCP server, Dolphin emails, plain-money receipts). 52 unit tests.
 - [x] 5 Nov: own Passport, standing errands (allowance), Amazon via Kite shopping + R13, private errands, Telegram bot, directory steps. 67 tests.
 - [x] 5 Nov: attack benchmark (27 cases, three setups), Results page section, landing proof band. 75 tests.
+- [x] 5 Nov: Telegram linked to each person's own Kite Passport (one-time code / deep link, /unlink, only the payer can approve). 6 tests + mock Telegram run.
 - [ ] HUMAN: `pnpm benchmark` with SERV_API_KEY → commit evidence/benchmark.md and apps/web/src/data/benchmark.json.
 - [ ] HUMAN: connect your own Passport once in live mode; confirm the login lands in PASSPORTS_DIR.
 - [ ] HUMAN: turn on a small Kite allowance (e.g. $1/week) and run one standing errand live.

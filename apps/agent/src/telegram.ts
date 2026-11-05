@@ -4,9 +4,15 @@
  * for allowance plans), asks questions with buttons, and replies with the answer
  * and the receipt link. Every payment goes through the same guard as the web app.
  *
- * Setup: create a bot with @BotFather, set TELEGRAM_BOT_TOKEN, and in live mode
- * list who may use it in TELEGRAM_ALLOWED_USERS (ids or @usernames), because
- * live errands on Errand's own Passport spend real money.
+ * Setup: create a bot with @BotFather and set TELEGRAM_BOT_TOKEN.
+ *
+ * Who pays for a chat's errands:
+ *   1. A Telegram account linked to a Kite Passport (one-time code from the website's
+ *      Connect page, or the bot's deep link) pays from that person's own wallet, with
+ *      their own passkey approving each session. Anyone can do this, on a live site too.
+ *   2. Otherwise, people listed in TELEGRAM_ALLOWED_USERS use Errand's own Passport.
+ *   3. In demo mode with an empty list, everyone can try it (payments are simulated).
+ *   Anyone else is asked to link their Passport first.
  *
  * Uses the Telegram Bot API over long polling (getUpdates), so no public webhook is needed.
  */
@@ -14,6 +20,7 @@ import { formatUsd, type Errand } from "@errand/core";
 import { subscribe } from "./bus";
 import { env } from "./env";
 import { log } from "./log";
+import { normalizeLinkCode, passportForTelegram, redeemTelegramLink, unlinkTelegram } from "./passports";
 import { answerQuestion, approveDemo, cancelErrand, createErrand } from "./runner";
 import { store } from "./store";
 
@@ -47,11 +54,35 @@ function send(chatId: number, text: string, buttons?: Button[][]) {
   });
 }
 
-function allowed(u: TgUser | undefined): boolean {
-  if (!u) return false;
+function listed(u: TgUser): boolean {
   const list = env.telegram.allowed;
-  if (list.length === 0) return env.mode === "demo";
   return list.includes(String(u.id)) || (!!u.username && list.includes(u.username.toLowerCase()));
+}
+
+type Payer = { ok: true; passportId: string | null; label: string } | { ok: false };
+
+/** Whose wallet pays for this person's errands, or not allowed. */
+async function payerFor(u: TgUser | undefined): Promise<Payer> {
+  if (!u) return { ok: false };
+  const linked = await passportForTelegram(u.id);
+  if (linked) return { ok: true, passportId: linked.id, label: `your Kite Passport (${linked.email})` };
+  if (listed(u)) return { ok: true, passportId: null, label: env.mode === "demo" ? "a simulated wallet (demo)" : "Errand's own Kite Passport" };
+  if (env.mode === "demo" && env.telegram.allowed.length === 0) return { ok: true, passportId: null, label: "a simulated wallet (demo)" };
+  return { ok: false };
+}
+
+function connectUrl() {
+  return `${env.webOrigin.split(",")[0]}/connect`;
+}
+
+const NOT_LINKED = () =>
+  `To run errands here, link your Kite Passport so they're paid from your own wallet:\n\n1. Open ${connectUrl()}\n2. Connect your Kite Passport (Kite emails you a code)\n3. Tap "Link Telegram" and send me the code it shows.\n\nEvery spending session still needs your passkey.`;
+
+let myUsername: string | null = null;
+
+/** The bot's @username (from getMe), for deep links on the Connect page. */
+export function botUsername(): string | null {
+  return myUsername;
 }
 
 const HELP = `Send me an errand in plain words, for example:
@@ -61,7 +92,8 @@ const HELP = `Send me an errand in plain words, for example:
 • $2 What do people in Lagos say about MTN vs Airtel data?
 
 Start with an amount like "$2" to set the budget (default ${formatUsd(env.telegram.budgetUsd)}).
-I'll show you the plan and every payment decision. /stop cancels the current errand.`;
+I'll show you the plan and every payment decision. /stop cancels the current errand.
+/link CODE links your Kite Passport (get the code on the website's Connect page) · /me shows whose wallet pays · /unlink`;
 
 // chat -> latest errand, and free-text questions waiting for a reply
 const latest = new Map<number, string>();
@@ -117,7 +149,7 @@ function follow(chatId: number, errandId: string) {
   void store.get(errandId).then((e) => e && onUpdate(e));
 }
 
-async function startErrand(chatId: number, text: string) {
+async function startErrand(chatId: number, text: string, payer: Extract<Payer, { ok: true }>) {
   const m = text.match(/^\s*\$(\d+(\.\d+)?)\s+/);
   const budgetUsd = Math.min(m ? Number(m[1]) : env.telegram.budgetUsd, env.maxBudgetUsd);
   const task = m ? text.slice(m[0].length) : text;
@@ -130,20 +162,36 @@ async function startErrand(chatId: number, text: string) {
     askAboveUsd: null,
     // Chats are personal: nothing goes to Reppo's public network unless you use the web app.
     privacy: "private",
-  });
+  }, { passportId: payer.passportId });
   latest.set(chatId, e.id);
-  await send(chatId, `Planning with SERV… Budget ${formatUsd(budgetUsd)}. Follow along: ${liveUrl(e.id)}`);
+  await send(chatId, `Planning with SERV… Budget ${formatUsd(budgetUsd)}, paid from ${payer.label}. Follow along: ${liveUrl(e.id)}`);
   follow(chatId, e.id);
 }
 
 async function onMessage(m: TgMessage) {
   const text = m.text?.trim() ?? "";
-  if (!text) return;
-  if (!allowed(m.from)) {
-    await send(m.chat.id, env.mode === "live" ? "This bot runs live errands with real money, so only people the owner listed can use it. Try the demo on the website." : "This bot only takes errands from people its owner listed.");
-    return;
+  if (!text || !m.from) return;
+
+  // Linking works for anyone: /start CODE (deep link), /link CODE or "LINK CODE".
+  const link = text.match(/^(?:\/start|\/link|link)\s+([A-Za-z0-9-]{6,20})$/i);
+  if (link) {
+    const r = await redeemTelegramLink(normalizeLinkCode(link[1]!), { id: m.from.id, username: m.from.username ?? null });
+    return void send(
+      m.chat.id,
+      r
+        ? `Linked to your Kite Passport (${r.email}). Errands you send here are paid from your own wallet, and each spending session still needs your passkey.\n\n${HELP}`
+        : "That code didn't work. Codes work once and for 10 minutes: get a new one on the Connect page.",
+    );
   }
-  if (text === "/start" || text === "/help") return void send(m.chat.id, HELP);
+  if (/^\/unlink$/i.test(text)) {
+    const ok = await unlinkTelegram({ telegramUserId: m.from.id });
+    return void send(m.chat.id, ok ? "Unlinked. This chat can no longer pay from your Kite Passport." : "This chat isn't linked to a Kite Passport.");
+  }
+
+  const payer = await payerFor(m.from);
+  if (text === "/start" || text === "/help") return void send(m.chat.id, payer.ok ? HELP : NOT_LINKED());
+  if (!payer.ok) return void send(m.chat.id, NOT_LINKED());
+  if (/^\/me$/i.test(text)) return void send(m.chat.id, `Errands from this chat are paid from ${payer.label}.`);
   if (text === "/stop") {
     const id = latest.get(m.chat.id);
     const ok = id ? await cancelErrand(id) : false;
@@ -155,13 +203,21 @@ async function onMessage(m: TgMessage) {
     const ok = await answerQuestion(waiting.errandId, waiting.questionId, text.slice(0, 500));
     if (ok) return;
   }
-  await startErrand(m.chat.id, text.replace(/^\/errand\s*/, ""));
+  await startErrand(m.chat.id, text.replace(/^\/errand\s*/, ""), payer);
+}
+
+/** Only the person whose wallet pays can approve, answer or cancel that errand. */
+async function mayAct(u: TgUser, errandId: string): Promise<boolean> {
+  const e = await store.get(errandId);
+  const payer = await payerFor(u);
+  return !!e && payer.ok && e.passportId === payer.passportId;
 }
 
 async function onCallback(q: TgCallback) {
   const chatId = q.message?.chat.id;
   const data = q.data ?? "";
-  if (!chatId || !allowed(q.from)) return void call("answerCallbackQuery", { callback_query_id: q.id, text: "Not allowed." });
+  const errandId = data.split(":")[1] ?? "";
+  if (!chatId || !(await mayAct(q.from, errandId))) return void call("answerCallbackQuery", { callback_query_id: q.id, text: "Only the person paying for this errand can do that." });
   let note = "";
   if (data.startsWith("ap:")) {
     note = (await approveDemo(data.slice(3))) ? "Approved." : "Not waiting for approval.";
@@ -182,13 +238,14 @@ let running = false;
 
 export function startTelegramBot() {
   if (!env.telegram.token || running) return;
-  if (env.mode === "live" && env.telegram.allowed.length === 0) {
-    log.warn("telegram.disabled", { reason: "Live mode needs TELEGRAM_ALLOWED_USERS." });
-    return;
-  }
   running = true;
-  log.info("telegram.started", { allowed: env.telegram.allowed.length || "everyone (demo)" });
+  log.info("telegram.started", {
+    linkedPassports: "anyone who links their own Kite Passport",
+    errandWallet: env.telegram.allowed.length ? `${env.telegram.allowed.length} listed user(s)` : env.mode === "demo" ? "everyone (demo)" : "nobody",
+  });
   void (async () => {
+    const me = await call<{ username?: string }>("getMe", {});
+    myUsername = me?.username ?? null;
     let offset = 0;
     while (running) {
       const updates = await call<TgUpdate[]>("getUpdates", { offset, timeout: 50, allowed_updates: ["message", "callback_query"] });

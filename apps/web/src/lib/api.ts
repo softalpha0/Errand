@@ -36,6 +36,8 @@ export interface AgentConfig {
   accessCodeRequired: boolean;
   guardVersion: string;
   telegram?: boolean;
+  /** The bot's @username, for the deep link. */
+  telegramBot?: string | null;
 }
 
 export type Privacy = "public" | "private";
@@ -86,6 +88,8 @@ export const api = {
   passportMe: () => request<PassportPublic>("/passport/me"),
   passportShipping: (s: ShippingForm) => request<{ complete: boolean; missing: string[] }>("/passport/shipping", { method: "POST", body: JSON.stringify(s) }),
   passportLogout: () => request<{ ok: boolean }>("/passport/logout", { method: "POST" }),
+  passportTelegramLink: () => request<{ code: string; expiresAt: string; bot: string | null }>("/passport/telegram-link", { method: "POST" }),
+  passportTelegramUnlink: () => request<{ ok: boolean }>("/passport/telegram-unlink", { method: "POST" }),
 
   // Standing errands, paid from the Kite allowance
   standingCreate: (

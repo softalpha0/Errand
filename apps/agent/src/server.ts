@@ -11,6 +11,7 @@ import { reppoPaused } from "./reppo";
 import * as passports from "./passports";
 import { answerQuestion, approveDemo, cancelErrand, createErrand } from "./runner";
 import { createStanding, getStanding, listStanding, runStanding, setState } from "./standing";
+import { botUsername } from "./telegram";
 import { store } from "./store";
 
 export const VERSION = "0.1.0";
@@ -57,6 +58,7 @@ export function createApp() {
       sellers: Object.values(SELLERS),
       endpoints: ENDPOINTS,
       telegram: env.telegram.token.length > 0,
+      telegramBot: botUsername(),
     }),
   );
 
@@ -117,6 +119,18 @@ export function createApp() {
   });
 
   app.post("/passport/logout", async (c) => c.json({ ok: await passports.disconnect(token(c)) }));
+
+  // Link a Telegram account to this Passport with a one-time code.
+  app.post("/passport/telegram-link", async (c) => {
+    if (!env.telegram.token) return c.json({ error: "This site has no Telegram bot." }, 404);
+    try {
+      return c.json({ ...(await passports.createTelegramLink(token(c))), bot: botUsername() }, 201);
+    } catch (err) {
+      return c.json({ error: (err as Error).message }, 401);
+    }
+  });
+
+  app.post("/passport/telegram-unlink", async (c) => c.json({ ok: await passports.unlinkTelegram({ token: token(c) }) }));
 
   // ---------- standing errands (metered, on the Kite allowance) ----------
 

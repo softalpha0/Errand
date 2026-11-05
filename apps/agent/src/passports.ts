@@ -30,6 +30,13 @@ interface PassportRecord {
   loginExpiresAt: string | null;
   tokenHash: string | null;
   walletAddress: string | null;
+  /** Telegram account linked with a one-time code from the Connect page. */
+  telegramUserId?: number | null;
+  telegramUsername?: string | null;
+  telegramLinkedAt?: string | null;
+  /** SHA-256 of the pending one-time link code, and when it stops working. */
+  linkCodeHash?: string | null;
+  linkCodeExpiresAt?: string | null;
 }
 
 const hash = (token: string) => createHash("sha256").update(token).digest("hex");
@@ -140,7 +147,15 @@ async function publicView(rec: PassportRecord): Promise<PassportPublic> {
   } catch (err) {
     log.warn("passport.allowance_failed", { id: rec.id, error: String(err) });
   }
-  return { id: rec.id, email: rec.email, connectedAt: rec.connectedAt ?? rec.createdAt, simulated: rec.simulated, walletAddress: rec.walletAddress, allowance };
+  return {
+    id: rec.id,
+    email: rec.email,
+    connectedAt: rec.connectedAt ?? rec.createdAt,
+    simulated: rec.simulated,
+    walletAddress: rec.walletAddress,
+    allowance,
+    telegram: rec.telegramUserId ? { username: rec.telegramUsername ?? null, linkedAt: rec.telegramLinkedAt ?? rec.connectedAt ?? rec.createdAt } : null,
+  };
 }
 
 export async function me(token: string | undefined | null): Promise<PassportPublic | null> {
@@ -167,6 +182,77 @@ export async function disconnect(token: string | undefined | null): Promise<bool
   }
   rec.state = "pending";
   rec.tokenHash = null;
+  // Disconnecting also cuts the Telegram link: the chat can no longer pay from this wallet.
+  rec.telegramUserId = null;
+  rec.telegramUsername = null;
+  rec.linkCodeHash = null;
+  await store.putDoc("passport", rec.id, rec);
+  return true;
+}
+
+// ---------- Telegram: link a chat to this Passport ----------
+// The Connect page asks for a one-time code; the person sends it to the bot (or opens the
+// bot's deep link). The code works once, for 10 minutes, and only its hash is stored.
+
+const LINK_TTL_MS = 10 * 60_000;
+const LINK_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O, 1/I/L
+
+function newLinkCode(): string {
+  const bytes = randomBytes(8);
+  return Array.from(bytes, (b) => LINK_ALPHABET[b % LINK_ALPHABET.length]).join("");
+}
+
+export function normalizeLinkCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+export async function createTelegramLink(token: string | undefined | null): Promise<{ code: string; expiresAt: string }> {
+  const rec = await byToken(token);
+  if (!rec) throw new Error("Connect your Kite Passport first.");
+  const code = newLinkCode();
+  rec.linkCodeHash = hash(code);
+  rec.linkCodeExpiresAt = new Date(Date.now() + LINK_TTL_MS).toISOString();
+  await store.putDoc("passport", rec.id, rec);
+  return { code, expiresAt: rec.linkCodeExpiresAt };
+}
+
+/** Called by the bot when someone sends a code. Returns the Passport's email on success. */
+export async function redeemTelegramLink(code: string, tg: { id: number; username?: string | null }): Promise<{ email: string } | null> {
+  const h = hash(normalizeLinkCode(code));
+  const now = new Date().toISOString();
+  const all = await store.listDocs<PassportRecord>("passport");
+  const rec = all.find((r) => r.state === "connected" && r.linkCodeHash === h && (r.linkCodeExpiresAt ?? "") > now);
+  if (!rec) return null;
+  // One Telegram account maps to one Passport: remove it from any other first.
+  for (const other of all) {
+    if (other.id !== rec.id && other.telegramUserId === tg.id) {
+      other.telegramUserId = null;
+      other.telegramUsername = null;
+      await store.putDoc("passport", other.id, other);
+    }
+  }
+  rec.telegramUserId = tg.id;
+  rec.telegramUsername = tg.username ?? null;
+  rec.telegramLinkedAt = now;
+  rec.linkCodeHash = null;
+  rec.linkCodeExpiresAt = null;
+  await store.putDoc("passport", rec.id, rec);
+  log.info("passport.telegram_linked", { id: rec.id });
+  return { email: rec.email };
+}
+
+/** The connected Passport linked to this Telegram account, or null. */
+export async function passportForTelegram(telegramUserId: number): Promise<{ id: string; email: string } | null> {
+  const all = await store.listDocs<PassportRecord>("passport");
+  const rec = all.find((r) => r.state === "connected" && r.telegramUserId === telegramUserId);
+  return rec ? { id: rec.id, email: rec.email } : null;
+}
+
+export async function unlinkTelegram(by: { telegramUserId?: number; token?: string | null }): Promise<boolean> {
+  const rec = by.token ? await byToken(by.token) : by.telegramUserId ? (await store.listDocs<PassportRecord>("passport")).find((r) => r.telegramUserId === by.telegramUserId) ?? null : null;
+  if (!rec || !rec.telegramUserId) return false;
+  rec.telegramUserId = null;
+  rec.telegramUsername = null;
   await store.putDoc("passport", rec.id, rec);
   return true;
 }

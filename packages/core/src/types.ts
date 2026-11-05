@@ -283,6 +283,8 @@ export interface PassportPublic {
   simulated: boolean;
   walletAddress: string | null;
   allowance: AllowanceStatus | null;
+  /** The Telegram account linked to this Passport, if any. */
+  telegram: { username: string | null; linkedAt: string } | null;
 }
 
 /** `kpass allowance status --output json` (Kite "kite-passport" skill). */

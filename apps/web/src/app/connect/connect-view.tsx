@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import type { AllowanceStatus } from "@errand/core";
+import { useEffect, useState } from "react";
+import type { AllowanceStatus, PassportPublic } from "@errand/core";
 import { Button, Card, CardHeader, ErrorNote, Field, LinkButton, Money, Pill, Skeleton, cx, inputClass } from "@/components/ui";
-import { api, type ShippingForm } from "@/lib/api";
+import { api, type AgentConfig, type ShippingForm } from "@/lib/api";
 import { savePassportToken, usePassport } from "@/lib/passport";
 
 function AllowanceLine({ a }: { a: AllowanceStatus | null }) {
@@ -25,6 +25,108 @@ function AllowanceLine({ a }: { a: AllowanceStatus | null }) {
       </a>
       .
     </p>
+  );
+}
+
+function TelegramCard({ passport, onChange }: { passport: PassportPublic; onChange: () => void }) {
+  const [config, setConfig] = useState<AgentConfig | null>(null);
+  const [link, setLink] = useState<{ code: string; expiresAt: string; bot: string | null } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api.config().then(setConfig).catch(() => undefined);
+  }, []);
+  // Once the bot redeems the code, the Passport shows as linked: check every few seconds while a code is showing.
+  useEffect(() => {
+    if (!link || passport.telegram) return;
+    const t = setInterval(onChange, 4000);
+    return () => clearInterval(t);
+  }, [link, passport.telegram, onChange]);
+
+  if (!config?.telegram) return null;
+  const bot = link?.bot ?? config.telegramBot ?? null;
+  return (
+    <Card>
+      <CardHeader title="Run errands from Telegram" sub="Link a Telegram account to this Passport. Errands you send the bot are paid from your own wallet; each session still needs your passkey." />
+      <div className="flex flex-col gap-4 px-5 py-5">
+        {passport.telegram ? (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">
+              <span className="font-medium">Linked</span>
+              <span className="text-muted"> to {passport.telegram.username ? `@${passport.telegram.username}` : "your Telegram account"}.</span>
+              {bot ? (
+                <>
+                  {" "}
+                  <a href={`https://t.me/${bot}`} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                    Open @{bot}
+                  </a>
+                </>
+              ) : null}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await api.passportTelegramUnlink().catch(() => undefined);
+                setLink(null);
+                onChange();
+              }}
+            >
+              Unlink Telegram
+            </Button>
+          </div>
+        ) : link ? (
+          <>
+            <p className="text-sm text-muted">Send this code to the bot. It works once, for 10 minutes.</p>
+            <p className="num rounded-xl bg-sunken px-4 py-3 text-center text-2xl tracking-[0.25em]">{link.code}</p>
+            <div className="flex flex-wrap gap-3">
+              {bot ? (
+                <a
+                  href={`https://t.me/${bot}?start=${link.code}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-5 font-medium text-paper hover:bg-ink/85"
+                >
+                  Open Telegram and link
+                </a>
+              ) : null}
+              <p className="self-center text-[13px] text-muted">
+                or send <span className="num text-ink">/link {link.code}</span>
+                {bot ? (
+                  <>
+                    {" "}
+                    to <span className="text-ink">@{bot}</span>
+                  </>
+                ) : null}
+              </p>
+            </div>
+            <p className="text-[13px] text-faint" role="status">
+              Waiting for the bot…
+            </p>
+          </>
+        ) : (
+          <Button
+            variant="secondary"
+            className="self-start"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setErr(null);
+              try {
+                setLink(await api.passportTelegramLink());
+              } catch (e) {
+                setErr(e instanceof Error ? e.message : "Couldn't make a code.");
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Making a code…" : "Link Telegram"}
+          </Button>
+        )}
+        {err ? <ErrorNote>{err}</ErrorNote> : null}
+      </div>
+    </Card>
   );
 }
 
@@ -138,6 +240,7 @@ export function ConnectView() {
             </div>
           </div>
         </Card>
+        <TelegramCard passport={passport} onChange={refresh} />
         <ShippingCard />
       </div>
     );
