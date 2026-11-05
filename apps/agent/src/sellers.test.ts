@@ -37,3 +37,12 @@ describe("bitrefill helpers", () => {
     expect(readInvoice({})).toBeNull();
   });
 });
+
+describe("Bitrefill live search shape (first real payment, 5 Nov)", () => {
+  const live = { products: [{ _id: "mtn-nigeria", countries: ["NG"], currency: "NGN", in_stock: true, name: "MTN Nigeria", slug: "mtn-nigeria", type: "refills" }], found: 1 };
+  it("matches the country from the countries list", () => {
+    expect(pickProduct(live, "MTN", "NG")?.slug).toBe("mtn-nigeria");
+    expect(pickProduct(live, "MTN", "GH")).toBeNull();
+  });
+});
+

@@ -80,7 +80,7 @@ Feel: calm, precise, trustworthy, like a bank statement that explains itself. Wa
 - [ ] HUMAN: Dolphin API key (app.dphn.ai) → DOLPHIN_API_KEY (optional).
 - [ ] Deploy Errand Guard with KITE_NETWORK=testnet; `kpass sandbox on` + faucet; pay once; then mainnet; PR to gokite-ai/kite-x402-services.
 - [ ] One real Reppo lite second opinion through Kite (expect $0.22 routed to Base).
-- [ ] HUMAN: `pnpm spike:kite` (approve passkey) → record kpass output shapes in docs/kite-integration.md.
+- [x] 5 Nov: `pnpm spike:kite` live: session approved with passkey, two real Bitrefill payments on Base (tx 0x60a8…ea4f). Findings in docs/kite-integration.md.
 - [ ] HUMAN: Reppo API key → `pnpm spike:reppo`.
 - [ ] HUMAN: create guard graph v1 from docs/serv-guard-graph.md → `SERV_GUARD_GRAPH_ID`.
 - [ ] First live errands (research, trap page, top-up to own number, email).

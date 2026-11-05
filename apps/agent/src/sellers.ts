@@ -108,6 +108,8 @@ export interface BitrefillProduct {
   slug: string;
   name: string;
   country?: string;
+  /** Bitrefill's live search returns a list, e.g. ["NG"] (seen 5 Nov in the first real payment). */
+  countries?: string[];
   recipient_type?: string;
   in_stock?: boolean;
 }
@@ -117,7 +119,12 @@ export function pickProduct(body: unknown, query: string, country?: string): Bit
   const products = ((body as { products?: BitrefillProduct[] } | null)?.products ?? []).filter((p) => p && p.slug);
   const inStock = products.filter((p) => p.in_stock !== false);
   const q = query.toLowerCase();
-  const inCountry = (p: BitrefillProduct) => !country || !p.country || p.country.toUpperCase() === country.toUpperCase();
+  const inCountry = (p: BitrefillProduct) => {
+    if (!country) return true;
+    const c = country.toUpperCase();
+    if (Array.isArray(p.countries) && p.countries.length) return p.countries.some((x) => String(x).toUpperCase() === c);
+    return !p.country || p.country.toUpperCase() === c;
+  };
   return (
     inStock.find((p) => inCountry(p) && p.name.toLowerCase() === q) ??
     inStock.find((p) => inCountry(p) && (p.name.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q))) ??

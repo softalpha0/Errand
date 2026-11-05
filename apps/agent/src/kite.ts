@@ -94,8 +94,8 @@ export async function kpass(args: string[], timeoutOrOpts: number | KpassOpts = 
             reject(new KiteError(`kpass not found at "${env.kite.bin}". Install it or set KPASS_BIN.`, null, null));
             return;
           }
-          const msg = userMessage ?? findString(parsed, ["error", "message"]) ?? stderr.toString().trim() ?? EXIT[code] ?? "kpass failed";
-          reject(new KiteError(userMessage ?? `${EXIT[code] ?? "kpass failed."} ${msg}`.trim(), parsed, code));
+          const specific = userMessage ?? findString(parsed, ["error", "message"]) ?? (stderr.toString().trim() || null);
+          reject(new KiteError(specific ?? EXIT[code] ?? "kpass failed.", parsed, code));
           return;
         }
         resolve(parsed);
@@ -111,6 +111,25 @@ export interface SessionRequest {
   raw: unknown;
 }
 
+function notRegistered(err: unknown): boolean {
+  return err instanceof KiteError && /agent not registered/i.test(`${err.message} ${JSON.stringify(err.raw ?? "")}`);
+}
+
+/**
+ * Kite needs the calling agent registered once per login before it will create sessions
+ * (`kpass agent:register --type <type>`, Kite's request-session skill). Register on first need, then retry once.
+ */
+async function withRegistration<T>(home: string | null | undefined, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (!notRegistered(err)) throw err;
+    log.info("kite.agent_register", { home: home ? "connected passport" : "operator" });
+    await registerAgent(home);
+    return fn();
+  }
+}
+
 export async function createSession(opts: {
   taskSummary: string;
   maxPerTxUsd: number;
@@ -118,7 +137,7 @@ export async function createSession(opts: {
   ttl?: string;
   home?: string | null;
 }): Promise<SessionRequest> {
-  const raw = await kpass([
+  const raw = await withRegistration(opts.home, () => kpass([
     "session",
     "create",
     "--separate",
@@ -132,7 +151,7 @@ export async function createSession(opts: {
     opts.maxTotalUsd.toFixed(2),
     "--ttl",
     opts.ttl ?? env.kite.sessionTtl,
-  ], { home: opts.home });
+  ], { home: opts.home }));
   log.info("kite.session.create", raw);
   return {
     requestId: findString(raw, ["request_id", "requestId"]),
@@ -175,7 +194,7 @@ export async function execute(req: {
     args.push("--headers", JSON.stringify({ "Content-Type": "application/json" }));
     args.push("--body", JSON.stringify(req.body ?? {}));
   }
-  const raw = await kpass(args, { timeoutMs: 180_000, home: req.home });
+  const raw = await withRegistration(req.home, () => kpass(args, { timeoutMs: 180_000, home: req.home }));
   const pay = extractPayment(raw);
   return {
     body: extractBody(raw),

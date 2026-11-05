@@ -20,13 +20,13 @@ The JSON field names printed by `session create`, `session status` and `session 
 
 **Day-one check (`pnpm spike:kite`, costs $0.003):** it creates a $0.05 session, waits for your passkey, pays Bitrefill's `checkout/info` ($0.001) and a Nigeria MTN top-up search ($0.002), and saves every raw kpass output to `evidence/raw/`. Read those files and, if a field is named differently, add the name to the key lists in `kite-parse.ts`. Write what you found below.
 
-### Findings (fill in after the spike)
+### Findings (first real payments, 5 Nov 2026, kpass 6.13.1 on Windows)
 
-- `session create` fields: …
-- Approval URL field: …
-- `session status` approved state: …
-- `session execute` body field, tx hash field, chain field: …
-- Did the Base-only seller route from a Base balance with no bridge step? …
+- Before the first session, Kite answered `Agent not registered`. One `kpass agent:register --type errand` fixes it; Errand now registers by itself on that error.
+- `session create` returns `request_id`, `approval_url` (agentpassport.ai/agent-session/approve?token=…), `expires_at` (about 10 minutes), `status: human_action_required`, `user_message` and the delegation (`max_amount_per_tx`, `max_total_amount`, `ttl_seconds`). Errand read all of it.
+- `session status`: Errand detected "approved" and the new session id (`agent_session_…`), and also read Kite's "Session request expired before the user approved it" correctly when a link was left unapproved.
+- `session execute` paid Bitrefill `checkout/info` on **Base**: tx `0x60a88f0096b6f470ca3e67eabe8e29b75b7f1550289752e2ed7c0b37be1cea4f` (basescan.org), and returned the seller body for the top-up search.
+- Bitrefill's live search lists `countries: ["NG"]` (a list), not `country`; Errand reads both. Product details is GET `?slug=` (Bitrefill's 402 bazaar: `method: GET`; POST returns 404).
 
 ## Money and chains
 
