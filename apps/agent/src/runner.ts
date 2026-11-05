@@ -17,6 +17,7 @@ import {
   combine,
   endpointForUrl,
   expectedChargeUsd,
+  guardConstraints,
   formatUsd,
   isNorthAmerican,
   maskPhone,
@@ -386,7 +387,7 @@ async function decide(e: Errand, c: PaymentCandidate, step: PlanStep | null): Pr
           budgetUsd: e.budgetUsd,
           earlierFacts: allFacts(e).slice(-20),
           earlierDecisions: e.decisions.slice(-10).map((d) => ({ decision: d.decision, reason: d.reason, url: d.candidate.url })),
-          constraints: e.plan?.constraints ?? [],
+          constraints: guardConstraints(e.plan?.constraints ?? [], step?.type),
         });
         servResult = { outcome: reply.decision, rule: meta.model.startsWith("gr_") ? "serv.graph" : "serv.shadow_agent", reason: reply.reason };
         servRequestId = meta.requestId;
@@ -441,7 +442,7 @@ async function liveExecute(e: Errand, req: sellers.SellerRequest, key: string): 
 async function pay(
   e: Errand,
   req: sellers.SellerRequest,
-  opts: { step: PlanStep; recipient?: string; plannedProductUsd?: number; priceUsd?: number; note?: string },
+  opts: { step: PlanStep; recipient?: string; plannedProductUsd?: number; priceUsd?: number; note?: string; confirmedByUser?: boolean },
 ): Promise<unknown> {
   checkCancelled(e);
   const catalogPrice = ENDPOINT_BY_ID[req.endpointId]?.priceUsd ?? null;
@@ -471,7 +472,7 @@ async function pay(
   let d = await decide(e, candidate, opts.step);
   // You already said yes to this step's purchase: SERV's judgement-call "ask" isn't repeated.
   // Fixed-rule asks (R11 price above plan, R12 your own threshold) always ask again.
-  const alreadyConfirmed = e.decisions.some((x) => x.rule === "user.answer" && x.decision === "approve" && x.candidate.stepId === opts.step.id);
+  const alreadyConfirmed = opts.confirmedByUser === true || e.decisions.some((x) => x.rule === "user.answer" && x.decision === "approve" && x.candidate.stepId === opts.step.id);
   if (d.decision === "ask" && d.source === "serv" && alreadyConfirmed) {
     const follow: GuardDecision = { ...d, id: newId("d"), at: now(), decision: "approve", rule: "user.earlier", reason: "You already confirmed this purchase earlier in this step." };
     e.decisions.push(follow);
@@ -845,7 +846,7 @@ async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
   const order = (await pay(
     e,
     { endpointId: "kite.shop.checkout", url: SHOP_CHECKOUT_URL, method: "POST", body: { maxTotalUsd: cap, item: `${pick.provider}:${pick.externalId}` } },
-    { step, priceUsd: charge, plannedProductUsd: cap, note: `Amazon: ${pick.title.slice(0, 100)}, subtotal ${formatUsd(subtotal)}. Kite's shopping checkout charges the order cap (${formatUsd(cap)}, the user's limit including tax and shipping) plus Kite's fixed $${SHOP_FEE_USD} provider fee up front, ${formatUsd(charge)} in total, and refunds whatever the order doesn't use. The user confirmed this order summary.` },
+    { step, priceUsd: charge, plannedProductUsd: cap, confirmedByUser: true, note: `Amazon: ${pick.title.slice(0, 100)}, subtotal ${formatUsd(subtotal)}. Kite's shopping checkout charges the order cap (${formatUsd(cap)}, the user's limit including tax and shipping) plus Kite's fixed $${SHOP_FEE_USD} provider fee up front, ${formatUsd(charge)} in total, and refunds whatever the order doesn't use. The user confirmed this order summary.` },
   )) as Record<string, unknown> | null;
   const o = kite.readOrder(order);
   r.output = { ...(r.output ?? {}), orderId: o.orderId, orderStatus: o.orderStatus, purchase: `${pick.title.slice(0, 80)} from Amazon${o.orderId ? ` (order ${o.orderId})` : ""}` };

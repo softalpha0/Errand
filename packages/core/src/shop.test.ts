@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LIMITS, checkRules, expectedChargeUsd, type GuardContext } from "./guard";
+import { CHECKOUT_FEE_CONSTRAINT, DEFAULT_LIMITS, checkRules, expectedChargeUsd, guardConstraints, type GuardContext } from "./guard";
 import { checkPlan } from "./validate";
 import { SHOP_CHECKOUT_URL, SHOP_FEE_USD, allowanceCanPay, defaultShopCap } from "./catalog";
 import type { PaymentCandidate, Plan } from "./types";
@@ -134,5 +134,12 @@ describe("what SERV compares a payment with", () => {
   it("is cap + Kite's fee for an Amazon checkout, the planned price otherwise", () => {
     expect(expectedChargeUsd({ stepId: "s1", endpointId: "kite.shop.checkout", url: SHOP_CHECKOUT_URL, method: "POST", priceUsd: 13, origin: "plan", plannedProductUsd: 12 })).toBe(13);
     expect(expectedChargeUsd({ stepId: "s3", endpointId: "bitrefill.invoice.pay", url: "https://api.bitrefill.com/x402/invoice/pay", method: "POST", priceUsd: 5.4, origin: "plan", plannedProductUsd: 6 })).toBe(6);
+  });
+});
+
+describe("constraints SERV checks", () => {
+  it("explain Kite's checkout fee for Amazon steps only", () => {
+    expect(guardConstraints(["under $12"], "buy.amazon")).toEqual(["under $12", CHECKOUT_FEE_CONSTRAINT]);
+    expect(guardConstraints(["under $8"], "buy.esim")).toEqual(["under $8"]);
   });
 });

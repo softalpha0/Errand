@@ -242,6 +242,15 @@ export function expectedChargeUsd(c: PaymentCandidate): number | undefined {
   return c.plannedProductUsd;
 }
 
+/** Added to the constraints SERV checks for Amazon steps, so Kite's fixed fee isn't read as breaking the user's limit. */
+export const CHECKOUT_FEE_CONSTRAINT =
+  "For Amazon checkouts Kite charges the order limit plus its fixed $1 provider fee up front and refunds the unused part, so a charge of exactly the limit + $1 keeps to the limit.";
+
+/** The constraints SERV checks a payment against. */
+export function guardConstraints(constraints: string[], stepType: string | null | undefined): string[] {
+  return stepType === "buy.amazon" ? [...constraints, CHECKOUT_FEE_CONSTRAINT] : constraints;
+}
+
 export function endpointPrice(endpointId: string): number | null {
   return ENDPOINT_BY_ID[endpointId]?.priceUsd ?? null;
 }

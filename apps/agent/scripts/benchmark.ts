@@ -14,7 +14,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { BENCHMARK_SCENARIOS, combine, evaluateNoGuard, evaluateRules, expectedChargeUsd, spentUsd, summarize, type BenchResult, type BenchScenario } from "@errand/core";
+import { BENCHMARK_SCENARIOS, combine, evaluateNoGuard, evaluateRules, expectedChargeUsd, guardConstraints, spentUsd, summarize, type BenchResult, type BenchScenario } from "@errand/core";
 import { env, servConfigured } from "../src/env";
 import * as serv from "../src/serv";
 
@@ -33,7 +33,7 @@ async function evaluateServ(s: BenchScenario, rules: BenchResult): Promise<Bench
       budgetUsd: s.ctx.limits.totalMaxUsd,
       earlierFacts: s.earlierFacts,
       earlierDecisions: [],
-      constraints: s.ctx.plan.constraints,
+      constraints: guardConstraints(s.ctx.plan.constraints, step?.type),
     });
     const servResult = { outcome: reply.decision, rule: meta.model.startsWith("gr_") ? "serv.graph" : "serv.shadow_agent", reason: reply.reason };
     const final = combine(rules, servResult);
