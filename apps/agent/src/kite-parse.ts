@@ -99,6 +99,19 @@ export function extractPayment(obj: Json): {
   };
 }
 
+/**
+ * The amount Kite reports can be in dollars or in USDC base units (6 decimals): live on 5 Nov,
+ * a $0.002 payment came back as "2000". Read it both ways and keep the one that matches the
+ * price Errand expected to pay. Without a usable report, the expected price is recorded.
+ */
+export function reconcileAmountUsd(reported: number | null, expectedUsd: number): number {
+  if (reported === null || !Number.isFinite(reported) || reported <= 0) return expectedUsd;
+  if (!(expectedUsd > 0)) return reported < 1000 ? reported : reported / 1_000_000;
+  const candidates = [reported, reported / 1_000_000];
+  const off = (x: number) => Math.abs(Math.log(x / expectedUsd));
+  return candidates.reduce((best, x) => (off(x) < off(best) ? x : best));
+}
+
 export function explorerUrl(chain: string | null, txHash: string | null): string | null {
   if (!txHash) return null;
   const c = (chain ?? "").toLowerCase();

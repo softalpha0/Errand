@@ -108,7 +108,34 @@ class PostgresStore implements Store {
 
 export const store: Store = env.databaseUrl ? new PostgresStore(env.databaseUrl) : new MemoryStore();
 
+/**
+ * Repairs payments saved before 5 Nov's fix, when Kite's base-unit amount ("2000" for $0.002)
+ * was recorded as dollars. Only fixed-price catalog calls are touched, only when the saved
+ * amount is at least 10,000x the listed price, and only by exactly 1,000,000. Safe to run every start.
+ */
+async function repairBaseUnitAmounts() {
+  const { ENDPOINT_BY_ID } = await import("@errand/core");
+  let fixed = 0;
+  for (const e of await store.list(500)) {
+    let changed = false;
+    for (const p of e.payments) {
+      const listed = p.endpointId ? ENDPOINT_BY_ID[p.endpointId]?.priceUsd : null;
+      if (!p.simulated && listed && p.amountUsd >= listed * 10_000) {
+        p.amountUsd = p.amountUsd / 1_000_000;
+        changed = true;
+      }
+    }
+    if (changed) {
+      for (const ev of e.events) ev.message = ev.message.replace(/\$([\d,]+)\.00\b/g, (m, d) => (Number(d.replace(/,/g, "")) >= 100 ? `$${(Number(d.replace(/,/g, "")) / 1_000_000).toFixed(3)}` : m));
+      await store.put(e);
+      fixed++;
+    }
+  }
+  if (fixed) log.info("store.repaired_amounts", { errands: fixed });
+}
+
 export async function initStore() {
   await store.init();
+  await repairBaseUnitAmounts().catch((err) => log.warn("store.repair_failed", { error: String(err) }));
   log.info("store.ready", { kind: store.kind });
 }

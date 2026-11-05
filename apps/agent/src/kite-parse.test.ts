@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { explorerUrl, extractBody, extractPayment, findApprovalUrl, readApproval } from "./kite-parse";
+import { explorerUrl, extractBody, extractPayment, findApprovalUrl, readApproval, reconcileAmountUsd } from "./kite-parse";
 
 describe("kite-parse", () => {
   it("finds an approval link wherever it is", () => {
@@ -29,5 +29,14 @@ describe("kite-parse", () => {
     expect(explorerUrl("kite", "0xabc")).toBe("https://kitescan.ai/tx/0xabc");
     expect(explorerUrl("base", "0xabc")).toBe("https://basescan.org/tx/0xabc");
     expect(explorerUrl(null, null)).toBeNull();
+  });
+});
+
+describe("amounts Kite reports", () => {
+  it("reads base units as dollars only when that matches the expected price (live, 5 Nov)", () => {
+    expect(reconcileAmountUsd(2000, 0.002)).toBeCloseTo(0.002);
+    expect(reconcileAmountUsd(680000, 0.68)).toBeCloseTo(0.68);
+    expect(reconcileAmountUsd(0.68, 0.68)).toBe(0.68);
+    expect(reconcileAmountUsd(null, 0.01)).toBe(0.01);
   });
 });

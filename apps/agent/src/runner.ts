@@ -44,7 +44,7 @@ import { redact } from "./reppo";
 import { demoExecute, demoShipping, demoShopSearch, scriptedCondition, scriptedGuard, scriptedPlan, scriptedRead, scriptedSummary } from "./demo";
 import { env, reppoConfigured, servConfigured } from "./env";
 import * as kite from "./kite";
-import { explorerUrl } from "./kite-parse";
+import { explorerUrl, reconcileAmountUsd } from "./kite-parse";
 import { log } from "./log";
 import { allowanceFor, passportHome } from "./passports";
 import { emailBody } from "./prompts";
@@ -287,7 +287,11 @@ async function planPhase(e: Errand) {
         feedback = check.issues;
         event(e, "log", `Plan sent back to SERV: ${check.issues.join(" ")}`);
         await save(e);
-        if (attempt === 1) throw new Error(`SERV could not make a plan inside your limits: ${check.issues.join(" ")}`);
+        if (attempt === 1) {
+          const buys = plan.steps.some((x) => x.type.startsWith("buy.") || x.type === "phone.call");
+          const hint = buys && e.maxPerPaymentUsd < 1 ? ` A purchase is paid in one payment, so "Most per payment" must cover the whole price (top-ups and eSIMs usually cost $0.30 or more).` : "";
+          throw new Error(`SERV could not make a plan inside your limits (budget ${formatUsd(e.budgetUsd)}, at most ${formatUsd(e.maxPerPaymentUsd)} per payment).${hint} Details: ${check.issues.join(" ")}`);
+        }
       }
     }
     const plan = e.plan!;
@@ -511,7 +515,7 @@ async function pay(
     endpointId: req.endpointId,
     url: req.url,
     method: req.method,
-    amountUsd: result.amountUsd ?? price,
+    amountUsd: reconcileAmountUsd(result.amountUsd, price),
     requestHash: requestHash(req.method, req.url, req.body),
     txHash: result.txHash,
     explorerUrl: result.explorerUrl,
@@ -520,7 +524,7 @@ async function pay(
     used: null,
     raw: env.mode === "live" ? result.raw : undefined,
   });
-  event(e, "payment", `${env.mode === "demo" ? "Simulated payment" : "Paid"} ${formatUsd(result.amountUsd ?? price)} to ${sellerName(req.url)}${e.funding === "allowance" ? " from your Kite allowance" : ""}.`, {
+  event(e, "payment", `${env.mode === "demo" ? "Simulated payment" : "Paid"} ${formatUsd(reconcileAmountUsd(result.amountUsd, price))} to ${sellerName(req.url)}${e.funding === "allowance" ? " from your Kite allowance" : ""}.`, {
     txHash: result.txHash,
     explorerUrl: result.explorerUrl,
   });
