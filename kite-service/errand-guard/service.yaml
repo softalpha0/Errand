@@ -9,6 +9,7 @@ description: >-
 maintainer:
   github: softalpha0
 status: draft
+base_url: https://errand-guard.onrender.com
 network: eip155:2366
 pay_to: "0x7B769107634A0370AF5FcEB53989F894e948107C"   # quote it: bare 0x... parses as a YAML integer
 upstream:

@@ -82,7 +82,7 @@ Only what has run for real is marked **Live**.
 | Amazon through Kite shopping (you confirm the order summary; rule R13 checks the charge) | Built and tested. Not yet run on mainnet |
 | Telegram bot linked to your own Passport | Built; tested against a mock Telegram API |
 | MCP server for AI assistants ([docs/mcp.md](docs/mcp.md)) | Tested over stdio |
-| Errand Guard: a paid x402 service on Kite, where any agent pays $0.01 to check a payment first | Built from Kite's template; manifest validates; not yet paid on mainnet |
+| Errand Guard: a paid x402 service on Kite, where any agent pays $0.01 to check a payment first | Deployed on Kite mainnet at https://errand-guard.onrender.com; submitted to Kite's catalog in [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8). The first paid call waits on Kite allowlisting the host |
 
 There are 88 unit tests (62 core, 26 agent). They run on every push in GitHub Actions.
 
@@ -204,7 +204,7 @@ evidence/            Benchmark results and screenshots
 
 - Run research, eSIMs and gift cards on mainnet, and switch on Reppo second opinions and grading for the live site.
 - Move repeat errands to Kite's metered and subscription payments when Kite releases them.
-- List Errand in Kite's agent directory ([docs/kite-directory.md](docs/kite-directory.md)) and publish Errand Guard to `gokite-ai/kite-x402-services`.
+- List Errand in Kite's agent directory ([docs/kite-directory.md](docs/kite-directory.md)), and move Errand Guard to `live` once Kite allowlists it.
 - Send private errands to a private Reppo data net once Reppo opens one to API users.
 
 ## Built during the hackathon

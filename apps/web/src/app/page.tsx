@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Receipt } from "@/components/receipt";
 import { LinkButton, Money, Pill } from "@/components/ui";
 import { EXAMPLES } from "@/lib/examples";
-import { SAMPLE_ERRAND } from "@/lib/sample";
+import { LIVE_ERRAND, LIVE_ERRAND_ID } from "@/lib/live-receipt";
 import bench from "@/data/benchmark.json";
 
 const STEPS = [
@@ -100,9 +100,8 @@ export default function Home() {
             Give an agent the errand. Keep control of the money.
           </h1>
           <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted">
-            Errand researches, books by phone, tops up phones, buys eSIMs and gift cards, and orders from Amazon for you. It pays from your own Kite Passport within the
-            limit you approve, checks every payment with SERV before it happens, gets an independent second opinion from Reppo on judgement calls, and hands you a receipt
-            that explains each dollar. Errands can repeat too: &ldquo;keep Mum&rsquo;s data topped up, at most $1 a day.&rdquo;
+            Errand tops up phones, buys eSIMs and gift cards, and runs paid research for you. It pays from your own Kite Passport within the limits you approve, SERV
+            checks every payment before it happens, and you get a receipt that explains each dollar.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <LinkButton href="/new" size="lg">
@@ -112,26 +111,76 @@ export default function Home() {
               See how a payment is checked
             </LinkButton>
           </div>
-          <dl className="mt-10 grid max-w-md grid-cols-3 gap-4 border-t border-line pt-6">
+          <dl className="mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-line pt-6">
             <div>
-              <dt className="text-xs text-muted">Paid services</dt>
-              <dd className="num mt-1 text-xl">6</dd>
+              <dt className="text-xs text-muted">Airtime delivered</dt>
+              <dd className="num mt-1 text-xl">₦100</dd>
+              <dd className="mt-0.5 text-xs text-faint">MTN, on mainnet</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted">Checks per payment</dt>
-              <dd className="num mt-1 text-xl">13 + SERV</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-muted">Cheapest errand</dt>
+              <dt className="text-xs text-muted">Paid through Kite</dt>
               <dd className="mt-1 text-xl">
-                <Money usd={0.01} />
+                <Money usd={0.11} />
               </dd>
+              <dd className="mt-0.5 text-xs text-faint">6 payments on Base</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">Attacks paid</dt>
+              <dd className="num mt-1 text-xl">
+                {bench.summary.serv ? (bench.summary.serv as typeof bench.summary.rules).attacksPaid : bench.summary.rules.attacksPaid} of {bench.summary.none.attacks}
+              </dd>
+              <dd className="mt-0.5 text-xs text-faint">with {bench.summary.serv ? "rules + SERV" : "the rules"}</dd>
             </div>
           </dl>
         </div>
         <div className="relative">
-          <Receipt e={SAMPLE_ERRAND} compact label="Example receipt" />
-          <p className="mt-3 text-center text-xs text-faint">Example from a demo run. Live receipts link each payment on-chain.</p>
+          <Receipt e={LIVE_ERRAND} compact label="A real receipt" />
+          <p className="mt-3 text-center text-xs text-faint">
+            From a live run on 5 Nov 2026. MTN confirmed the ₦100 at 19:55.{" "}
+            <Link href={`/r/${LIVE_ERRAND_ID}`} className="text-muted underline underline-offset-2">
+              Open the full receipt
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {/* Proof: the attack benchmark */}
+      <section aria-labelledby="proof" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
+        <div className="rounded-[var(--radius-card)] border border-line bg-card">
+          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-[13px] font-medium tracking-wide text-muted uppercase">Measured, not claimed</p>
+              <h2 id="proof" className="mt-2 text-2xl font-semibold tracking-tight text-balance">20 attacks on the same errand. Here&rsquo;s how many got paid.</h2>
+              <p className="mt-3 leading-relaxed text-muted">
+                Injected purchases, swapped recipients, overcharges, double payments and the wrong product at the right price, plus {bench.summary.none.controls} real payments that must still go through.
+              </p>
+              <Link href="/stats#bench" className="mt-4 inline-block text-sm font-medium underline underline-offset-4">
+                See all {bench.cases.length} cases
+              </Link>
+            </div>
+            <dl className="grid grid-cols-3 gap-3">
+              {[
+                { name: "No guard", s: bench.summary.none },
+                { name: "Errand's rules", s: bench.summary.rules },
+                { name: "Rules + SERV", s: bench.summary.serv as typeof bench.summary.rules | null },
+              ].map(({ name, s }) => (
+                <div key={name} className="min-w-0 rounded-xl bg-sunken px-3 py-4 sm:px-4">
+                  <dt className="text-xs text-muted sm:text-[13px]">{name}</dt>
+                  <dd className="mt-2">
+                    {s ? (
+                      <>
+                        <span className={cxp(s.attacksPaid)}>{s.attacksPaid}</span>
+                        <span className="num text-sm text-muted"> / {s.attacks}</span>
+                        <span className="mt-1 block text-xs text-muted">attacks paid</span>
+                      </>
+                    ) : (
+                      <span className="block text-xs leading-snug text-muted">Run with a SERV key</span>
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </div>
       </section>
 
@@ -200,46 +249,6 @@ export default function Home() {
               </li>
             ))}
           </ol>
-        </div>
-      </section>
-
-      {/* Proof: the attack benchmark */}
-      <section aria-labelledby="proof" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        <div className="rounded-[var(--radius-card)] border border-line bg-card">
-          <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_1.2fr] lg:items-center">
-            <div>
-              <p className="text-[13px] font-medium tracking-wide text-muted uppercase">Measured, not claimed</p>
-              <h2 id="proof" className="mt-2 text-2xl font-semibold tracking-tight text-balance">20 attacks on the same errand. Here&rsquo;s how many got paid.</h2>
-              <p className="mt-3 leading-relaxed text-muted">
-                Injected purchases, swapped recipients, overcharges, double payments and the wrong product at the right price, plus {bench.summary.none.controls} real payments that must still go through.
-              </p>
-              <Link href="/stats#bench" className="mt-4 inline-block text-sm font-medium underline underline-offset-4">
-                See all {bench.cases.length} cases
-              </Link>
-            </div>
-            <dl className="grid grid-cols-3 gap-3">
-              {[
-                { name: "No guard", s: bench.summary.none },
-                { name: "Errand's rules", s: bench.summary.rules },
-                { name: "Rules + SERV", s: bench.summary.serv as typeof bench.summary.rules | null },
-              ].map(({ name, s }) => (
-                <div key={name} className="min-w-0 rounded-xl bg-sunken px-3 py-4 sm:px-4">
-                  <dt className="text-xs text-muted sm:text-[13px]">{name}</dt>
-                  <dd className="mt-2">
-                    {s ? (
-                      <>
-                        <span className={cxp(s.attacksPaid)}>{s.attacksPaid}</span>
-                        <span className="num text-sm text-muted"> / {s.attacks}</span>
-                        <span className="mt-1 block text-xs text-muted">attacks paid</span>
-                      </>
-                    ) : (
-                      <span className="block text-xs leading-snug text-muted">Run with a SERV key</span>
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
         </div>
       </section>
 
