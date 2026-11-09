@@ -1,9 +1,8 @@
-FROM node:22-slim
+FROM oven/bun:1.3.12-slim
 WORKDIR /app
-COPY package.json tsconfig.json ./
-RUN npm install --no-audit --no-fund
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
 COPY src ./src
-RUN npm run build
 ENV NODE_ENV=production PORT=8080
 EXPOSE 8080
-CMD ["node", "dist/index.js"]
+CMD ["bun", "src/server.ts"]

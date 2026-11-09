@@ -16,7 +16,7 @@ upstream:
   name: Errand (SERV Reasoning guard)
   url: https://github.com/softalpha0/Errand
   requires_api_key: true
-source: typescript-express
+source: custom
 endpoints:
   - method: POST
     path: /v1/check

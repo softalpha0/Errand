@@ -22,6 +22,9 @@ jobs:
       - run: pnpm --filter @errand/web build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
-      - name: Errand Guard (Kite x402 service) typecheck
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+      - name: Errand Guard (Kite x402 service on kite-x402-hono) typecheck
         working-directory: kite-service/errand-guard
-        run: npm ci && npm run typecheck
+        run: bun install --frozen-lockfile && bun run typecheck

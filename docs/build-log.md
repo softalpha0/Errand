@@ -63,3 +63,9 @@ Source of truth for every Kite command: Kite's own Passport skills (bundle 110, 
 ## 5 Nov (later): attack benchmark
 
 After reading past winners (AgentGuard, x402-Guardrails, IntentGuard, Agent SpendGuard), spending caps alone are a crowded idea and IntentGuard won attention with measured numbers. So Errand now measures itself: `packages/core/src/benchmark.ts` holds 20 attacks and 7 real payments on one errand; `pnpm benchmark` runs them through no guard, the fixed rules, and rules + SERV, and writes `evidence/benchmark.md` and the Results page data. Rules-only results (pinned by tests): no guard pays 18/20 attacks, the rules pay 4/20 (exactly the 4 judgement-only cases), 7/7 real payments paid in both. Results page and a landing band show it; design follows EasyUI's bar chart (toggle legend, data table) and Beautiful UI's filter table.
+
+## 6 Nov
+
+- **Errand Guard on kite-x402-hono.** Rebuilt the guard on the Kite track's priority repo kite-x402-hono (0.3.3), the Bun/Hono wrapper, since Errand's agent is Hono too. Same env variables and `/v1/check` contract, so the Render service redeploys in place. Verified locally: `GET /`, `/healthz`, `/.well-known/x402` (USDC.e, 10000 atomic units = $0.01) and an unpaid `POST /v1/check` → 402 with a mainnet `PAYMENT-REQUIRED` challenge.
+- **Kite catalog PR** [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8) opened; paid test call blocked by Kite's allowlist (`host_not_in_executable_catalog`).
+- **Landing page:** the hero now shows the real mainnet receipt (e_My979K17) instead of a simulated example.

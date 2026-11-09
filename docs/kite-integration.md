@@ -54,7 +54,7 @@ From Kite's `kite-x402-services` README: `kpass sandbox on` switches the CLI to 
 
 ## Errand Guard: contributing a service to Kite
 
-`kite-service/errand-guard/` is a ready-to-PR folder for `gokite-ai/kite-x402-services` (their typescript-express template, `src/` unchanged, plus `service.yaml` validated against their schema and a README). Steps (from their CONTRIBUTING.md):
+`kite-service/errand-guard/` runs on [kite-x402-hono](https://github.com/BrKDDD/kite-x402-hono) (Bun + Hono, same variables and `/v1/*` contract as Kite's templates; switched from the Express template on 6 Nov). It is deployed at https://errand-guard.onrender.com on Kite mainnet and listed in [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8). Kite's executable catalog refuses paid calls to hosts it hasn't allowlisted (`host_not_in_executable_catalog`), and the testnet faucet is off for production accounts, so the first paid call waits on Kite. The original steps: Steps (from their CONTRIBUTING.md):
 
 1. Deploy it (Render blueprint includes it) with `KITE_NETWORK=testnet`, `UPSTREAM_URL` = your agent, a long `UPSTREAM_AUTH_VALUE` equal to the agent's `GUARD_SERVICE_TOKEN`.
 2. Confirm an unpaid request returns 402 with `accepts[0].network` = `eip155:2368` (checked locally: yes, pieUSD, payTo = your Passport wallet).

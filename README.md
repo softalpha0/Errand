@@ -82,7 +82,7 @@ Only what has run for real is marked **Live**.
 | Amazon through Kite shopping (you confirm the order summary; rule R13 checks the charge) | Built and tested. Not yet run on mainnet |
 | Telegram bot linked to your own Passport | Built; tested against a mock Telegram API |
 | MCP server for AI assistants ([docs/mcp.md](docs/mcp.md)) | Tested over stdio |
-| Errand Guard: a paid x402 service on Kite, where any agent pays $0.01 to check a payment first | Deployed on Kite mainnet at https://errand-guard.onrender.com; submitted to Kite's catalog in [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8). The first paid call waits on Kite allowlisting the host |
+| Errand Guard: a paid x402 service on Kite, where any agent pays $0.01 to check a payment first | Built on [kite-x402-hono](https://github.com/BrKDDD/kite-x402-hono), deployed on Kite mainnet at https://errand-guard.onrender.com; submitted to Kite's catalog in [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8). The first paid call waits on Kite allowlisting the host |
 
 There are 88 unit tests (62 core, 26 agent). They run on every push in GitHub Actions.
 
@@ -120,7 +120,7 @@ More detail: [docs/architecture.md](docs/architecture.md), [docs/kite-integratio
 - **Storage:** Postgres on Neon.
 - **Partners:** SERV Reasoning through the OpenAI SDK, Kite Agent Passport, Reppo.
 - **Sellers in Kite's catalog:** Bitrefill, StableEnrich, StableEmail.
-- **Errand Guard:** Express with `@x402/*`, from Kite's template.
+- **Errand Guard:** Bun + Hono on [kite-x402-hono](https://github.com/BrKDDD/kite-x402-hono), one of the Kite track's priority repos.
 - **Other:** the MCP TypeScript SDK, Vitest and GitHub Actions.
 
 ## Run it locally

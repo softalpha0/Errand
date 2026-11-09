@@ -47,7 +47,7 @@ services:
       - key: PASSPORTS_DIR
         value: /tmp/passports
 
-  # The paid guard service other Kite Passport agents call (x402 on the Kite chain).
+  # The paid guard service other Kite Passport agents call (x402 on the Kite chain, built on kite-x402-hono / Bun).
   - type: web
     name: errand-guard
     runtime: docker
