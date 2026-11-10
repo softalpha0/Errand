@@ -280,6 +280,29 @@ async function planPhase(e: Errand) {
       const plan = useServ
         ? (await serv.plan({ task: e.task, budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, country: e.country, feedback, answers })).plan
         : scriptedPlan(e.task, e.budgetUsd);
+      if (plan.steps.length === 0) {
+        // SERV planned nothing. If it has questions, ask them and plan again; otherwise send it back once.
+        if (plan.questions.length && round === 0) {
+          for (const q of plan.questions) answers.push({ q, a: await ask(e, q, [], "The planner needs this before it can plan the errand.") });
+          e.status = "planning";
+          await save(e);
+          attempt = -1; // start the attempts again with the answers
+          continue;
+        }
+        feedback = [
+          `Your plan had no steps. The budget is ${formatUsd(e.budgetUsd)} with at most ${formatUsd(e.maxPerPaymentUsd)} per payment, which is enough for this errand. Return the steps needed to do it, using only the step types listed.`,
+        ];
+        event(e, "log", "SERV returned an empty plan; asking it to plan again.");
+        await save(e);
+        if (attempt === 1) {
+          throw new Error(
+            e.budgetUsd < 0.05 || e.maxPerPaymentUsd < 0.01
+              ? "SERV could not fit any paid step inside your limits. Raise the budget or the per-payment limit (research calls cost $0.01–$0.04) and try again."
+              : "SERV couldn't turn this errand into a plan. Try rewording it: say what to buy or find, for whom, and how much.",
+          );
+        }
+        continue;
+      }
       const sourceText = [e.task, ...answers.map((x) => x.a)].join("\n");
       const check = checkPlan(plan, { budgetUsd: e.budgetUsd, maxPerPaymentUsd: e.maxPerPaymentUsd, defaultCountry: e.country, funding: e.funding, sourceText });
       if (check.ok) {

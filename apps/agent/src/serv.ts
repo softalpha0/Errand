@@ -93,16 +93,12 @@ export async function plan(input: {
     schemaName: PLAN_JSON_SCHEMA.name,
     schema: PLAN_JSON_SCHEMA.schema as unknown as Record<string, unknown>,
   });
-  const parsed = PlanSchema.safeParse(value);
+  // A plan with no steps is allowed through here: the runner asks SERV's questions or sends it back once.
+  const parsed = PlanSchema.extend({ steps: PlanSchema.shape.steps.element.array().max(12) }).safeParse(value);
   if (!parsed.success) {
-    const empty = Array.isArray((value as { steps?: unknown[] } | null)?.steps) && (value as { steps: unknown[] }).steps.length === 0;
-    throw new Error(
-      empty
-        ? "SERV could not fit any paid step inside your limits. Raise the budget or the per-payment limit (research calls cost $0.01–$0.04) and try again."
-        : `SERV returned a plan Errand could not read: ${parsed.error.issues.map((i) => `${i.path.join(".") || "plan"}: ${i.message}`).join("; ")}`,
-    );
+    throw new Error(`SERV returned a plan Errand could not read: ${parsed.error.issues.map((i) => `${i.path.join(".") || "plan"}: ${i.message}`).join("; ")}`);
   }
-  return { plan: parsed.data, meta };
+  return { plan: parsed.data as Plan, meta };
 }
 
 // ---------- guard ----------
