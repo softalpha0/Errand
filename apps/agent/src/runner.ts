@@ -160,7 +160,11 @@ function withKiteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
 
 // ---------- create ----------
 
+/** The most a test errand may "spend": its payments are simulated, so MAX_BUDGET_USD (which protects real money) doesn't apply. */
+const TEST_MAX_BUDGET_USD = 50;
+
 export async function createErrand(input: CreateErrandInput, opts: CreateOptions = {}): Promise<Errand> {
+  const cap = input.network === "test" ? TEST_MAX_BUDGET_USD : env.maxBudgetUsd;
   const t = now();
   const task = input.email && !input.task.includes(input.email) ? `${input.task}\n\nMy email: ${input.email}` : input.task;
   const e: Errand = {
@@ -169,8 +173,8 @@ export async function createErrand(input: CreateErrandInput, opts: CreateOptions
     updatedAt: t,
     mode: input.network === "test" ? "demo" : env.mode,
     task,
-    budgetUsd: Math.min(input.budgetUsd, env.maxBudgetUsd),
-    maxPerPaymentUsd: Math.min(input.maxPerPaymentUsd, input.budgetUsd, env.maxBudgetUsd),
+    budgetUsd: Math.min(input.budgetUsd, cap),
+    maxPerPaymentUsd: Math.min(input.maxPerPaymentUsd, input.budgetUsd, cap),
     validFor: input.validFor ?? "1h",
     askAboveUsd: input.askAboveUsd ?? null,
     funding: opts.funding ?? "session",
