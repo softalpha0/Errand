@@ -162,6 +162,7 @@ async function startErrand(chatId: number, text: string, payer: Extract<Payer, {
     askAboveUsd: null,
     // Chats are personal: nothing goes to Reppo's public network unless you use the web app.
     privacy: "private",
+    network: "mainnet",
   }, { passportId: payer.passportId });
   latest.set(chatId, e.id);
   await send(chatId, `Planning with SERV… Budget ${formatUsd(budgetUsd)}, paid from ${payer.label}. Follow along: ${liveUrl(e.id)}`);

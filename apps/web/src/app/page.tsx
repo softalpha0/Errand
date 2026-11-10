@@ -73,7 +73,7 @@ const STACK = [
 ];
 
 const FAQ = [
-  ["Is this real money?", "On the live site, yes: every payment is a real x402 payment through Kite Passport, with a transaction link on the receipt. Demo mode simulates payments and says so on every screen."],
+  ["Is this real money?", "On the live site, yes: every payment is a real x402 payment through Kite Passport, with a transaction link on the receipt. Pick Test instead of Mainnet when you start an errand to run the same plan and checks with simulated payments; test errands say so on every screen."],
   ["What can Errand buy?", "Mobile airtime and data in 180+ countries, travel eSIMs and gift cards through Bitrefill; physical products from Amazon through Kite Passport's own checkout; research from StableEnrich (web answers, Reddit, news, Google Maps); emails through StableEmail; AI phone calls to US and Canadian numbers through StablePhone; and independent second opinions from Reppo. Gift card codes are tied to the paying wallet, so Errand confirms delivery and you collect the code from your Kite wallet."],
   ["Whose wallet pays?", "Yours, if you connect your Kite Passport on the Connect page: Kite emails you a code, and every spending session is approved with your own passkey. Without a connection, the demo simulates payments and the live site uses the owner's Passport with an access code."],
   ["How do repeating errands work?", "You approve a plan once, for example a daily ₦1,000 top-up. Errand repeats exactly that plan every day or week and pays from your Kite allowance, which you set up once on Kite. Every payment is still checked, each run is capped, and you can pause or stop it. Amazon orders can't repeat: Kite's allowance never pays checkouts."],

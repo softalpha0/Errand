@@ -48,6 +48,7 @@ function errandInput(s: StandingErrand, email?: string) {
     askAboveUsd: null,
     privacy: s.privacy,
     country: s.country ?? env.defaultCountry,
+    network: "mainnet" as const,
     ...(email ? { email } : {}),
   };
 }

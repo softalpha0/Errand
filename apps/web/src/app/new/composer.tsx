@@ -20,6 +20,7 @@ export function Composer({ initial }: { initial: number | null }) {
   const [validFor, setValidFor] = useState<"1h" | "24h" | "7d">("1h");
   const [askAbove, setAskAbove] = useState<string>("");
   const [privateRun, setPrivateRun] = useState(false);
+  const [network, setNetwork] = useState<"mainnet" | "test">("mainnet");
   const [country, setCountry] = useState("NG");
   useEffect(() => setCountry(guessCountry()), []);
   const { passport } = usePassport();
@@ -34,6 +35,8 @@ export function Composer({ initial }: { initial: number | null }) {
       .catch(() => setError("We couldn't reach the Errand agent. It may be starting up; try again in a minute."));
   }, []);
 
+  // On a demo site every errand is a test; on a live site you choose.
+  const testRun = config?.mode !== "live" || network === "test";
   const budgetN = Number(budget);
   const perN = Number(perPayment);
   const invalid =
@@ -62,8 +65,8 @@ export function Composer({ initial }: { initial: number | null }) {
     try {
       const askN = askAbove.trim() ? Number(askAbove) : null;
       const { id } = await api.create(
-        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, privacy: privateRun ? "private" : "public", country },
-        code || undefined,
+        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, privacy: privateRun ? "private" : "public", country, network: testRun ? "test" : "mainnet" },
+        testRun ? undefined : code || undefined,
       );
       router.push(`/e/${id}`);
     } catch (err) {
@@ -74,16 +77,50 @@ export function Composer({ initial }: { initial: number | null }) {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-6" noValidate>
-      {config ? <ModeNote mode={config.mode} /> : null}
+      {config?.mode === "live" ? (
+        <fieldset>
+          <legend className="text-sm font-medium">Network</legend>
+          <div role="radiogroup" aria-label="Network" className="mt-2 grid grid-cols-2 gap-1 rounded-xl border border-line bg-sunken p-1">
+            {(
+              [
+                ["mainnet", "Mainnet", "Real USDC through Kite Passport"],
+                ["test", "Test", "Simulated payments, nothing charged"],
+              ] as const
+            ).map(([value, label, sub]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={network === value}
+                onClick={() => setNetwork(value)}
+                className={cx(
+                  "rounded-lg px-3 py-2 text-left transition-colors",
+                  network === value ? "bg-card shadow-[0_1px_0_var(--color-line)]" : "text-muted hover:text-ink",
+                )}
+              >
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <span className={cx("size-2 rounded-full", value === "mainnet" ? "bg-accent" : "bg-ask")} aria-hidden />
+                  {label}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">{sub}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
+
+      {config && testRun ? <ModeNote mode="demo" /> : null}
 
       <div className="flex flex-col gap-1 rounded-xl border border-line bg-card px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted">
           Paying from:{" "}
-          <span className="font-medium text-ink">{passport ? `your Kite Passport (${passport.email})` : config?.mode === "live" ? "Errand's own Kite Passport" : "a simulated wallet"}</span>
+          <span className="font-medium text-ink">{testRun ? "nothing: payments are simulated" : passport ? `your Kite Passport (${passport.email})` : "Errand's own Kite Passport"}</span>
         </p>
-        <Link href="/connect" className="text-muted underline underline-offset-2 hover:text-ink">
-          {passport ? "Manage" : "Use your own Passport"}
-        </Link>
+        {testRun ? null : (
+          <Link href="/connect" className="text-muted underline underline-offset-2 hover:text-ink">
+            {passport ? "Manage" : "Use your own Passport"}
+          </Link>
+        )}
       </div>
 
       <Field label="What should Errand do?" htmlFor="task" hint="Name who it's for, how much, and any condition. Errand only buys what you write here.">
@@ -159,8 +196,8 @@ export function Composer({ initial }: { initial: number | null }) {
         </span>
       </label>
 
-      {config?.accessCodeRequired && !passport ? (
-        <Field label="Access code" htmlFor="code" hint="Live errands spend real money, so the owner hands out a code. Without one, use the demo site.">
+      {config?.accessCodeRequired && !passport && !testRun ? (
+        <Field label="Access code" htmlFor="code" hint="Mainnet errands on Errand's own wallet spend real money, so the owner hands out a code. Without one, connect your own Kite Passport or switch to Test.">
           <input id="code" className={inputClass} value={code} onChange={(ev) => setCode(ev.target.value)} autoComplete="off" />
         </Field>
       ) : null}
@@ -168,7 +205,7 @@ export function Composer({ initial }: { initial: number | null }) {
       {error ? <ErrorNote>{error}</ErrorNote> : null}
 
       <div className="flex flex-col gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted">Nothing is paid until you approve the plan.</p>
+        <p className="text-sm text-muted">{testRun ? "A test errand: real plan and checks, simulated payments." : "Nothing is paid until you approve the plan."}</p>
         <Button type="submit" size="lg" disabled={busy}>
           {busy ? "Planning…" : "Plan this errand"}
         </Button>

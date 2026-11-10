@@ -69,7 +69,7 @@ export interface StatsResponse {
 export const api = {
   config: () => request<AgentConfig>("/config"),
   create: (
-    input: { task: string; budgetUsd: number; maxPerPaymentUsd: number; email?: string; validFor?: "1h" | "24h" | "7d"; askAboveUsd?: number | null; privacy?: Privacy; country?: string },
+    input: { task: string; budgetUsd: number; maxPerPaymentUsd: number; email?: string; validFor?: "1h" | "24h" | "7d"; askAboveUsd?: number | null; privacy?: Privacy; country?: string; network?: "mainnet" | "test" },
     accessCode?: string,
   ) =>
     request<{ id: string }>("/errands", { method: "POST", body: JSON.stringify(input), headers: accessCode ? { "x-access-code": accessCode } : {} }),

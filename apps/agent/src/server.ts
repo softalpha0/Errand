@@ -75,7 +75,7 @@ export function createApp() {
       return { passportId: null, error: (err as Error).message };
     }
     if (!passportId && env.mode === "live" && env.accessCode && c.req.header("x-access-code") !== env.accessCode) {
-      return { passportId: null, error: "Live errands on Errand's own wallet need the access code. Connect your own Kite Passport instead, or try the demo." };
+      return { passportId: null, error: "Live errands on Errand's own wallet need the access code. Connect your own Kite Passport instead, or switch the network to Test." };
     }
     return { passportId, error: null };
   }
@@ -203,10 +203,11 @@ export function createApp() {
   app.post("/errands", async (c) => {
     const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
     if (limited(ip)) return c.json({ error: "Too many errands from this address. Try again in a few minutes." }, 429);
-    const who = await payer(c);
-    if (who.error) return c.json({ error: who.error }, 401);
     const parsed = CreateErrandSchema.safeParse(await c.req.json().catch(() => ({})));
     if (!parsed.success) return c.json({ error: parsed.error.issues.map((i) => i.message).join(" ") }, 400);
+    // Test errands move no money, so they need no wallet and no access code.
+    const who = parsed.data.network === "test" ? { passportId: null, error: null } : await payer(c);
+    if (who.error) return c.json({ error: who.error }, 401);
     if (parsed.data.maxPerPaymentUsd > parsed.data.budgetUsd) return c.json({ error: "The per-payment limit can't be more than the budget." }, 400);
     const e = await createErrand(parsed.data, { passportId: who.passportId });
     return c.json({ id: e.id }, 201);
@@ -257,7 +258,7 @@ export function createApp() {
   const approve = async (c: Context) => {
     const e = await store.get(c.req.param("id") ?? "");
     if (!e) return c.json({ error: "No errand with that id." }, 404);
-    if (env.mode !== "demo" && e.funding !== "allowance") return c.json({ error: "Live errands are approved in Kite Passport with your passkey." }, 400);
+    if (e.mode !== "demo" && e.funding !== "allowance") return c.json({ error: "Live errands are approved in Kite Passport with your passkey." }, 400);
     if (e.passportId) {
       const mine = await passports.resolve(token(c)).catch(() => null);
       if (mine !== e.passportId) return c.json({ error: "Only the Passport owner can approve this plan." }, 403);

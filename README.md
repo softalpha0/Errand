@@ -21,7 +21,9 @@
 3. Click **Start an errand** and choose an example. For instance: "Send ₦100 MTN airtime to +234…, then email me the receipt." Budget $2, at most $1 per payment.
 4. You'll see the plan and a price for each step. Approve the Kite session, then watch each payment get checked and paid. When it's done, you get the answer and a receipt.
 
-If you don't connect a Passport, errands are paid from Errand's own wallet. That needs an access code: _put it in the submission form_.
+**No Kite wallet? Switch the network to Test.** At the top of **Start an errand** there's a **Mainnet / Test** switch. A Test errand runs the same SERV plan and every payment check, with payments and seller replies simulated and labelled, so nothing is charged and no wallet or access code is needed. (Kite's own testnet can't be used for this: its faucet is off for production accounts, and the sellers only accept mainnet USDC.)
+
+If you choose Mainnet without connecting a Passport, errands are paid from Errand's own wallet. That needs an access code: _put it in the submission form_.
 
 ## The problem
 
@@ -75,6 +77,7 @@ Only what has run for real is marked **Live**.
 | Receipt with the quoted price, the reason and an on-chain link for every payment | **Live** |
 | Connect your own Kite Passport (your wallet, your passkey) | **Live** |
 | Country picker; the country is guessed from your time zone | **Live** |
+| Mainnet / Test switch: run any errand with simulated payments, no wallet needed | Built and tested in code |
 | Attack benchmark (rules and SERV columns) | **Run** with the live SERV key |
 | Research with sources (StableEnrich), eSIMs and gift cards (Bitrefill), "research, then buy only if…" | Built and unit-tested. Not yet run on mainnet |
 | Second opinions from Reppo's evaluator panel on judgement calls (ship / review / block), and a Reppo grade for every finished run | Rebuilt on Reppo's new Eval API (Nov 2026), tested in code; first live grades pending |

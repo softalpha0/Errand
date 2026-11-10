@@ -87,7 +87,7 @@ export function DecisionRow({ d, payment }: { d: GuardDecision; payment?: Paymen
                 <dt className="text-muted">Payment</dt>
                 <dd>
                   {payment.simulated ? (
-                    "Simulated (demo mode)"
+                    "Simulated (test errand)"
                   ) : payment.explorerUrl ? (
                     <a className="num underline underline-offset-2" href={payment.explorerUrl} target="_blank" rel="noreferrer">
                       {shortHash(payment.txHash ?? "")}

@@ -179,7 +179,7 @@ export function ApprovalCard({ e, onDemoApprove }: { e: Errand; onDemoApprove: (
             <p className="mt-1 text-sm text-muted">
               Up to <Money usd={total} className="text-ink" /> a run, at most <Money usd={e.maxPerPaymentUsd} className="text-ink" /> per payment, paid from your Kite allowance. You approved the
               allowance on Kite with your passkey; every payment is still checked here first, and you can pause or stop it on the Repeat page.
-              {e.mode === "demo" ? " Demo mode: no money moves." : ""}
+              {e.mode === "demo" ? " Test errand: no money moves." : ""}
             </p>
           </div>
           <Button
@@ -209,7 +209,7 @@ export function ApprovalCard({ e, onDemoApprove }: { e: Errand; onDemoApprove: (
           <p className="mt-1 text-sm text-muted">
             Up to <Money usd={total} className="text-ink" /> in total, at most <Money usd={e.maxPerPaymentUsd} className="text-ink" /> per payment, for {e.validFor === "7d" ? "7 days" : e.validFor === "24h" ? "1 day" : "one hour"}.
             {e.passportId ? " From your own Kite Passport." : ""}
-            {e.mode === "live" ? " Kite Passport enforces these limits even if Errand's code is wrong." : " In demo mode no passkey is needed and no money moves."}
+            {e.mode === "live" ? " Kite Passport enforces these limits even if Errand's code is wrong." : " In a test errand no passkey is needed and no money moves."}
           </p>
         </div>
         {e.mode === "live" ? (
@@ -274,7 +274,7 @@ export function AnswerCard({ e }: { e: Errand }) {
 export function ModeNote({ mode }: { mode: "live" | "demo" }) {
   return mode === "demo" ? (
     <p className={cx("rounded-xl border border-line bg-sunken px-4 py-2.5 text-sm text-muted")}>
-      <span className="font-medium text-ink">Demo mode.</span> Seller responses and payments are simulated and labelled as such. Plans and checks are real when SERV is connected.
+      <span className="font-medium text-ink">Test errand.</span> Seller replies and payments are simulated and labelled as such, and nothing is charged. The plan and every payment check are real when SERV is connected.
     </p>
   ) : null;
 }

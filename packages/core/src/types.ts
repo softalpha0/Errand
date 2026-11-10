@@ -232,6 +232,12 @@ export const CreateErrandSchema = z.object({
   privacy: z.enum(PRIVACY).default("public"),
   /** Two-letter country code, e.g. NG. Omitted = the site's DEFAULT_COUNTRY. */
   country: z.string().trim().regex(/^[A-Za-z]{2}$/, "Pick a country.").transform((c) => c.toUpperCase()).optional(),
+  /**
+   * "mainnet": real USDC through Kite Passport (on a live site).
+   * "test": the same plan and checks, with payments and seller replies simulated. Nothing is charged.
+   * (Kite's testnet can't be used: its faucet is off for production accounts, and the sellers only accept mainnet USDC.)
+   */
+  network: z.enum(["mainnet", "test"]).default("mainnet"),
 });
 export type CreateErrandInput = z.infer<typeof CreateErrandSchema>;
 

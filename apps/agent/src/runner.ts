@@ -167,14 +167,14 @@ export async function createErrand(input: CreateErrandInput, opts: CreateOptions
     id: newId("e"),
     createdAt: t,
     updatedAt: t,
-    mode: env.mode,
+    mode: input.network === "test" ? "demo" : env.mode,
     task,
     budgetUsd: Math.min(input.budgetUsd, env.maxBudgetUsd),
     maxPerPaymentUsd: Math.min(input.maxPerPaymentUsd, input.budgetUsd, env.maxBudgetUsd),
     validFor: input.validFor ?? "1h",
     askAboveUsd: input.askAboveUsd ?? null,
     funding: opts.funding ?? "session",
-    passportId: opts.passportId ?? null,
+    passportId: input.network === "test" ? null : (opts.passportId ?? null),
     privacy: input.privacy ?? "public",
     country: input.country ?? env.defaultCountry,
     standingId: opts.standingId ?? null,
@@ -191,7 +191,7 @@ export async function createErrand(input: CreateErrandInput, opts: CreateOptions
     events: [],
     error: null,
   };
-  event(e, "status", env.mode === "demo" ? "Errand created in demo mode: payments are simulated." : "Errand created.");
+  event(e, "status", e.mode === "demo" ? "Test errand: payments and seller replies are simulated, and nothing is charged." : "Errand created.");
   if (e.passportId) event(e, "log", "Paid from your own Kite Passport.");
   if (e.privacy === "private") event(e, "log", "Private errand: nothing about it is sent to Reppo's public network.");
   await save(e);
@@ -232,7 +232,7 @@ async function lifecycle(e: Errand, preset: Plan | null) {
   if (e.funding === "allowance") await allowancePhase(e, preset !== null);
   else await approvalPhase(e);
   await withKiteLock(homeOf(e) ?? "operator", async () => {
-    if (env.mode === "live" && e.funding === "session" && e.kite.sessionId) await kite.useSession(e.kite.sessionId, homeOf(e));
+    if (e.mode === "live" && e.funding === "session" && e.kite.sessionId) await kite.useSession(e.kite.sessionId, homeOf(e));
     await runPhase(e);
   });
 }
@@ -260,14 +260,14 @@ async function allowancePhase(e: Errand, alreadyApproved: boolean) {
   }
   e.kite.approvedAt = now();
   e.status = "running";
-  event(e, "status", `${env.mode === "demo" ? "Simulated: " : ""}paying from your Kite allowance${allowance.left !== null ? ` ($${allowance.left} left this ${allowance.period ?? "period"})` : ""}.`);
+  event(e, "status", `${e.mode === "demo" ? "Simulated: " : ""}paying from your Kite allowance${allowance.left !== null ? ` ($${allowance.left} left this ${allowance.period ?? "period"})` : ""}.`);
   await save(e);
   if (!alreadyApproved && runnerHooks.onPlanApproved) await runnerHooks.onPlanApproved(e);
 }
 
 async function planPhase(e: Errand) {
   const useServ = servConfigured();
-  if (!useServ && env.mode === "live") throw new Error("Live mode needs SERV_API_KEY.");
+  if (!useServ && e.mode === "live") throw new Error("Live mode needs SERV_API_KEY.");
   const answers: { q: string; a: string }[] = [];
 
   for (let round = 0; round < 2; round++) {
@@ -317,7 +317,7 @@ async function approvalPhase(e: Errand) {
   const maxTotal = Math.min(e.budgetUsd, Math.max(total, 0.01));
   e.status = "awaiting_approval";
 
-  if (env.mode === "demo") {
+  if (e.mode === "demo") {
     event(e, "awaiting_approval", `Approve a session of up to ${formatUsd(maxTotal)} (demo: no passkey needed).`);
     await save(e);
     await waitFor(`${e.id}:approve`);
@@ -454,7 +454,7 @@ async function pay(
   const catalogPrice = ENDPOINT_BY_ID[req.endpointId]?.priceUsd ?? null;
   let price = opts.priceUsd ?? catalogPrice ?? 0;
   let note = opts.note;
-  if (env.mode === "live" && catalogPrice !== null && opts.priceUsd === undefined) {
+  if (e.mode === "live" && catalogPrice !== null && opts.priceUsd === undefined) {
     const quoted = await sellers.quoteUsd(req);
     if (quoted !== null) {
       price = quoted;
@@ -505,7 +505,7 @@ async function pay(
   }
   if (d.decision !== "approve") throw new Blocked(d.reason);
 
-  const result = env.mode === "demo" ? demoExecute(req) : await liveExecute(e, req, `${e.id}-${d.id}`);
+  const result = e.mode === "demo" ? demoExecute(req) : await liveExecute(e, req, `${e.id}-${d.id}`);
 
   e.payments.push({
     id: newId("p"),
@@ -520,11 +520,11 @@ async function pay(
     txHash: result.txHash,
     explorerUrl: result.explorerUrl,
     chain: result.chain,
-    simulated: env.mode === "demo",
+    simulated: e.mode === "demo",
     used: null,
-    raw: env.mode === "live" ? result.raw : undefined,
+    raw: e.mode === "live" ? result.raw : undefined,
   });
-  event(e, "payment", `${env.mode === "demo" ? "Simulated payment" : "Paid"} ${formatUsd(reconcileAmountUsd(result.amountUsd, price))} to ${sellerName(req.url)}${e.funding === "allowance" ? " from your Kite allowance" : ""}.`, {
+  event(e, "payment", `${e.mode === "demo" ? "Simulated payment" : "Paid"} ${formatUsd(reconcileAmountUsd(result.amountUsd, price))} to ${sellerName(req.url)}${e.funding === "allowance" ? " from your Kite allowance" : ""}.`, {
     txHash: result.txHash,
     explorerUrl: result.explorerUrl,
   });
@@ -666,7 +666,7 @@ async function runPhase(e: Errand) {
 
   e.status = "done";
   if (e.privacy === "private") event(e, "log", "Private errand: the run was not sent to Reppo's public evaluation network.");
-  e.evaluation = !reppoConfigured() || e.privacy === "private" ? null : { evalId: "", status: "QUEUED", submittedAt: null, minSettleAt: null, settledAt: null, score: null, decision: null, confidence: null, verdicts: [], assessments: [], sandbox: false };
+  e.evaluation = !reppoConfigured() || e.privacy === "private" || (e.mode === "demo" && env.mode === "live") ? null : { evalId: "", status: "QUEUED", submittedAt: null, minSettleAt: null, settledAt: null, score: null, decision: null, confidence: null, verdicts: [], assessments: [], sandbox: false };
   event(e, "status", `Done. Spent ${formatUsd(spentUsd(e.payments))} of ${formatUsd(e.budgetUsd)}.`);
   await save(e);
 }
@@ -771,7 +771,7 @@ async function runBuy(e: Errand, step: PlanStep, r: StepResult) {
   try {
     delivery = sellers.readDelivery(await pay(e, sellers.bitrefillStatus(invoice.invoiceId), { step }));
     if (!/deliver|complete/i.test(`${delivery.status} ${delivery.delivery}`)) {
-      await new Promise((res) => setTimeout(res, env.mode === "demo" ? 500 : 15_000));
+      await new Promise((res) => setTimeout(res, e.mode === "demo" ? 500 : 15_000));
       delivery = sellers.readDelivery(await pay(e, sellers.bitrefillStatus(invoice.invoiceId), { step }));
     }
   } catch (err) {
@@ -803,7 +803,7 @@ async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
   if (e.funding === "allowance") throw new Blocked("Kite's allowance never pays shopping checkouts.");
 
   // 1. Search (free, no session needed)
-  const items = env.mode === "demo" ? demoShopSearch(query) : await kite.shopSearch(query, home);
+  const items = e.mode === "demo" ? demoShopSearch(query) : await kite.shopSearch(query, home);
   event(e, "step", `Searched Amazon through Kite for "${query}" (free): ${items.length} results.`, { stepId: step.id });
   r.facts.push(...items.slice(0, 3).map((i) => `Amazon: ${i.title.slice(0, 90)}, ${i.priceUsd !== null ? formatUsd(i.priceUsd) : "no price"}${i.rating ? `, ${i.rating} stars (${i.reviews ?? 0} reviews)` : ""}.`));
   const pick = pickShopItem(items, cap);
@@ -824,7 +824,7 @@ async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
   // 3. Cart (free)
   let subtotal = pick.priceUsd;
   let payWith = "USDC";
-  if (env.mode === "live") {
+  if (e.mode === "live") {
     await kite.shopCartClear(home);
     await kite.shopCartAdd(pick, home);
     const cart = await kite.shopCartView(home);
@@ -835,7 +835,7 @@ async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
   if (subtotal === null || subtotal > cap) throw new Blocked(`The cart subtotal ${subtotal === null ? "is unknown" : formatUsd(subtotal)}, above your ${formatUsd(cap)} limit.`);
 
   // 4. Shipping lives in the person's Kite profile. Errand never stores it.
-  let ship = env.mode === "demo" ? demoShipping() : await kite.shopShippingView(home);
+  let ship = e.mode === "demo" ? demoShipping() : await kite.shopShippingView(home);
   if (!ship.complete) {
     const a = await ask(e, `Your Kite shipping profile is missing: ${ship.missing.join(", ")}. Add it on the Connect page (it goes straight to Kite), then choose "Done".`, ["Done", "Cancel the order"], step.purpose);
     if (!/^done/i.test(a.trim())) throw new Blocked("You cancelled the order.");
@@ -900,7 +900,7 @@ function opinionInput(e: Errand, question: string, proposal: Record<string, unkn
 async function askReppo(e: Errand, step: PlanStep, question: string, proposal: Record<string, unknown>): Promise<Opinion> {
   event(e, "step", "Asking Reppo's independent evaluators for a second opinion (usually under 2 minutes).", { stepId: step.id });
   await save(e);
-  if (env.mode === "demo") {
+  if (e.mode === "demo") {
     await new Promise((r) => setTimeout(r, 1_500));
     return { ok: true, route: "ship", score: 81, confidence: "high", reason: "Simulated: fits the task and the limits the user set; the price is in the normal range.", evaluators: 3, evalId: null };
   }
