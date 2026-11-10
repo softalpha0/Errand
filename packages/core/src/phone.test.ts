@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { isNorthAmerican, normalizePhone, samePhone } from "./phone";
 
 describe("normalizePhone", () => {
+  it("reads local numbers for every country in the picker, e.g. Bangladesh and Germany", () => {
+    expect(normalizePhone("01712 345678", "BD")).toBe("+8801712345678");
+    expect(normalizePhone("0151 23456789", "DE")).toBe("+4915123456789");
+  });
+
   it.each([
     ["08031234567", "NG", "+2348031234567"],
     ["0803 123 4567", "NG", "+2348031234567"],

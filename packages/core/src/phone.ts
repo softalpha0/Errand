@@ -23,6 +23,19 @@ const DIAL_CODES: Record<string, string> = {
   PH: "63",
   BR: "55",
   MX: "52",
+  ET: "251",
+  IE: "353",
+  DE: "49",
+  FR: "33",
+  NL: "31",
+  ES: "34",
+  IT: "39",
+  AE: "971",
+  SA: "966",
+  PK: "92",
+  BD: "880",
+  ID: "62",
+  AU: "61",
 };
 
 export function dialCode(country: string): string | undefined {

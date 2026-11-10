@@ -7,7 +7,7 @@ import { ModeNote } from "@/components/errand-parts";
 import { Button, ErrorNote, Field, cx, inputClass } from "@/components/ui";
 import { api, type AgentConfig } from "@/lib/api";
 import { EXAMPLES } from "@/lib/examples";
-import { COUNTRIES, guessCountry } from "@/lib/countries";
+import { COUNTRIES, detectCountry, taskPlaceholder } from "@/lib/countries";
 import { usePassport } from "@/lib/passport";
 
 export function Composer({ initial }: { initial: number | null }) {
@@ -22,7 +22,13 @@ export function Composer({ initial }: { initial: number | null }) {
   const [privateRun, setPrivateRun] = useState(false);
   const [network, setNetwork] = useState<"mainnet" | "test">("mainnet");
   const [country, setCountry] = useState("NG");
-  useEffect(() => setCountry(guessCountry()), []);
+  // Until we know where the visitor is, the example stays neutral (an eSIM for a trip), not Nigerian.
+  const [detected, setDetected] = useState<string | null>(null);
+  useEffect(() => {
+    const d = detectCountry();
+    setDetected(d ?? "");
+    setCountry(d ?? "NG");
+  }, []);
   const { passport } = usePassport();
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +136,7 @@ export function Composer({ initial }: { initial: number | null }) {
           onChange={(ev) => setTask(ev.target.value)}
           rows={5}
           maxLength={2000}
-          placeholder="Send NGN 1,000 MTN airtime to my mum on 0803 123 4567 and email me the receipt at me@example.com."
+          placeholder={taskPlaceholder(detected ? country : null)}
           className={cx(inputClass, "h-auto resize-y py-3 leading-relaxed")}
         />
       </Field>
@@ -178,7 +184,7 @@ export function Composer({ initial }: { initial: number | null }) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Your country" htmlFor="country" hint="Phone numbers written without a + code are read as this country's, and the plan assumes it unless you say otherwise.">
-          <select id="country" className={inputClass} value={country} onChange={(ev) => setCountry(ev.target.value)}>
+          <select id="country" className={inputClass} value={country} onChange={(ev) => { setCountry(ev.target.value); setDetected(ev.target.value); }}>
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.name}
