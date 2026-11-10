@@ -92,6 +92,18 @@ export function servConfigured(): boolean {
   return env.serv.apiKey.length > 0;
 }
 
+/** The form's ceiling for anyone who isn't spending Errand's own money. */
+export const OPEN_BUDGET_MAX_USD = 1000;
+
+/**
+ * The most one errand may spend. MAX_BUDGET_USD protects the owner's wallet, so it applies only when
+ * a live errand pays from Errand's own Kite Passport. Someone's own Passport is limited by Kite and their
+ * passkey, and test errands move no money.
+ */
+export function budgetCap(opts: { ownPassport: boolean; test: boolean }): number {
+  return env.mode === "live" && !opts.ownPassport && !opts.test ? env.maxBudgetUsd : OPEN_BUDGET_MAX_USD;
+}
+
 export function reppoConfigured(): boolean {
   return env.reppo.enabled && env.reppo.apiKey.length > 0;
 }

@@ -55,10 +55,10 @@ export function Composer({ initial }: { initial: number | null }) {
             ? "Set the per-payment limit to at least $0.01. The cheapest paid call (a cited web answer) costs $0.01; a Reddit search costs $0.02."
             : perN > budgetN
             ? "The per-payment limit can't be more than the budget."
-            : config && !testRun && budgetN > config.maxBudgetUsd
-              ? `Mainnet budgets are capped at $${config.maxBudgetUsd} on this site. Switch to Test to try a bigger errand with simulated payments.`
-              : testRun && budgetN > 50
-                ? "Test budgets go up to $50."
+            : config && !testRun && !passport && budgetN > config.maxBudgetUsd
+              ? `Errands paid from Errand's own wallet are capped at $${config.maxBudgetUsd}. Connect your own Kite Passport for any budget, or switch to Test.`
+              : budgetN > 1000
+                ? "Budgets go up to $1,000 per errand."
                 : null;
 
   async function submit(ev: React.FormEvent) {

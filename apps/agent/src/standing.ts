@@ -16,7 +16,7 @@
  */
 import { randomBytes } from "node:crypto";
 import { spentUsd, type CreateStandingInput, type Errand, type StandingErrand } from "@errand/core";
-import { env } from "./env";
+import { budgetCap, env } from "./env";
 import { log } from "./log";
 import { allowanceFor } from "./passports";
 import { createErrand, runnerHooks } from "./runner";
@@ -60,7 +60,7 @@ export async function createStanding(input: CreateStandingInput, passportId: str
     updatedAt: now(),
     task: input.task,
     every: input.every,
-    capPerRunUsd: Math.min(input.capPerRunUsd, env.maxBudgetUsd),
+    capPerRunUsd: Math.min(input.capPerRunUsd, budgetCap({ ownPassport: Boolean(passportId), test: false })),
     maxPerPaymentUsd: input.maxPerPaymentUsd,
     privacy: input.privacy,
     country: input.country ?? env.defaultCountry,

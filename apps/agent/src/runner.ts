@@ -42,7 +42,7 @@ import { publish } from "./bus";
 import * as dolphin from "./dolphin";
 import { evaluateAction, redact } from "./reppo";
 import { demoExecute, demoShipping, demoShopSearch, scriptedCondition, scriptedGuard, scriptedPlan, scriptedRead, scriptedSummary } from "./demo";
-import { env, reppoConfigured, servConfigured } from "./env";
+import { budgetCap, env, reppoConfigured, servConfigured } from "./env";
 import * as kite from "./kite";
 import { explorerUrl, reconcileAmountUsd } from "./kite-parse";
 import { log } from "./log";
@@ -160,11 +160,8 @@ function withKiteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
 
 // ---------- create ----------
 
-/** The most a test errand may "spend": its payments are simulated, so MAX_BUDGET_USD (which protects real money) doesn't apply. */
-const TEST_MAX_BUDGET_USD = 50;
-
 export async function createErrand(input: CreateErrandInput, opts: CreateOptions = {}): Promise<Errand> {
-  const cap = input.network === "test" ? TEST_MAX_BUDGET_USD : env.maxBudgetUsd;
+  const cap = budgetCap({ ownPassport: Boolean(opts.passportId), test: input.network === "test" });
   const t = now();
   const task = input.email && !input.task.includes(input.email) ? `${input.task}\n\nMy email: ${input.email}` : input.task;
   const e: Errand = {

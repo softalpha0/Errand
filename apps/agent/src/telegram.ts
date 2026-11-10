@@ -18,7 +18,7 @@
  */
 import { formatUsd, type Errand } from "@errand/core";
 import { subscribe } from "./bus";
-import { env } from "./env";
+import { budgetCap, env } from "./env";
 import { log } from "./log";
 import { normalizeLinkCode, passportForTelegram, redeemTelegramLink, unlinkTelegram } from "./passports";
 import { answerQuestion, approveDemo, cancelErrand, createErrand } from "./runner";
@@ -151,7 +151,7 @@ function follow(chatId: number, errandId: string) {
 
 async function startErrand(chatId: number, text: string, payer: Extract<Payer, { ok: true }>) {
   const m = text.match(/^\s*\$(\d+(\.\d+)?)\s+/);
-  const budgetUsd = Math.min(m ? Number(m[1]) : env.telegram.budgetUsd, env.maxBudgetUsd);
+  const budgetUsd = Math.min(m ? Number(m[1]) : env.telegram.budgetUsd, budgetCap({ ownPassport: Boolean(payer.passportId), test: false }));
   const task = m ? text.slice(m[0].length) : text;
   if (task.trim().length < 8) return send(chatId, HELP);
   const e = await createErrand({

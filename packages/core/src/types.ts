@@ -224,11 +224,11 @@ export const VALID_FOR_LABEL: Record<ValidFor, string> = { "1h": "1 hour", "24h"
 
 export const CreateErrandSchema = z.object({
   task: z.string().trim().min(8, "Describe the errand in a sentence or two.").max(2000),
-  budgetUsd: z.number().positive().max(50),
-  maxPerPaymentUsd: z.number().min(0.01, "The per-payment limit must be at least $0.01: the cheapest paid call (a cited web answer) costs $0.01.").max(50),
+  budgetUsd: z.number().positive().max(1000),
+  maxPerPaymentUsd: z.number().min(0.01, "The per-payment limit must be at least $0.01: the cheapest paid call (a cited web answer) costs $0.01.").max(1000),
   email: z.string().email().optional(),
   validFor: z.enum(VALID_FOR).default("1h"),
-  askAboveUsd: z.number().positive().max(50).nullable().optional(),
+  askAboveUsd: z.number().positive().max(1000).nullable().optional(),
   privacy: z.enum(PRIVACY).default("public"),
   /** Two-letter country code, e.g. NG. Omitted = the site's DEFAULT_COUNTRY. */
   country: z.string().trim().regex(/^[A-Za-z]{2}$/, "Pick a country.").transform((c) => c.toUpperCase()).optional(),
@@ -250,8 +250,8 @@ export const CreateStandingSchema = z.object({
   task: z.string().trim().min(8, "Describe the errand in a sentence or two.").max(2000),
   every: z.enum(EVERY).default("day"),
   /** Most one run may spend. The Kite allowance is the outer limit. */
-  capPerRunUsd: z.number().min(0.01).max(50),
-  maxPerPaymentUsd: z.number().min(0.01).max(50),
+  capPerRunUsd: z.number().min(0.01).max(1000),
+  maxPerPaymentUsd: z.number().min(0.01).max(1000),
   email: z.string().email().optional(),
   privacy: z.enum(PRIVACY).default("public"),
   country: z.string().trim().regex(/^[A-Za-z]{2}$/, "Pick a country.").transform((c) => c.toUpperCase()).optional(),
