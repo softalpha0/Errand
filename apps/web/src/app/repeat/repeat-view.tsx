@@ -47,7 +47,7 @@ function StandingCard({ s, onChange, accessCode }: { s: StandingErrand; onChange
         title={<span className="line-clamp-2">{s.task}</span>}
         sub={
           <>
-            Every {s.every}, at most <Money usd={s.capPerRunUsd} className="text-ink" /> a run{s.privacy === "private" ? " · private" : ""}
+            Every {s.every}, at most <Money usd={s.capPerRunUsd} className="text-ink" /> a run
           </>
         }
         aside={<Pill tone={stateTone(s.state)}>{STATE_TEXT[s.state]}</Pill>}
@@ -118,7 +118,6 @@ export function RepeatView() {
   const [every, setEvery] = useState<"day" | "week">("day");
   const [cap, setCap] = useState("1");
   const [per, setPer] = useState("1");
-  const [privateRun, setPrivateRun] = useState(true);
   const [country, setCountry] = useState("NG");
   useEffect(() => setCountry(guessCountry()), []);
   const [code, setCode] = useState("");
@@ -174,7 +173,7 @@ export function RepeatView() {
           setBusy(true);
           setError(null);
           try {
-            const r = await api.standingCreate({ task: task.trim(), every, capPerRunUsd: capN, maxPerPaymentUsd: perN, privacy: privateRun ? "private" : "public", country }, code || undefined);
+            const r = await api.standingCreate({ task: task.trim(), every, capPerRunUsd: capN, maxPerPaymentUsd: perN, country }, code || undefined);
             router.push(`/e/${r.errandId}`);
           } catch (e) {
             setError(e instanceof Error ? e.message : "Something went wrong.");
@@ -211,12 +210,6 @@ export function RepeatView() {
             ))}
           </select>
         </Field>
-        <label className="flex items-start gap-3 text-sm">
-          <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-ink)]" checked={privateRun} onChange={(ev) => setPrivateRun(ev.target.checked)} />
-          <span>
-            <span className="font-medium">Keep it private.</span> <span className="text-muted">Runs are not sent to Reppo&rsquo;s public evaluation network. Recommended for family errands.</span>
-          </span>
-        </label>
         {config?.accessCodeRequired && !passport ? (
           <Field label="Access code" htmlFor="st-code" hint="Needed only when paying from Errand's own wallet.">
             <input id="st-code" className={inputClass} value={code} onChange={(ev) => setCode(ev.target.value)} autoComplete="off" />

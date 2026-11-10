@@ -17,7 +17,7 @@ Errand pays Reppo from its own credits (`REPPO_API_KEY`), so neither use costs t
 
 ## Privacy
 
-Traces never include keys, raw kpass output, full phone numbers or emails (`redact()`). **Private** errands (composer checkbox, the default for standing errands and Telegram) are never sent for grading, and their second opinions see only the choice itself, not the task, constraints or research.
+Every errand (web, repeat, Telegram, MCP) goes to Reppo; there is no opt-out since 10 Nov. Traces never include keys, raw kpass output, full phone numbers or emails (`redact()`). Errands made before 10 Nov as "private" keep their old behaviour.
 
 ## How the grades change Errand
 

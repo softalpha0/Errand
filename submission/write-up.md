@@ -19,7 +19,7 @@ SERV makes every decision in Errand. The planner runs on `gpt-5.4-mini-serv-kron
 ## How it uses the partners
 
 - **Kite Passport**: one passkey-approved session per errand whose scope matches Kite's own demo: budget, per-payment cap, how long it is valid, and constraints. Every payment goes through `kpass session execute`. People connect their own Passport (Kite's email-code login, one login folder each). Standing errands ("keep Mum's data topped up, at most $1 a day") repeat an approved plan from the Kite allowance. Physical products are ordered from Amazon through Kite's own shopping checkout, after the person confirms the order summary. Errand also gives back to Kite: **Errand Guard** is a paid x402 service built from Kite's `kite-x402-services` template, so any Passport agent can pay $0.01 to check a payment before making it.
-- **Reppo**: "Jev for the predictable, Reppo for the subjective". Private errands stay off Reppo's public network. Judgement-call purchases get a second opinion from Reppo's evaluator panel before money moves (a score and a ship / review / block route, usually within 90 seconds, paid from Errand's own Reppo credits), "is it worth it?" errands are answered by Reppo's evaluators, and every finished run is graded, with the score, route and reasoning on the receipt.
+- **Reppo**: "Jev for the predictable, Reppo for the subjective". Judgement-call purchases get a second opinion from Reppo's evaluator panel before money moves (a score and a ship / review / block route, usually within 90 seconds, paid from Errand's own Reppo credits), "is it worth it?" errands are answered by Reppo's evaluators, and every finished run is graded, with the score, route and reasoning on the receipt.
 - **Dolphin**: the emails Errand sends are worded by an open-source model on Dolphin's network; it makes no decisions.
 - **Anywhere**: an MCP server lets people run errands from the AI assistant they already use (any MCP app), and a Telegram bot runs them from chat.
 
@@ -37,7 +37,7 @@ Kite's `kpass` prints JSON whose field names aren't documented, so the agent sea
 
 ## What's next
 
-Move standing errands to Kite's metered and subscription payments when they ship; private Reppo data nets for personal errands; Errand listed in Kite's agent directory (steps ready, waiting on identity check) so other agents can hire it per errand.
+Move standing errands to Kite's metered and subscription payments when they ship; Errand listed in Kite's agent directory (steps ready, waiting on identity check) so other agents can hire it per errand.
 
 ## Links
 

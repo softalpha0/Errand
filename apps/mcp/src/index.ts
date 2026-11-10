@@ -89,12 +89,11 @@ server.registerTool(
       maxPerPaymentUsd: z.number().min(0.01).max(50).describe("Most any single payment may be, in USD."),
       validFor: z.enum(["1h", "24h", "7d"]).optional().describe("How long the spending session stays valid."),
       askAboveUsd: z.number().positive().optional().describe("Always ask the user before a single payment above this."),
-      private: z.boolean().optional().describe("Keep the errand off Reppo's public evaluation network."),
       country: z.string().length(2).optional().describe("The user's country as a 2-letter code (NG, GH, US...). Phone numbers without a + code are read as this country's."),
     },
   },
-  async ({ private: priv, ...args }) => {
-    const { id } = (await call("/errands", { method: "POST", body: JSON.stringify({ ...args, privacy: priv ? "private" : "public" }) })) as { id: string };
+  async (args) => {
+    const { id } = (await call("/errands", { method: "POST", body: JSON.stringify(args) })) as { id: string };
     // Give the planner a moment so the first reply already shows the plan.
     for (let i = 0; i < 20; i++) {
       const e = (await call(`/errands/${id}`)) as Errand;

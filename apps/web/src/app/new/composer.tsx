@@ -19,7 +19,6 @@ export function Composer({ initial }: { initial: number | null }) {
   const [code, setCode] = useState("");
   const [validFor, setValidFor] = useState<"1h" | "24h" | "7d">("1h");
   const [askAbove, setAskAbove] = useState<string>("");
-  const [privateRun, setPrivateRun] = useState(false);
   const [network, setNetwork] = useState<"mainnet" | "test">("mainnet");
   const [country, setCountry] = useState("NG");
   // Until we know where the visitor is, the example stays neutral (an eSIM for a trip), not Nigerian.
@@ -71,7 +70,7 @@ export function Composer({ initial }: { initial: number | null }) {
     try {
       const askN = askAbove.trim() ? Number(askAbove) : null;
       const { id } = await api.create(
-        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, privacy: privateRun ? "private" : "public", country, network: testRun ? "test" : "mainnet" },
+        { task: task.trim(), budgetUsd: budgetN, maxPerPaymentUsd: perN, validFor, askAboveUsd: askN && askN > 0 ? askN : null, country, network: testRun ? "test" : "mainnet" },
         testRun ? undefined : code || undefined,
       );
       router.push(`/e/${id}`);
@@ -193,14 +192,6 @@ export function Composer({ initial }: { initial: number | null }) {
           </select>
         </Field>
       </div>
-
-      <label className="flex items-start gap-3 text-sm">
-        <input type="checkbox" className="mt-0.5 size-4 accent-[var(--color-ink)]" checked={privateRun} onChange={(ev) => setPrivateRun(ev.target.checked)} />
-        <span>
-          <span className="font-medium">Keep this errand private.</span>{" "}
-          <span className="text-muted">The run isn&rsquo;t sent to Reppo&rsquo;s public evaluation network, and second opinions see only the choice, not your task.</span>
-        </span>
-      </label>
 
       {config?.accessCodeRequired && !passport && !testRun ? (
         <Field label="Access code" htmlFor="code" hint="Mainnet errands on Errand's own wallet spend real money, so the owner hands out a code. Without one, connect your own Kite Passport or switch to Test.">

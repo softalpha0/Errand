@@ -160,8 +160,7 @@ async function startErrand(chatId: number, text: string, payer: Extract<Payer, {
     maxPerPaymentUsd: env.telegram.maxPerPaymentUsd > 0 ? Math.min(env.telegram.maxPerPaymentUsd, budgetUsd) : budgetUsd,
     validFor: "1h",
     askAboveUsd: null,
-    // Chats are personal: nothing goes to Reppo's public network unless you use the web app.
-    privacy: "private",
+    privacy: "public",
     network: "mainnet",
   }, { passportId: payer.passportId });
   latest.set(chatId, e.id);

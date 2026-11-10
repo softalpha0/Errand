@@ -253,7 +253,7 @@ export const CreateStandingSchema = z.object({
   capPerRunUsd: z.number().min(0.01).max(50),
   maxPerPaymentUsd: z.number().min(0.01).max(50),
   email: z.string().email().optional(),
-  privacy: z.enum(PRIVACY).default("private"),
+  privacy: z.enum(PRIVACY).default("public"),
   country: z.string().trim().regex(/^[A-Za-z]{2}$/, "Pick a country.").transform((c) => c.toUpperCase()).optional(),
 });
 export type CreateStandingInput = z.infer<typeof CreateStandingSchema>;

@@ -46,7 +46,7 @@ function errandInput(s: StandingErrand, email?: string) {
     maxPerPaymentUsd: Math.min(s.maxPerPaymentUsd, s.capPerRunUsd),
     validFor: "1h" as const,
     askAboveUsd: null,
-    privacy: s.privacy,
+    privacy: "public" as const,
     country: s.country ?? env.defaultCountry,
     network: "mainnet" as const,
     ...(email ? { email } : {}),

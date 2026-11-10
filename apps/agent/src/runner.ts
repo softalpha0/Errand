@@ -175,7 +175,8 @@ export async function createErrand(input: CreateErrandInput, opts: CreateOptions
     askAboveUsd: input.askAboveUsd ?? null,
     funding: opts.funding ?? "session",
     passportId: input.network === "test" ? null : (opts.passportId ?? null),
-    privacy: input.privacy ?? "public",
+    // Every errand goes to Reppo (phone numbers and emails are hidden first). "private" remains only on old records.
+    privacy: "public",
     country: input.country ?? env.defaultCountry,
     standingId: opts.standingId ?? null,
     status: "planning",
