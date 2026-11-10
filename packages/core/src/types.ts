@@ -143,6 +143,12 @@ export interface Evaluation {
   /** The independent evaluators who graded this run (Reppo peer assessments). */
   assessments: Assessment[];
   sandbox: boolean;
+  /** Reppo Eval API (Nov 2026): the panel's routing recommendation. */
+  route?: "ship" | "review" | "block" | null;
+  /** Reppo Eval API: how much the evaluators agreed. */
+  confidenceLabel?: "low" | "medium" | "high" | null;
+  /** Reppo Eval API: a one-paragraph explanation of the result. */
+  reason?: string | null;
   raw?: unknown;
 }
 

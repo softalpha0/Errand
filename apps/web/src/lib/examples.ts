@@ -33,8 +33,8 @@ export const EXAMPLES = [
     task: "Is the 5 GB Ghana eSIM worth it for a week in Accra, or should I buy a local SIM when I land? Research it and get an independent second opinion.",
     budgetUsd: 0.5,
     maxPerPaymentUsd: 0.25,
-    sellers: "StableEnrich, Reppo",
-    cost: "about $0.25",
+    sellers: "StableEnrich, Reppo (free)",
+    cost: "about $0.03",
   },
   {
     kind: "Shop, with a check",
@@ -42,8 +42,8 @@ export const EXAMPLES = [
     task: "Buy a $5 Amazon US gift card for my friend's birthday, and email me the details at me@example.com.",
     budgetUsd: 6,
     maxPerPaymentUsd: 5.5,
-    sellers: "Bitrefill, Reppo, StableEmail",
-    cost: "about $5.25",
+    sellers: "Bitrefill, Reppo (free), StableEmail",
+    cost: "about $5.03",
   },
   {
     kind: "Shop on Amazon",

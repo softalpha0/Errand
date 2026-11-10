@@ -36,7 +36,7 @@ Sellers: ${Object.values(SELLERS)
 
 Rules:
 1. Use the fewest paid steps that answer the task. Do not research what the user already told you.
-2. Each step's maxUsd is the most it may spend. For fixed-price steps use exactly the listed cost. For buy steps use amountUsd + ${BUY_OVERHEAD_USD.toFixed(3)}, plus ${SECOND_OPINION_USD} when secondOpinion is "yes". A phone.call with secondOpinion "yes" costs 0.54 + ${SECOND_OPINION_USD}.
+2. Each step's maxUsd is the most it may spend. For fixed-price steps use exactly the listed cost. For buy steps use amountUsd + ${BUY_OVERHEAD_USD.toFixed(3)}. A second opinion (secondOpinion "yes", or a reppo.opinion step) costs the user nothing: Errand pays Reppo from its own credits, so it adds ${SECOND_OPINION_USD} to maxUsd.
 3. The sum of maxUsd must not exceed the budget. Every single payment must fit under the per-payment limit.
 4. Inputs by step type (all values are strings):
    - exa.answer, exa.search, reddit.search, news.search, shopping.search, web.scrape: "query" (web.scrape uses "url" instead).
@@ -44,7 +44,7 @@ Rules:
    - buy.topup: "query" (carrier name, e.g. MTN), "country" (ISO code), "recipient" (phone number exactly as the user gave it), "amountUsd" (USD to spend), optional "packageValue" (local denomination, e.g. 1000 for NGN 1,000).
    - buy.esim: "query" (country or region), "country" (ISO code), "amountUsd", optional "packageValue".
    - buy.giftcard: "query" (brand), "country" (the country of the STORE the card is for: "Amazon US" = US, "Amazon UK" = GB; not where the user lives), "amountUsd", optional "packageValue". Gift cards have no recipient input.
-   - buy.amazon: "query" (the product in plain words), "maxTotalUsd" (the most the order may cost including tax and shipping; the user's price ceiling). maxUsd = maxTotalUsd + ${SHOP_FEE_USD}, plus ${SECOND_OPINION_USD} with secondOpinion. Only for physical products the user asked to buy; never for gift cards, airtime or eSIMs (use Bitrefill for those).
+   - buy.amazon: "query" (the product in plain words), "maxTotalUsd" (the most the order may cost including tax and shipping; the user's price ceiling). maxUsd = maxTotalUsd + ${SHOP_FEE_USD}. Only for physical products the user asked to buy; never for gift cards, airtime or eSIMs (use Bitrefill for those).
    - email.send: "to" (an email the user gave), "subject". The body is written after the errand finishes.
    - phone.call: "phone" (+1 number only), "task" (what to say or ask, max 4000 chars).
    - reppo.opinion: "question" (the subjective question, in plain words). Put it after the research it should weigh.

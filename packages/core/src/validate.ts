@@ -88,7 +88,7 @@ export function checkPlan(
         }
         const needed = round6(charge + (secondOpinion ? SECOND_OPINION_USD : 0));
         if (needed > step.maxUsd + 0.000001) {
-          issues.push(`Step ${step.id} needs at least $${needed} (cap + $${SHOP_FEE_USD} Kite fee${secondOpinion ? " + second opinion" : ""}).`);
+          issues.push(`Step ${step.id} needs at least $${needed} (cap + $${SHOP_FEE_USD} Kite fee).`);
         }
       }
     } else if (step.type.startsWith("buy.")) {
@@ -101,7 +101,7 @@ export function checkPlan(
         }
         const needed = round6(amount + BUY_OVERHEAD_USD + (secondOpinion ? SECOND_OPINION_USD : 0));
         if (needed > step.maxUsd + 0.000001) {
-          issues.push(`Step ${step.id} needs at least $${needed} (product + fees${secondOpinion ? " + second opinion" : ""}).`);
+          issues.push(`Step ${step.id} needs at least $${needed} (product + fees).`);
         }
       }
       if (!stepInput(step, "query")) issues.push(`Step ${step.id} needs a product search query.`);

@@ -77,15 +77,19 @@ export function Receipt({ e, compact = false, label }: { e: Errand; compact?: bo
           <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
             <span>Graded by Reppo:</span>
             {!ev ? (
-              <span>{e.status === "done" ? "not switched on for this site" : "after the errand finishes"}</span>
+              <span>{e.privacy === "private" ? "not sent (private errand)" : e.status === "done" ? "not graded" : "after the errand finishes"}</span>
             ) : ev.status === "SETTLED" ? (
               <>
                 {ev.score !== null ? <span className="num text-ink">{ev.score}/100</span> : null}
-                {ev.decision ? <Pill tone={ev.decision === "accept" ? "approve" : ev.decision === "reject" ? "block" : "ask"}>{ev.decision}</Pill> : null}
+                {ev.route ? (
+                  <Pill tone={ev.route === "ship" ? "approve" : ev.route === "block" ? "block" : "ask"}>{ev.route}</Pill>
+                ) : ev.decision ? (
+                  <Pill tone={ev.decision === "accept" ? "approve" : ev.decision === "reject" ? "block" : "ask"}>{ev.decision}</Pill>
+                ) : null}
                 {ev.sandbox ? <Pill>sandbox</Pill> : null}
               </>
             ) : ev.status === "PENDING" || ev.status === "QUEUED" ? (
-              <span>pending, usually about 15 minutes</span>
+              <span>with Reppo's evaluators, usually under 2 minutes</span>
             ) : (
               <span>{ev.status.toLowerCase()}</span>
             )}

@@ -113,8 +113,9 @@ export const ENDPOINTS: CatalogEndpoint[] = [
   // Call (US and Canada only)
   { id: "phone.call", seller: "stablephone", kind: "call", method: "POST", url: "https://stablephone.dev/api/call", priceUsd: 0.54, summary: "Make an AI phone call to a +1 number with a task." },
 
-  // Independent second opinion (Reppo lite evaluation: $0.22 in USDC on Base via x402, verdict returned at once)
-  { id: "reppo.lite", seller: "reppo", kind: "assess", method: "POST", url: "https://eval.reppo.xyz/api/v1/x402/evals/lite", priceUsd: 0.22, summary: "Independent second opinion from Reppo's evaluators." },
+  // Independent second opinion from Reppo's evaluator panel (Reppo Eval API, taskType "action").
+  // Paid from Errand's own Reppo credits, not by the user: it never goes through Kite, so it costs the errand nothing.
+  { id: "reppo.lite", seller: "reppo", kind: "assess", method: "POST", url: "https://eval.reppo.xyz/api/v1/agents/evals", priceUsd: 0, summary: "Independent second opinion from Reppo's evaluator panel (free to you)." },
 
   // Physical goods: Kite Passport's shopping checkout (Amazon). Searching and the cart are free;
   // only the checkout is paid. Kite charges the price cap + a $1 provider fee up front and the
@@ -167,7 +168,8 @@ export const STEP_ENDPOINTS: Record<StepType, string[]> = {
 };
 
 /** Price of one Reppo lite evaluation (the "second opinion"). */
-export const SECOND_OPINION_USD = 0.22;
+/** What a Reppo second opinion adds to an errand's budget: nothing, since Errand pays Reppo from its own credits. */
+export const SECOND_OPINION_USD = 0;
 
 /** Endpoints a step type always uses (optional ones, like a second opinion, excluded). */
 export function requiredEndpoints(type: StepType, secondOpinion: boolean): string[] {

@@ -39,8 +39,8 @@ const GUARANTEES = [
   ["Never pays twice for the same thing", "Rule R8: request fingerprint per errand"],
   ["Asks when it isn't sure", "SERV guard can only approve, ask or block, and can never loosen a rule"],
   ["Never goes past your own limits", "Rule R12 asks you before any payment above the amount you set; the session expires when you said"],
-  ["Gets a second opinion on judgement calls", "Reppo's independent evaluators review subjective purchases before any money moves"],
-  ["Every run is graded by someone else", "Reppo evaluation of the full trace, with each evaluator's note on the receipt"],
+  ["Gets a second opinion on judgement calls", "Reppo's evaluator panel scores subjective purchases before any money moves; review or block comes back to you"],
+  ["Every run is graded by someone else", "Reppo evaluation of the full trace: a score, a route and the reasoning on the receipt"],
   ["Never checks out on Amazon without your yes", "An order summary you confirm, then rule R13: the charge must be exactly your cap plus Kite's $1 fee"],
   ["Repeats only what you approved", "Standing errands repeat the exact plan you approved, capped per run; your Kite allowance caps the total"],
 ];
@@ -62,7 +62,7 @@ const STACK = [
     name: "Reppo",
     role: "Independent judgement",
     detail:
-      "Jev handles the predictable checks; Reppo handles the subjective ones. Before a judgement-call purchase, Errand pays Reppo's evaluators (through Kite) for an instant second opinion. After every errand, the full trace is graded on five questions, and the grades decide which guard step changes next.",
+      "Jev handles the predictable checks; Reppo handles the subjective ones. Before a judgement-call purchase, Reppo's evaluator panel scores the choice and routes it ship, review or block, usually in under two minutes. After every errand, the full trace is graded on five questions about how the money was spent. Errand pays Reppo from its own credits, so neither costs you anything.",
   },
   {
     name: "Dolphin",
@@ -81,10 +81,10 @@ const FAQ = [
   ["Can I use it from Telegram?", "Yes, if the site's owner runs the Telegram bot. Message it an errand; it shows the plan, sends the Kite approval link and asks questions with buttons."],
   ["Can I use it from my AI assistant?", "Yes. Errand ships an MCP server, so any app that supports MCP (desktop AI assistants, ChatGPT desktop, Cursor) can run errands. Plans and checks still run on SERV, and live payments still need your passkey."],
   ["Can other agents use Errand's guard?", "Yes. Errand Guard is a paid x402 service on the Kite chain: any Kite Passport agent pays $0.01 to ask whether a payment should happen, and gets approve, ask or block with a reason."],
-  ["Is my data shared with the evaluators?", "Errand masks phone numbers and removes emails before anything goes to Reppo, and never sends wallet details. Tick \"keep this errand private\" and the run isn't sent to Reppo's public network at all; second opinions then see only the choice, not your task. Reppo's private data nets come next."],
+  ["Is my data shared with the evaluators?", "Errand masks phone numbers and removes emails before anything goes to Reppo, and never sends wallet details. Tick \"keep this errand private\" and the run isn't sent to Reppo for grading at all; second opinions then see only the choice, not your task."],
   ["What if a seller's page tries to trick the agent?", "Paid responses are untrusted. SERV PromptGuard reads them and pulls out anything that asks the agent to buy or pay. Each of those goes to the guard, and rule R1 blocks it. Try the guard test page to see it."],
   ["Who approves the spending?", "You do, once per errand, in Kite Passport with your passkey (for repeating errands: once, when you set up your Kite allowance, and once for the plan). Errand cannot raise its own limits."],
-  ["Why do grades take 15 minutes?", "Reppo's evaluators judge the trace after a settlement window. The receipt updates when the verdict is in."],
+  ["How long does a Reppo grade take?", "Usually 30 to 90 seconds. Reppo's evaluator panel scores the run from 0 to 100 and routes it ship, review or block; the receipt updates when the result is in."],
 ];
 
 export default function Home() {

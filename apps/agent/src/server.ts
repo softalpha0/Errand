@@ -45,7 +45,7 @@ export function createApp() {
       serv: servConfigured() ? (env.serv.guardGraphId ? "graph" : "shadow-agent") : "not configured",
       guardVersion: env.serv.guardVersion,
       kpass: env.mode === "live" ? await kpassVersion() : null,
-      reppo: reppoConfigured() ? (reppoPaused() ? "paused: out of credits" : env.reppo.sandbox ? "sandbox" : "live") : "not configured",
+      reppo: reppoConfigured() ? (reppoPaused() ? "paused: out of credits" : "live") : "not configured",
     }),
   );
 

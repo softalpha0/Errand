@@ -154,19 +154,6 @@ function fixture(endpointId: string, q: string, url: string, reqBody: unknown): 
         status: "success",
       };
     }
-    case "reppo.lite":
-      return {
-        _demo: DEMO_NOTE,
-        evalId: `demo-eval-${Date.now().toString(36)}`,
-        status: "SETTLED",
-        result: { score: 81, decision: "accept", confidence: 0.78, verdicts: [{ criterion: "Fit", verdict: "accept", critique: "Matches the task and constraints; price is in the normal range." }] },
-        peerAssessmentCount: 3,
-        peerAssessments: [
-          { agentName: "demo-evaluator-1", modelName: "demo", score: 84, decision: "accept", critique: "Fits the task and the limits the user set." },
-          { agentName: "demo-evaluator-2", modelName: "demo", score: 79, decision: "accept", critique: "Price is in the normal range for this kind of item." },
-          { agentName: "demo-evaluator-3", modelName: "demo", score: 80, decision: "accept", critique: "No clearly better option in the facts given." },
-        ],
-      };
     default:
       return { _demo: DEMO_NOTE };
   }
@@ -263,7 +250,7 @@ export function scriptedPlan(task: string, budgetUsd: number): Plan {
             { key: "packageValue", value: "5" },
             { key: "secondOpinion", value: "yes" },
           ],
-          maxUsd: Number((Math.min(6, budgetUsd - 0.3) + BUY_OVERHEAD_USD + 0.22).toFixed(3)),
+          maxUsd: Number((Math.min(6, budgetUsd - 0.3) + BUY_OVERHEAD_USD + SECOND_OPINION_USD).toFixed(3)),
           condition: "only if the cheapest 7-day plan found is under $8",
         }),
       ],
@@ -284,7 +271,7 @@ export function scriptedPlan(task: string, budgetUsd: number): Plan {
           { key: "packageValue", value: String(amount) },
           { key: "secondOpinion", value: "yes" },
         ],
-        maxUsd: Number((amount + BUY_OVERHEAD_USD + 0.22).toFixed(3)),
+        maxUsd: Number((amount + BUY_OVERHEAD_USD + SECOND_OPINION_USD).toFixed(3)),
       }),
     ];
     if (email) steps.push(step({ id: "s2", type: "email.send", purpose: "Email the details", inputs: [{ key: "to", value: email }, { key: "subject", value: "Gift card bought" }], maxUsd: 0.02 }));
@@ -300,7 +287,7 @@ export function scriptedPlan(task: string, budgetUsd: number): Plan {
       steps: [
         step({ id: "s1", type: "exa.answer", purpose: "Get a cited answer", inputs: [{ key: "query", value: task.slice(0, 200) }], maxUsd: 0.01 }),
         step({ id: "s2", type: "reddit.search", purpose: "Check real experiences on Reddit", inputs: [{ key: "query", value: task.slice(0, 120) }], maxUsd: 0.02 }),
-        step({ id: "s3", type: "reppo.opinion", purpose: "Independent second opinion from Reppo", inputs: [{ key: "question", value: task.slice(0, 300) }], maxUsd: 0.22 }),
+        step({ id: "s3", type: "reppo.opinion", purpose: "Independent second opinion from Reppo", inputs: [{ key: "question", value: task.slice(0, 300) }], maxUsd: SECOND_OPINION_USD }),
       ],
     };
   }

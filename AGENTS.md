@@ -35,7 +35,7 @@ A user on the live site runs one real errand that pays at least two real sellers
 9. Demo mode that simulates payments and says so everywhere.
 
 10. Scope: valid for (session TTL), planner-extracted constraints, R12 ask-above.
-11. Reppo second opinion on judgement calls (lite evaluation, paid through Kite) and `reppo.opinion` errands; receipts list evaluators.
+11. Reppo second opinion on judgement calls (Reppo Eval API, taskType action, route ship/review/block, Errand's own credits) and `reppo.opinion` errands; receipts show score, route and reasoning.
 12. Errand Guard (kite-service/errand-guard): Kite's x402 template wrapping `/check`, manifest ready to PR to gokite-ai/kite-x402-services.
 13. MCP server (apps/mcp). Dolphin writes email wording only.
 14. Each person's own Kite Passport (`/connect`, one login folder each). Standing errands on the Kite allowance (`/repeat`). Amazon through `kpass shop:*` with an order summary the person confirms and rule R13. Private errands. Telegram bot. Kite agent directory steps (docs/kite-directory.md).
@@ -79,7 +79,8 @@ Feel: calm, precise, trustworthy, like a bank statement that explains itself. Wa
 - [ ] HUMAN: data collection ON in console.openserv.ai/settings/organization (screenshot).
 - [ ] HUMAN: Dolphin API key (app.dphn.ai) → DOLPHIN_API_KEY (optional).
 - [ ] Deploy Errand Guard with KITE_NETWORK=testnet; `kpass sandbox on` + faucet; pay once; then mainnet; PR to gokite-ai/kite-x402-services.
-- [ ] One real Reppo lite second opinion through Kite (expect $0.22 routed to Base).
+- [x] 10 Nov: Reppo rebuilt on its new Eval API (old eval-requests and x402 lite endpoints return 404). Second opinions and grading now use REPPO_API_KEY credits; 8 tests against a mock.
+- [ ] HUMAN: `pnpm spike:reppo` once with the real key; confirm the trace shape in evidence/raw/reppo-sample-verdict.json.
 - [x] 5 Nov: `pnpm spike:kite` live: session approved with passkey, two real Bitrefill payments on Base (tx 0x60a8…ea4f). Findings in docs/kite-integration.md.
 - [ ] HUMAN: Reppo API key → `pnpm spike:reppo`.
 - [ ] HUMAN: create guard graph v1 from docs/serv-guard-graph.md → `SERV_GUARD_GRAPH_ID`.

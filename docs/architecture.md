@@ -113,17 +113,16 @@ Public guard service rules (`packages/core/src/external.ts`, behind `POST /check
 sequenceDiagram
   participant A as Errand agent
   participant G as SERV guard graph (Jev)
-  participant R as Reppo lite (independent evaluators)
+  participant R as Reppo Eval API (evaluator panel)
   participant K as Kite Passport
   A->>G: predictable checks (plan, price, recipient, constraints)
   G-->>A: approve
-  A->>K: pay $0.22 (x402, routed to Base)
-  K->>R: lite evaluation of the choice
-  R-->>A: accept / revise / reject + critiques
-  alt accept
+  A->>R: taskType "action": the proposed purchase (Errand's credits, free to the user)
+  R-->>A: score 0-100, route ship / review / block, reason (30-90 s)
+  alt ship
     A->>K: pay the purchase
-  else revise or reject
-    A->>A: ask the user, quoting the evaluators
+  else review or block
+    A->>A: ask the user, quoting Reppo's reasoning
   end
 ```
 

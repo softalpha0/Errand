@@ -70,10 +70,10 @@ export const env = {
     apiKey: str("REPPO_API_KEY"),
     baseUrl: str("REPPO_BASE_URL", "https://eval.reppo.xyz/api/v1"),
     enabled: bool("REPPO_ENABLED", true),
-    /** Sandbox: free, nothing saved, placeholder verdicts. Turn off for real grades. */
-    sandbox: bool("REPPO_SANDBOX", true),
-    settlementMinutes: num("REPPO_SETTLEMENT_MINUTES", 10),
-    pollMs: num("REPPO_POLL_MS", 60_000),
+    /** Reppo removed its sandbox in Nov 2026; kept so old .env files still load. Always false. */
+    sandbox: false,
+    /** How often the grading worker checks Reppo (evaluations settle in 30-90 s). */
+    pollMs: num("REPPO_POLL_MS", 10_000),
   },
 
   dolphin: {

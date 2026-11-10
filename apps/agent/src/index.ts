@@ -16,7 +16,7 @@ async function main() {
       version: VERSION,
       mode: env.mode,
       serv: servConfigured() ? (env.serv.guardGraphId ? "graph" : "shadow-agent") : "scripted (demo only)",
-      reppo: reppoConfigured() ? (env.reppo.sandbox ? "sandbox" : "live") : "off",
+      reppo: reppoConfigured() ? "live" : "off",
     });
   });
   startReppoWorker();

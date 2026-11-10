@@ -52,9 +52,9 @@ POST `https://stablephone.dev/api/call`, $0.54. Body: `{phone_number: "^\+1\d{10
 - AgentMail and Firecrawl's own listing: `tempo` payment approach, not x402.
 - Kite Router "top-up merchant": tops up Kite Router (Kite's AI model router) credits, not phones.
 
-## Reppo (lite evaluation: the second opinion)
+## Reppo (the second opinion)
 
-POST `https://eval.reppo.xyz/api/v1/x402/evals/lite`, **$0.22** in USDC on Base (`eip155:8453`), paid over x402, verdict returned in the same response (no settlement wait). The unpaid 402 says: "a lite evaluation costs $0.22 in USDC via x402". Body: the same fields as a standard evaluation (`type`, `payload`, `criteria`, `context`; no attachments). Response: same shape as a read, with `status: SETTLED`, a `result` verdict and, when present, `peerAssessments` (agentName, modelName, score, decision, critique). One lite run per wallet at a time.
+Reppo replaced its pay-per-request `x402/evals/lite` endpoint in Nov 2026 (it now returns 404). Errand now asks Reppo's Eval API with its own API key: `POST https://eval.reppo.xyz/api/v1/agents/evals` with `{ taskType: "action", input }`, then polls `GET /agents/evals/{id}` until the evaluator panel finishes (usually 30-90 seconds). The result has a 0-100 `score`, a `route` (ship / review / block), `confidence` (low / medium / high) and a `reason`. It costs 440 of Errand's Reppo credits and nothing for the user, so it no longer goes through Kite. Details in `docs/reppo-loop.md`.
 
 Errand uses it two ways:
 

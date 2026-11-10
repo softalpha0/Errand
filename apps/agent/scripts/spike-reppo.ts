@@ -1,17 +1,17 @@
 /**
- * Day-one Reppo spike.
+ * Reppo spike (Reppo Eval API, Nov 2026).
  *
- *   pnpm spike:reppo            (sandbox: free, placeholder verdict)
- *   REPPO_SANDBOX=false pnpm spike:reppo   (real evaluation: 440 credits, settles in 10+ minutes)
+ *   pnpm spike:reppo   (real evaluation: 440 credits from your Reppo account, usually 30-90 seconds)
  *
- * Submits a hand-written errand trace, tries a second submit to confirm the
- * 409 "one in flight" rule, then polls until the verdict settles.
+ * Grades a hand-written errand trace as taskType "action", polls until the panel
+ * finishes, saves the raw answer to evidence/raw/reppo-sample-verdict.json and
+ * prints what Errand reads from it.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Errand } from "@errand/core";
 import { env } from "../src/env";
-import { read, submit } from "../src/reppo";
+import { buildTraceInput, createEval, parseEval, readEval } from "../src/reppo";
 
 const out = path.resolve(import.meta.dirname, "../../../evidence/raw");
 mkdirSync(out, { recursive: true });
@@ -62,27 +62,26 @@ const sample: Errand = {
 
 async function main() {
   if (!env.reppo.apiKey) throw new Error("Set REPPO_API_KEY in .env first.");
-  console.log(`Submitting (${env.reppo.sandbox ? "sandbox" : "REAL, uses credits"})...`);
-  const first = await submit(sample);
-  console.log("First submit:", first);
-  if (!first.ok) return;
-  const second = await submit(sample);
-  console.log("Second submit while pending (expect 409 unless sandbox settles instantly):", second);
-
-  for (let i = 0; i < 40; i++) {
-    const body = await read(first.evalId);
+  console.log("Submitting a real evaluation (440 credits)...");
+  const created = await createEval("action", buildTraceInput(sample));
+  console.log("Submit:", created);
+  if (!created.ok) return;
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 5_000));
+    const body = await readEval(created.id);
     const status = String(body?.status ?? "?");
     console.log(new Date().toISOString(), status);
-    if (body && status !== "PENDING") {
+    if (body && (status === "COMPLETED" || status === "FAILED")) {
       writeFileSync(path.join(out, "reppo-sample-verdict.json"), JSON.stringify(body, null, 2));
       console.log("Saved evidence/raw/reppo-sample-verdict.json");
+      console.log("What Errand reads:", JSON.stringify(parseEval(body), null, 2));
       return;
     }
-    await new Promise((r) => setTimeout(r, 60_000));
   }
+  console.log("Still not finished after 5 minutes. Check it later with its id:", created.id);
 }
 
 main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
+  console.error(err);
   process.exit(1);
 });

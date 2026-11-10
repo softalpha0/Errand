@@ -38,9 +38,10 @@ function ctx(askAboveUsd: number | null = null): GuardContext {
   };
 }
 
-const reppo: PaymentCandidate = {
+// Reppo's old pay-per-request x402 endpoint (removed by Reppo in Nov 2026).
+const oldReppo: PaymentCandidate = {
   stepId: "s1",
-  endpointId: "reppo.lite",
+  endpointId: null,
   url: "https://eval.reppo.xyz/api/v1/x402/evals/lite",
   method: "POST",
   body: { type: "plan", payload: "x" },
@@ -48,33 +49,35 @@ const reppo: PaymentCandidate = {
   origin: "plan",
 };
 
+const research: PaymentCandidate = {
+  stepId: "s2",
+  endpointId: "exa.answer",
+  url: "https://stableenrich.dev/api/exa/answer",
+  method: "POST",
+  body: { query: "gift" },
+  priceUsd: 0.01,
+  origin: "plan",
+};
+
 describe("second opinion", () => {
-  it("lets a buy step that asked for a second opinion pay Reppo", () => {
-    expect(checkRules(reppo, ctx()).outcome).toBe("approve");
+  it("is free to the user: Errand pays Reppo from its own credits", () => {
+    expect(fixedStepCost("reppo.opinion")).toBe(0);
+    const exact = structuredClone(plan);
+    exact.steps[0]!.maxUsd = 10.007; // product + Bitrefill fees, nothing for the opinion
+    expect(checkPlan(exact, { budgetUsd: 12, maxPerPaymentUsd: 10.5, defaultCountry: "NG" }).issues).toEqual([]);
   });
 
-  it("blocks a Reppo payment from a step that did not ask for one", () => {
-    expect(checkRules({ ...reppo, stepId: "s2" }, ctx()).rule).toBe("R3.in_plan");
-  });
-
-  it("budgets the second opinion into the buy step", () => {
-    expect(checkPlan(plan, { budgetUsd: 12, maxPerPaymentUsd: 10.5, defaultCountry: "NG" }).issues).toEqual([]);
-    const tight = structuredClone(plan);
-    tight.steps[0]!.maxUsd = 10.01;
-    expect(checkPlan(tight, { budgetUsd: 12, maxPerPaymentUsd: 10.5, defaultCountry: "NG" }).issues.join(" ")).toMatch(/second opinion/);
-  });
-
-  it("prices a standalone opinion step", () => {
-    expect(fixedStepCost("reppo.opinion")).toBe(0.22);
+  it("never pays Reppo through Kite: the old x402 endpoint is not a payable seller", () => {
+    expect(checkRules(oldReppo, ctx()).outcome).toBe("block");
   });
 });
 
 describe("R12 ask above", () => {
   it("asks before a payment above the user's threshold", () => {
-    expect(checkRules(reppo, ctx(0.1))).toMatchObject({ outcome: "ask", rule: "R12.ask_above" });
+    expect(checkRules(research, ctx(0.005))).toMatchObject({ outcome: "ask", rule: "R12.ask_above" });
   });
   it("does nothing without a threshold", () => {
-    expect(checkRules(reppo, ctx(null)).outcome).toBe("approve");
+    expect(checkRules(research, ctx(null)).outcome).toBe("approve");
   });
 });
 

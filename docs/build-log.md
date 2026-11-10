@@ -69,3 +69,7 @@ After reading past winners (AgentGuard, x402-Guardrails, IntentGuard, Agent Spen
 - **Errand Guard on kite-x402-hono.** Rebuilt the guard on the Kite track's priority repo kite-x402-hono (0.3.3), the Bun/Hono wrapper, since Errand's agent is Hono too. Same env variables and `/v1/check` contract, so the Render service redeploys in place. Verified locally: `GET /`, `/healthz`, `/.well-known/x402` (USDC.e, 10000 atomic units = $0.01) and an unpaid `POST /v1/check` → 402 with a mainnet `PAYMENT-REQUIRED` challenge.
 - **Kite catalog PR** [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8) opened; paid test call blocked by Kite's allowlist (`host_not_in_executable_catalog`).
 - **Landing page:** the hero now shows the real mainnet receipt (e_My979K17) instead of a simulated example.
+
+## 10 Nov
+
+- **Reppo on its new Eval API.** Reppo replaced its API this month: `eval-requests/submit`, `x402/evals/lite` and the `Sandbox` header now return 404. Errand now sends both second opinions and run grades as `taskType: "action"` to `POST /agents/evals` and polls for the panel's result (score 0-100, route ship / review / block, confidence, reason, rubric, each evaluator's reasoning), usually in 30-90 seconds. Second opinions are paid from Errand's own Reppo credits instead of $0.22 through Kite, so they're free to users. Receipts show the route and reasoning; the grading worker polls every 10 seconds. 8 new tests against a mock Reppo.

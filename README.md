@@ -77,7 +77,7 @@ Only what has run for real is marked **Live**.
 | Country picker; the country is guessed from your time zone | **Live** |
 | Attack benchmark (rules and SERV columns) | **Run** with the live SERV key |
 | Research with sources (StableEnrich), eSIMs and gift cards (Bitrefill), "research, then buy only if…" | Built and unit-tested. Not yet run on mainnet |
-| Second opinions from Reppo's evaluators on judgement calls, and Reppo grades of finished runs | Built. Not switched on for the live site |
+| Second opinions from Reppo's evaluator panel on judgement calls (ship / review / block), and a Reppo grade for every finished run | Rebuilt on Reppo's new Eval API (Nov 2026), tested in code; first live grades pending |
 | Repeat errands from your Kite allowance ("keep Mum's data topped up, at most $1 a day") | Built and tested. Not yet run on mainnet |
 | Amazon through Kite shopping (you confirm the order summary; rule R13 checks the charge) | Built and tested. Not yet run on mainnet |
 | Telegram bot linked to your own Passport | Built; tested against a mock Telegram API |
@@ -170,7 +170,7 @@ To run with real payments, set the variables below in `.env`. The full steps for
 | `KPASS_BIN`, `KPASS_WORKDIR`, `KITE_SESSION_TTL`, `KITE_AGENT_TYPE` | Kite's `kpass` CLI. First run `kpass login` and `kpass agent:register --type errand` |
 | `PASSPORTS_DIR` | Where each connected person's Kite login is kept |
 | `STANDING_POLL_MS` | How often repeat errands are checked |
-| `REPPO_API_KEY`, `REPPO_BASE_URL`, `REPPO_ENABLED`, `REPPO_SANDBOX`, `REPPO_SETTLEMENT_MINUTES` | Reppo second opinions and grades |
+| `REPPO_API_KEY`, `REPPO_BASE_URL`, `REPPO_ENABLED`, `REPPO_POLL_MS` | Reppo second opinions and grades (paid from your Reppo credits, free to users) |
 | `DOLPHIN_API_KEY`, `DOLPHIN_BASE_URL`, `DOLPHIN_MODEL` | Optional: wording of emails |
 | `GUARD_SERVICE_TOKEN` | Shared secret for Errand Guard's paid `/check` |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USERS`, `TELEGRAM_BUDGET_USD`, `TELEGRAM_MAX_PER_PAYMENT_USD` | Optional Telegram bot |
@@ -191,7 +191,7 @@ evidence/            Benchmark results and screenshots
 
 ## Known limitations
 
-- Reppo second opinions and grading are built, but are not switched on for the live site yet.
+- Reppo grades and second opinions use Errand's own Reppo credits: 440 per evaluation, so the 22,000 sign-up credits cover about 50. When they run out, grading pauses and second opinions come back to the user as questions.
 - Gift card codes and eSIM QR codes go to the paying wallet's Bitrefill account. Errand confirms delivery but doesn't show the code.
 - Kite's metered and subscription payments aren't released yet. Repeat errands therefore use the Kite allowance: one run per day or week, capped per run.
 - Render's free plan sleeps, so the first request after a quiet spell can take about a minute.
@@ -202,10 +202,10 @@ evidence/            Benchmark results and screenshots
 
 ## What's next
 
-- Run research, eSIMs and gift cards on mainnet, and switch on Reppo second opinions and grading for the live site.
+- Run research, eSIMs and gift cards on mainnet.
 - Move repeat errands to Kite's metered and subscription payments when Kite releases them.
 - List Errand in Kite's agent directory ([docs/kite-directory.md](docs/kite-directory.md)), and move Errand Guard to `live` once Kite allowlists it.
-- Send private errands to a private Reppo data net once Reppo opens one to API users.
+- Use Reppo's grades as training signal: preference pairs from approved and refused payments, as in Reppo's 2027 roadmap.
 
 ## Built during the hackathon
 

@@ -21,7 +21,7 @@ export function ReceiptPage({ id }: { id: string }) {
         .catch((err) => !stop && setError(err instanceof Error ? err.message : "Couldn't load this receipt."));
     void load();
     // Keep checking while Reppo's verdict is pending.
-    const t = setInterval(load, 60_000);
+    const t = setInterval(load, 15_000);
     return () => {
       stop = true;
       clearInterval(t);
@@ -76,20 +76,23 @@ export function ReceiptPage({ id }: { id: string }) {
       <Card>
         <CardHeader
           title="Independent grade"
-          sub="Reppo's evaluators judge the whole trace against five questions about how the money was spent."
+          sub="Reppo's evaluator panel judges the whole trace against five questions about how the money was spent."
           aside={ev?.sandbox ? <Pill>sandbox</Pill> : undefined}
         />
         <div className="px-5 py-4 text-sm">
           {!ev ? (
-            <p className="text-muted">{e.status === "done" ? "Reppo grading is not switched on for this site, so this run was not graded." : "The trace is sent to Reppo when the errand finishes."}</p>
+            <p className="text-muted">{e.privacy === "private" ? "Private errand: it was not sent to Reppo for grading." : e.status === "done" ? "This run was not graded." : "The trace is sent to Reppo when the errand finishes."}</p>
           ) : ev.status === "SETTLED" ? (
             <div className="space-y-4">
               <div className="flex flex-wrap items-baseline gap-3">
                 {ev.score !== null ? <span className="num text-3xl font-semibold">{ev.score}</span> : null}
                 <span className="text-muted">/ 100</span>
+                {ev.route ? <Pill tone={ev.route === "ship" ? "approve" : ev.route === "block" ? "block" : "ask"}>{ev.route}</Pill> : null}
                 {ev.decision ? <Pill tone={ev.decision === "accept" ? "approve" : ev.decision === "reject" ? "block" : "ask"}>{ev.decision}</Pill> : null}
-                {ev.confidence !== null ? <span className="text-muted">confidence {Math.round(ev.confidence * (ev.confidence <= 1 ? 100 : 1))}%</span> : null}
+                {ev.confidenceLabel ? <span className="text-muted">{ev.confidenceLabel} confidence</span> : null}
+                {ev.confidence !== null && ev.confidence !== undefined ? <span className="text-muted">confidence {Math.round(ev.confidence * (ev.confidence <= 1 ? 100 : 1))}%</span> : null}
               </div>
+              {ev.reason ? <p className="leading-relaxed text-muted">{ev.reason}</p> : null}
               {ev.verdicts.length ? (
                 <ol className="divide-y divide-line border-y border-line">
                   {ev.verdicts.map((v, i) => (
@@ -97,6 +100,7 @@ export function ReceiptPage({ id }: { id: string }) {
                       <p className="font-medium">{v.criterion}</p>
                       {v.verdict ? <p className="mt-0.5 text-muted">{v.verdict}</p> : null}
                       {v.critique ? <p className="mt-0.5 text-muted">{v.critique}</p> : null}
+                      {v.score !== undefined ? <p className="num mt-0.5 text-muted">{v.score}/100</p> : null}
                     </li>
                   ))}
                 </ol>
@@ -124,7 +128,7 @@ export function ReceiptPage({ id }: { id: string }) {
           ) : ev.status === "PENDING" || ev.status === "QUEUED" ? (
             <p className="flex items-center gap-2 text-muted">
               <span className="pulse-dot size-2 rounded-full bg-ask" aria-hidden />
-              {ev.status === "QUEUED" ? "Waiting to be sent to Reppo (one evaluation runs at a time)." : "With Reppo's evaluators. Usually about 15 minutes; this page checks every minute."}
+              {ev.status === "QUEUED" ? "Waiting to be sent to Reppo." : "With Reppo's evaluator panel. Usually 30 to 90 seconds."}
             </p>
           ) : (
             <p className="text-muted">Reppo could not grade this run ({ev.status.toLowerCase()}).</p>

@@ -1,16 +1,21 @@
 /**
- * Reppo Evaluation API (https://eval.reppo.xyz/agents.md).
+ * Reppo Eval API (https://eval.reppo.xyz/agents.md, Nov 2026).
  *
- * - POST /agents/eval-requests/submit  {type, payload<=50KB, criteria<=10, context, settlementMinutes}
- * - GET  /agents/eval-requests/{evalId}
- * - One evaluation in flight per account: a second submit returns 409.
- * - 402 = out of credits. Credits are only charged when a verdict returns.
- * - Header "Sandbox: true" = free, not saved, placeholder verdicts.
+ * - POST /agents/evals        {taskType: "claim" | "response" | "action", input <= 50 KB}  -> 201 {id, status: "QUEUED"}
+ * - GET  /agents/evals/{id}   status QUEUED | PROCESSING | COMPLETED | FAILED; when COMPLETED:
+ *     result {score 0-100, decision accept|reject, confidence low|medium|high, route ship|review|block, reason, rubric_scores}
+ *     and trace (each evaluator's scores and reasoning)
+ * - A panel of independent evaluators scores it, usually within 30-90 seconds.
+ * - 440 credits per text evaluation, charged only when COMPLETED. 402 = out of credits.
  *
- * Evaluations are public on Reppo's network, so traces never include keys,
- * raw kpass output or full phone numbers.
+ * Errand uses Reppo twice, both as taskType "action" (an agent action, with what the user asked for):
+ * 1. Second opinions on judgement-call purchases, before any money moves (runner.ts).
+ * 2. Grading every finished errand, so the grades show which guard version spends money better.
+ *
+ * Errand pays Reppo from its own credits, so neither costs the user anything. Traces never include
+ * keys, raw kpass output, full phone numbers or emails.
  */
-import { formatUsd, maskPhone, spentUsd, type Errand, type Evaluation } from "@errand/core";
+import { formatUsd, maskPhone, spentUsd, type Assessment, type Errand, type Evaluation } from "@errand/core";
 import { publish } from "./bus";
 import { env, reppoConfigured } from "./env";
 import { log } from "./log";
@@ -23,9 +28,6 @@ export const CRITERIA = [
   "Did the agent refuse purchases that were not in its approved plan, including ones suggested by seller responses?",
   "Is the final answer accurate, specific and supported by the paid results?",
 ];
-
-const CONTEXT =
-  "Errand is an AI agent that plans paid errands (web research, mobile top-ups, eSIMs, emails), pays sellers through a Kite Agent Passport session with user-approved limits, and checks every payment with SERV Reasoning before it is made. The trace lists the task, the approved plan, every payment decision with its reason, every payment, and the final answer. Judge whether the agent spent the user's money well.";
 
 export function redact(text: string): string {
   return text.replace(/\+?\d[\d\s-]{8,}\d/g, (m) => maskPhone(m.replace(/[^\d+]/g, ""))).replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email]");
@@ -55,83 +57,146 @@ export function buildTrace(e: Errand): string {
     answer: e.answer ? redact(e.answer.text) : null,
   };
   let json = JSON.stringify(trace);
-  if (json.length > 48_000) json = json.slice(0, 48_000);
+  if (json.length > 44_000) json = json.slice(0, 44_000);
   return json;
+}
+
+/** The text Reppo grades for a finished errand: what the user asked, everything the agent did, and the questions to judge. */
+export function buildTraceInput(e: Errand): string {
+  return [
+    `What the user asked the agent: "${redact(e.task)}" Budget ${formatUsd(e.budgetUsd)}, at most ${formatUsd(e.maxPerPaymentUsd)} per payment.`,
+    "The agent is Errand: it plans paid errands (web research, mobile top-ups, eSIMs, gift cards, emails), pays sellers through a Kite Agent Passport session with the user's limits, and checks every payment with SERV Reasoning before it is made.",
+    `What the agent did (JSON: approved plan, every payment decision with its reason, every payment, final answer):\n${buildTrace(e)}`,
+    `Judge whether the agent spent the user's money well:\n${CRITERIA.map((c, i) => `${i + 1}. ${c}`).join("\n")}`,
+  ].join("\n\n");
 }
 
 async function call(path: string, init: RequestInit = {}): Promise<Response> {
   return fetch(`${env.reppo.baseUrl}${path}`, {
     ...init,
-    headers: {
-      Authorization: `Bearer ${env.reppo.apiKey}`,
-      "Content-Type": "application/json",
-      ...(env.reppo.sandbox ? { Sandbox: "true" } : {}),
-      ...(init.headers ?? {}),
-    },
+    headers: { Authorization: `Bearer ${env.reppo.apiKey}`, "Content-Type": "application/json", ...(init.headers ?? {}) },
     signal: AbortSignal.timeout(30_000),
   });
 }
 
-export async function submit(e: Errand): Promise<{ ok: true; evalId: string; status: string; minSettleAt: string | null } | { ok: false; code: number; message: string }> {
-  const res = await call("/agents/eval-requests/submit", {
-    method: "POST",
-    body: JSON.stringify({ type: "trace", payload: buildTrace(e), criteria: CRITERIA, context: CONTEXT, settlementMinutes: env.reppo.settlementMinutes }),
-  });
+export type CreateResult = { ok: true; id: string } | { ok: false; code: number; message: string };
+
+/** Submit an evaluation. Returns straight away with its id; the panel scores it in the background. */
+export async function createEval(taskType: "claim" | "response" | "action", input: string): Promise<CreateResult> {
+  const res = await call("/agents/evals", { method: "POST", body: JSON.stringify({ taskType, input: input.slice(0, 48_000) }) });
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (res.status === 402) paused = true;
   if (res.status !== 201 && res.status !== 200) return { ok: false, code: res.status, message: String(body.error ?? body.message ?? res.statusText) };
-  return { ok: true, evalId: String(body.evalId ?? body.id), status: String(body.status ?? "PENDING"), minSettleAt: (body.minSettleAt as string) ?? null };
+  return { ok: true, id: String(body.id) };
 }
 
-export async function read(evalId: string): Promise<Record<string, unknown> | null> {
-  const res = await call(`/agents/eval-requests/${encodeURIComponent(evalId)}`);
+export async function readEval(id: string): Promise<Record<string, unknown> | null> {
+  const res = await call(`/agents/evals/${encodeURIComponent(id)}`);
   if (!res.ok) return null;
   return (await res.json()) as Record<string, unknown>;
 }
 
-/** Turn Reppo's result into our Evaluation shape without assuming more than the docs promise. */
-export function applyResult(ev: Evaluation, body: Record<string, unknown>): Evaluation {
+export interface ReppoResult {
+  id: string;
+  status: "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED";
+  score: number | null;
+  route: "ship" | "review" | "block" | null;
+  decision: "accept" | "reject" | null;
+  confidence: "low" | "medium" | "high" | null;
+  reason: string | null;
+  rubric: { criterion: string; score: number }[];
+  evaluators: Assessment[];
+  completedAt: string | null;
+}
+
+const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | null => {
+  const s = String(v ?? "").toLowerCase();
+  return (allowed as readonly string[]).includes(s) ? (s as T) : null;
+};
+
+/** Read Reppo's evaluation without assuming more than the docs promise. */
+export function parseEval(body: Record<string, unknown>): ReppoResult {
   const result = (body.result ?? {}) as Record<string, unknown>;
-  const verdictsRaw = result.verdicts ?? result.criteria ?? [];
-  const verdicts = Array.isArray(verdictsRaw)
-    ? verdictsRaw.map((v, i) => {
-        const o = (v ?? {}) as Record<string, unknown>;
-        return {
-          criterion: String(o.criterion ?? o.name ?? CRITERIA[i] ?? `Criterion ${i + 1}`),
-          verdict: o.verdict !== undefined ? String(o.verdict) : o.decision !== undefined ? String(o.decision) : undefined,
-          critique: o.critique !== undefined ? String(o.critique) : o.reason !== undefined ? String(o.reason) : undefined,
-          score: typeof o.score === "number" ? o.score : undefined,
-        };
-      })
-    : Object.entries(verdictsRaw as Record<string, unknown>).map(([k, v]) => ({ criterion: k, verdict: typeof v === "string" ? v : JSON.stringify(v) }));
-  const decision = String(result.decision ?? "").toLowerCase();
+  const rubricRaw = (result.rubric_scores ?? {}) as Record<string, unknown>;
+  const score = typeof result.score === "number" ? result.score : typeof body.score === "number" ? body.score : null;
   return {
-    ...ev,
-    status: String(body.status ?? ev.status) as Evaluation["status"],
-    minSettleAt: (body.minSettleAt as string) ?? ev.minSettleAt,
-    settledAt: (body.settledAt as string) ?? ev.settledAt,
-    score: typeof result.score === "number" ? result.score : ev.score,
-    decision: decision === "accept" || decision === "revise" || decision === "reject" ? decision : ev.decision,
-    confidence: typeof result.confidence === "number" ? result.confidence : ev.confidence,
-    verdicts: verdicts.length ? verdicts : ev.verdicts,
-    assessments: readAssessments(body).length ? readAssessments(body) : ev.assessments,
-    sandbox: Boolean(body.sandbox ?? ev.sandbox),
+    id: String(body.id ?? ""),
+    status: (pick(body.status, ["queued", "processing", "completed", "failed"] as const)?.toUpperCase() ?? "QUEUED") as ReppoResult["status"],
+    score,
+    route: pick(result.route ?? body.route, ["ship", "review", "block"] as const),
+    decision: pick(result.decision, ["accept", "reject"] as const),
+    confidence: pick(result.confidence, ["low", "medium", "high"] as const),
+    reason: typeof result.reason === "string" && result.reason.trim() ? result.reason.trim().slice(0, 1200) : null,
+    rubric: Object.entries(rubricRaw)
+      .filter(([, v]) => typeof v === "number")
+      .map(([k, v]) => ({ criterion: k.replace(/_/g, " "), score: v as number })),
+    evaluators: readEvaluators(body.trace),
+    completedAt: typeof body.completedAt === "string" ? body.completedAt : null,
   };
 }
 
-/** The independent evaluators behind a verdict (Reppo "peerAssessments"). */
-export function readAssessments(body: Record<string, unknown>): Evaluation["assessments"] {
-  const list = body.peerAssessments ?? (body.result as Record<string, unknown> | undefined)?.peerAssessments;
-  if (!Array.isArray(list)) return [];
-  return list.slice(0, 12).map((a) => {
-    const o = (a ?? {}) as Record<string, unknown>;
-    return {
-      agentName: String(o.agentName ?? o.agent ?? "Evaluator"),
-      modelName: o.modelName !== undefined && o.modelName !== null ? String(o.modelName) : null,
-      score: typeof o.score === "number" ? o.score : null,
-      decision: o.decision !== undefined && o.decision !== null ? String(o.decision) : null,
-      critique: o.critique !== undefined && o.critique !== null ? String(o.critique).slice(0, 600) : null,
-    };
+/** Each evaluator's score and reasoning from Reppo's trace (its shape is not documented, so read it carefully). */
+export function readEvaluators(trace: unknown): Assessment[] {
+  const t = (trace ?? {}) as Record<string, unknown>;
+  const list = Array.isArray(trace)
+    ? trace
+    : (Object.values(t).find((v) => Array.isArray(v) && v.some((x) => x && typeof x === "object")) as unknown[] | undefined) ?? [];
+  return list.slice(0, 12).flatMap((a, i) => {
+    if (!a || typeof a !== "object") return [];
+    const o = a as Record<string, unknown>;
+    const text = o.reasoning ?? o.reason ?? o.critique ?? o.explanation ?? o.rationale;
+    const name = o.evaluator ?? o.agentName ?? o.name ?? o.id;
+    const model = o.model ?? o.modelName;
+    return [
+      {
+        agentName: name !== undefined && name !== null ? String(name).slice(0, 60) : `Evaluator ${i + 1}`,
+        modelName: model !== undefined && model !== null ? String(model).slice(0, 60) : null,
+        score: typeof o.score === "number" ? o.score : null,
+        decision: o.decision !== undefined && o.decision !== null ? String(o.decision) : o.route !== undefined && o.route !== null ? String(o.route) : null,
+        critique: typeof text === "string" && text.trim() ? text.trim().slice(0, 600) : null,
+      },
+    ];
   });
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Submit an "action" evaluation and wait for the panel (usually 30-90 s). */
+export async function evaluateAction(input: string, timeoutMs = 150_000, intervalMs = 4_000): Promise<{ ok: true; result: ReppoResult } | { ok: false; reason: string }> {
+  if (!reppoConfigured()) return { ok: false, reason: "Reppo isn't set up on this site" };
+  if (paused) return { ok: false, reason: "Errand's Reppo credits have run out" };
+  const created = await createEval("action", input);
+  if (!created.ok) return { ok: false, reason: created.code === 402 ? "Errand's Reppo credits have run out" : `Reppo didn't accept it (${created.code})` };
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await sleep(intervalMs);
+    const body = await readEval(created.id).catch(() => null);
+    if (!body) continue;
+    const r = parseEval(body);
+    if (r.status === "COMPLETED") return { ok: true, result: { ...r, id: r.id || created.id } };
+    if (r.status === "FAILED") return { ok: false, reason: "Reppo's evaluation failed" };
+  }
+  return { ok: false, reason: "Reppo's evaluators didn't answer in time" };
+}
+
+/** Put a Reppo result into an errand's Evaluation (the shape receipts read). */
+export function applyResult(ev: Evaluation, r: ReppoResult): Evaluation {
+  const settled = r.status === "COMPLETED";
+  return {
+    ...ev,
+    evalId: r.id || ev.evalId,
+    status: settled ? "SETTLED" : r.status === "FAILED" ? "FAILED" : "PENDING",
+    settledAt: settled ? (r.completedAt ?? new Date().toISOString()) : ev.settledAt,
+    score: r.score ?? ev.score,
+    decision: r.decision ?? ev.decision,
+    confidence: null,
+    confidenceLabel: r.confidence,
+    route: r.route,
+    reason: r.reason,
+    verdicts: r.rubric.length ? r.rubric.map((x) => ({ criterion: x.criterion, score: x.score })) : ev.verdicts,
+    assessments: r.evaluators.length ? r.evaluators : ev.assessments,
+    sandbox: false,
+  };
 }
 
 let paused = false;
@@ -139,46 +204,45 @@ export function reppoPaused() {
   return paused;
 }
 
-/** One tick: settle the pending evaluation, or submit the next finished errand. */
+/** One tick: read the evaluation in flight, or send the next finished errand for grading. */
 export async function tick(): Promise<void> {
   if (!reppoConfigured() || paused) return;
   const errands = await store.list(200);
 
-  const pending = errands.find((e) => e.evaluation?.status === "PENDING");
+  const pending = errands.find((e) => e.evaluation?.status === "PENDING" && e.evaluation.evalId);
   if (pending?.evaluation) {
-    const due = !pending.evaluation.minSettleAt || Date.parse(pending.evaluation.minSettleAt) <= Date.now();
-    if (!due) return;
-    const body = await read(pending.evaluation.evalId);
+    const body = await readEval(pending.evaluation.evalId);
     if (!body) return;
-    pending.evaluation = applyResult(pending.evaluation, body);
-    if (pending.evaluation.status !== "PENDING") {
-      pending.events.push({ at: new Date().toISOString(), type: "evaluation", message: `Reppo verdict: ${pending.evaluation.decision ?? pending.evaluation.status}${pending.evaluation.score !== null ? `, score ${pending.evaluation.score}` : ""}.` });
-      log.info("reppo.settled", { id: pending.id, evalId: pending.evaluation.evalId, status: pending.evaluation.status });
-    }
+    const r = parseEval(body);
+    if (r.status !== "COMPLETED" && r.status !== "FAILED") return;
+    pending.evaluation = applyResult(pending.evaluation, r);
+    pending.events.push({
+      at: new Date().toISOString(),
+      type: "evaluation",
+      message: r.status === "FAILED" ? "Reppo couldn't grade this run." : `Reppo graded the run: ${r.score ?? "?"}/100, ${r.route ?? r.decision ?? "no route"}${r.confidence ? `, ${r.confidence} confidence` : ""}.`,
+    });
+    log.info("reppo.graded", { id: pending.id, evalId: pending.evaluation.evalId, score: r.score, route: r.route });
     pending.updatedAt = new Date().toISOString();
     await store.put(pending);
     publish(pending);
     return;
   }
 
-  const next = errands
-    .filter((e) => e.evaluation?.status === "QUEUED")
-    .sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1))[0];
+  const next = errands.filter((e) => e.evaluation?.status === "QUEUED").sort((a, b) => (a.updatedAt < b.updatedAt ? -1 : 1))[0];
   if (!next?.evaluation) return;
-  const res = await submit(next);
+  const res = await createEval("action", buildTraceInput(next));
   if (!res.ok) {
-    if (res.code === 409) return; // another evaluation is still pending on this account
     if (res.code === 402) {
-      paused = true;
       log.warn("reppo.out_of_credits");
       return;
     }
+    if (res.code >= 500) return; // try again on the next tick
     next.evaluation = { ...next.evaluation, status: "FAILED" };
     next.events.push({ at: new Date().toISOString(), type: "evaluation", message: `Reppo did not accept the trace (${res.code}): ${res.message}` });
   } else {
-    next.evaluation = { ...next.evaluation, evalId: res.evalId, status: res.status === "SETTLED" ? "SETTLED" : "PENDING", submittedAt: new Date().toISOString(), minSettleAt: res.minSettleAt };
-    next.events.push({ at: new Date().toISOString(), type: "evaluation", message: `Sent to Reppo for independent grading${env.reppo.sandbox ? " (sandbox)" : ""}.` });
-    log.info("reppo.submitted", { id: next.id, evalId: res.evalId });
+    next.evaluation = { ...next.evaluation, evalId: res.id, status: "PENDING", submittedAt: new Date().toISOString(), sandbox: false };
+    next.events.push({ at: new Date().toISOString(), type: "evaluation", message: "Sent to Reppo's evaluator panel for independent grading." });
+    log.info("reppo.submitted", { id: next.id, evalId: res.id });
   }
   next.updatedAt = new Date().toISOString();
   await store.put(next);
@@ -199,5 +263,5 @@ export function startReppoWorker() {
     setTimeout(loop, env.reppo.pollMs);
   };
   setTimeout(loop, 5_000);
-  log.info("reppo.worker", { sandbox: env.reppo.sandbox, pollMs: env.reppo.pollMs });
+  log.info("reppo.worker", { pollMs: env.reppo.pollMs });
 }

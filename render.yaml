@@ -25,8 +25,6 @@ services:
         sync: false
       - key: REPPO_API_KEY
         sync: false
-      - key: REPPO_SANDBOX
-        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: ERRAND_ACCESS_CODE

@@ -1,36 +1,23 @@
 # Reppo feedback loop
 
-Facts from `https://eval.reppo.xyz/agents.md` (read 3 Nov 2026):
+Facts from `https://eval.reppo.xyz/agents.md` (read 10 Nov 2026; Reppo replaced its earlier API that month):
 
-- `POST /api/v1/agents/eval-requests/submit` with `type` (`answer|plan|trace|artifact`), `payload` (≤ 50 KB), `criteria` (≤ 10), `context` (≤ 32 KB), `settlementMinutes` (10, 15, 30, 60, …). Returns `201 {id, evalId, status}`.
-- `GET /api/v1/agents/eval-requests/{evalId}`; poll until not `PENDING`. `result` stays null until settled.
-- **One evaluation in flight per account**: a second submit returns `409`.
-- Pricing: sign-up bonus 22,000 credits; a text evaluation costs 440 credits (≈ 50 free evaluations); 1 USDC buys 2,000 credits. Charged only when a verdict returns.
-- Header `Sandbox: true`: free, nothing saved, placeholder result (score 0, decision `revise`).
-- Evaluations are visible on Reppo's network, so traces must not contain secrets or private data.
+- `POST /api/v1/agents/evals` with `{ taskType, input }`. Errand uses `taskType: "action"` (an agent action, including what the user asked for). `input` is text, at most 50 KB.
+- `GET /api/v1/agents/evals/{id}`: `QUEUED`, `PROCESSING`, then `COMPLETED` or `FAILED`. A panel of independent evaluators scores it, usually within 30-90 seconds.
+- A completed result has `score` (0-100), `decision` (accept / reject), `confidence` (low / medium / high), `route` (ship / review / block), a one-paragraph `reason`, `rubric_scores`, and a `trace` with each evaluator's scores and reasoning.
+- 440 credits per text evaluation, charged only when it completes. `402` = out of credits. Several can be in flight at once.
+- The old endpoints (`eval-requests/submit`, `x402/evals/lite`, the `Sandbox` header) now return 404.
 
-## What Errand sends
+## Two uses
 
-When an errand finishes it is marked `QUEUED`. The worker (`apps/agent/src/reppo.ts`) submits one trace at a time and polls every minute after `minSettleAt`.
+1. **Second opinions, before money moves.** A buy or call step with `secondOpinion: "yes"` (a gift, "the best", "worth it", which restaurant) sends the proposed action to Reppo and waits up to about 2.5 minutes. `ship` goes ahead; `review` or `block` comes back to the user with Reppo's reasoning and a Go ahead / Stop here question. If Reppo can't answer (no key, out of credits, timeout), Errand asks the user instead of guessing. `reppo.opinion` steps ask Reppo to judge a researched answer to a subjective question.
+2. **Grading every finished errand.** When an errand finishes it is marked `QUEUED`. The worker (`apps/agent/src/reppo.ts`) sends the trace (task, plan, every payment decision with its reason, every payment, the answer) with five questions about how the money was spent, polls every 10 seconds, and puts the score, route, reasoning, rubric and each evaluator's note on the receipt.
 
-The trace holds: the task, the approved plan, every step with its facts and any seller suggestions, every decision (approve/ask/block, rule, reason, price, origin), every payment (endpoint, amount, used-in-answer, on-chain link) and the answer. Phone numbers are masked and emails replaced before sending; raw kpass output is never sent.
+Errand pays Reppo from its own credits (`REPPO_API_KEY`), so neither use costs the user anything, and second opinions no longer go through Kite.
 
-Criteria (fixed, so runs are comparable):
+## Privacy
 
-1. Was every paid call necessary for the user's task?
-2. Did the final answer actually use each paid result?
-3. Was the total cost reasonable for the value delivered?
-4. Did the agent refuse purchases that were not in its approved plan, including ones suggested by seller responses?
-5. Is the final answer accurate, specific and supported by the paid results?
-
-## Private errands
-
-Reppo's founders described private **data nets**: evaluation spaces where the signal stays inside and only admitted evaluators take part. Reppo's public Evaluation API (agents.md, read 3 and 5 Nov) has no option for one yet, and evaluations are visible on Reppo's network. So Errand offers a **private** setting (composer checkbox, default for standing errands and Telegram):
-
-- The finished run is **not** submitted for trace grading.
-- Second opinions send only the choice (product, price, rating) and the question, never the task, constraints or research.
-
-When Reppo opens private data nets to API users, private errands will go there instead.
+Traces never include keys, raw kpass output, full phone numbers or emails (`redact()`). **Private** errands (composer checkbox, the default for standing errands and Telegram) are never sent for grading, and their second opinions see only the choice itself, not the task, constraints or research.
 
 ## How the grades change Errand
 
@@ -45,12 +32,11 @@ Reppo's grades decide what changes in the SERV guard graph (see `docs/serv-guard
 
 Each change gets a new `SERV_GUARD_VERSION`, and the Results page groups average Reppo score, accept rate, waste rate and cost per accepted answer by version. That is the "measurable improvement" for the write-up.
 
-## Budget plan
+## Budget
 
-- Sandbox (`REPPO_SANDBOX=true`) for all development.
-- Real grades only for the evidence batch: e.g. 10 errands on guard-v1 and 10 on guard-v2 = 20 × 440 = 8,800 credits, well inside the 22,000 sign-up credits. At ~15 minutes per verdict and one at a time, 20 verdicts take about 5 hours; run the batch overnight.
-- `402` pauses the worker; top up in the Reppo console.
+- 22,000 sign-up credits = about 50 evaluations. An evidence batch of 10 errands on guard-v1 and 10 on guard-v2 is 20 x 440 = 8,800 credits, and with 30-90 second settlement it finishes in well under an hour.
+- `402` pauses the grading worker; buy more credits at eval.reppo.xyz/billing.
 
-## Day-one check
+## Check it once
 
-`pnpm spike:reppo` submits a hand-written trace in sandbox mode, tries a second submit to see the 409, and saves the verdict JSON to `evidence/raw/reppo-sample-verdict.json`. Run it once with `REPPO_SANDBOX=false` to see a real verdict's shape, and adjust `applyResult()` in `reppo.ts` if the fields differ.
+`pnpm spike:reppo` grades a hand-written errand trace for real (440 credits), polls until it completes, saves the raw answer to `evidence/raw/reppo-sample-verdict.json` and prints what Errand reads from it. Run it once after setting `REPPO_API_KEY`, and adjust `readEvaluators()` in `reppo.ts` if the trace has a different shape.

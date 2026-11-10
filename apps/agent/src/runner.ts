@@ -40,7 +40,7 @@ import {
 } from "@errand/core";
 import { publish } from "./bus";
 import * as dolphin from "./dolphin";
-import { redact } from "./reppo";
+import { evaluateAction, redact } from "./reppo";
 import { demoExecute, demoShipping, demoShopSearch, scriptedCondition, scriptedGuard, scriptedPlan, scriptedRead, scriptedSummary } from "./demo";
 import { env, reppoConfigured, servConfigured } from "./env";
 import * as kite from "./kite";
@@ -666,7 +666,7 @@ async function runPhase(e: Errand) {
 
   e.status = "done";
   if (e.privacy === "private") event(e, "log", "Private errand: the run was not sent to Reppo's public evaluation network.");
-  e.evaluation = !reppoConfigured() || e.privacy === "private" ? null : { evalId: "", status: "QUEUED", submittedAt: null, minSettleAt: null, settledAt: null, score: null, decision: null, confidence: null, verdicts: [], assessments: [], sandbox: env.reppo.sandbox };
+  e.evaluation = !reppoConfigured() || e.privacy === "private" ? null : { evalId: "", status: "QUEUED", submittedAt: null, minSettleAt: null, settledAt: null, score: null, decision: null, confidence: null, verdicts: [], assessments: [], sandbox: false };
   event(e, "status", `Done. Spent ${formatUsd(spentUsd(e.payments))} of ${formatUsd(e.budgetUsd)}.`);
   await save(e);
 }
@@ -867,62 +867,73 @@ async function runAmazon(e: Errand, step: PlanStep, r: StepResult) {
 
 // ---------- Reppo: independent opinions on subjective calls ----------
 // Jev (inside the SERV guard graph) handles the predictable checks; Reppo's
-// evaluators judge the subjective ones: "is this the right eSIM, gift, restaurant?"
+// evaluator panel judges the subjective ones: "is this the right eSIM, gift, restaurant?"
+// Errand pays Reppo from its own credits, so a second opinion costs the user nothing.
 
-const OPINION_CONTEXT =
-  "Errand is an AI agent running an errand for a user who set a budget and constraints. It asks independent evaluators for a second opinion on a subjective choice before acting. Judge the proposal against the user's task, constraints and the facts gathered. accept = good choice, revise = acceptable but a better option likely exists, reject = wrong choice.";
-
-async function askReppo(e: Errand, step: PlanStep, question: string, proposal: Record<string, unknown>) {
-  // Private errands share only the choice itself, never the task, constraints or research.
-  const payload = JSON.stringify(
-    e.privacy === "private"
-      ? { question: redact(question), proposal }
-      : {
-          question,
-          proposal,
-          task: redact(e.task),
-          constraints: (e.plan?.constraints ?? []).map(redact),
-          facts: allFacts(e).slice(-15).map(redact),
-        },
-  );
-  const body = await pay(
-    e,
-    sellers.reppoLiteRequest({
-      payload,
-      context: OPINION_CONTEXT,
-      criteria: [
-        "Does the proposal fit the user's task and constraints?",
-        "Is the price reasonable for what it is?",
-        "Is there a clearly better option the agent should choose instead?",
-      ],
-    }),
-    { step, note: "Independent second opinion from Reppo's evaluators" },
-  );
-  return sellers.readLiteVerdict(body);
+interface Opinion {
+  ok: boolean;
+  route: "ship" | "review" | "block" | null;
+  score: number | null;
+  confidence: "low" | "medium" | "high" | null;
+  reason: string | null;
+  evaluators: number;
+  evalId: string | null;
+  error?: string;
 }
 
-function verdictLine(v: sellers.LiteVerdict): string {
-  const score = v.score !== null ? `, score ${v.score}` : "";
-  const who = v.evaluators ? ` from ${v.evaluators} independent evaluators` : "";
-  return `Reppo second opinion${who}: ${v.decision ?? "no clear verdict"}${score}.`;
+function opinionInput(e: Errand, question: string, proposal: Record<string, unknown>): string {
+  // Private errands share only the choice itself, never the task, constraints or research.
+  if (e.privacy === "private") {
+    return `An AI agent is about to take this action for a user: ${redact(question)}\nProposal: ${redact(JSON.stringify(proposal))}\n\nShould the agent go ahead? Judge whether the choice is sensible, whether the price is reasonable, and whether a clearly better option exists.`;
+  }
+  return [
+    `What the user asked the agent: "${redact(e.task)}"`,
+    (e.plan?.constraints ?? []).length ? `The user's constraints: ${(e.plan?.constraints ?? []).map(redact).join("; ")}` : "",
+    `What the agent found so far: ${allFacts(e).slice(-15).map(redact).join(" ") || "(no research yet)"}`,
+    `The action the agent is about to take: ${redact(question)}\nProposal: ${redact(JSON.stringify(proposal))}`,
+    "Should the agent go ahead? Judge: does it fit the user's task and constraints, is the price reasonable for what it is, and is there a clearly better option the agent should choose instead?",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+async function askReppo(e: Errand, step: PlanStep, question: string, proposal: Record<string, unknown>): Promise<Opinion> {
+  event(e, "step", "Asking Reppo's independent evaluators for a second opinion (usually under 2 minutes).", { stepId: step.id });
+  await save(e);
+  if (env.mode === "demo") {
+    await new Promise((r) => setTimeout(r, 1_500));
+    return { ok: true, route: "ship", score: 81, confidence: "high", reason: "Simulated: fits the task and the limits the user set; the price is in the normal range.", evaluators: 3, evalId: null };
+  }
+  const res = await evaluateAction(opinionInput(e, question, proposal));
+  if (!res.ok) return { ok: false, route: null, score: null, confidence: null, reason: null, evaluators: 0, evalId: null, error: res.reason };
+  const r = res.result;
+  return { ok: true, route: r.route, score: r.score, confidence: r.confidence, reason: r.reason, evaluators: r.evaluators.length, evalId: r.id || null };
+}
+
+function verdictLine(v: Opinion): string {
+  if (!v.ok) return `No second opinion from Reppo: ${v.error ?? "no answer"}.`;
+  const route = v.route === "ship" ? "go ahead" : v.route === "review" ? "needs a human look" : v.route === "block" ? "don't do it" : "no clear verdict";
+  const score = v.score !== null ? `, score ${v.score}/100` : "";
+  const who = v.evaluators ? ` from ${v.evaluators} independent evaluators` : " from Reppo's evaluator panel";
+  return `Reppo second opinion${who}: ${route}${score}${v.confidence ? ` (${v.confidence} confidence)` : ""}.`;
 }
 
 async function secondOpinion(e: Errand, step: PlanStep, r: StepResult, question: string, proposal: Record<string, unknown>) {
   const v = await askReppo(e, step, question, proposal);
-  r.facts.push(verdictLine(v), ...v.critiques.slice(0, 2).map((c) => `Evaluator note: ${c}`));
+  r.facts.push(verdictLine(v), ...(v.reason ? [`Reppo's reasoning: ${v.reason}`] : []));
   r.output = { ...(r.output ?? {}), reppo: v };
   event(e, "step", verdictLine(v), { stepId: step.id });
   await save(e);
-  if (v.decision === "accept") return;
-  const why = v.critiques[0] ? ` "${v.critiques[0]}"` : "";
+  if (v.ok && v.route === "ship") return;
+  const why = v.reason ? ` "${v.reason.slice(0, 300)}"` : "";
   const a = await ask(e, `${verdictLine(v)}${why} Go ahead anyway?`, ["Go ahead", "Stop here"], step.purpose);
   if (!/^(go|yes|y|ok|buy)/i.test(a.trim())) throw new Blocked("You stopped after Reppo's second opinion.");
 }
 
 async function runOpinion(e: Errand, step: PlanStep, r: StepResult) {
   const question = stepInput(step, "question") ?? step.purpose;
-  const v = await askReppo(e, step, question, { proposedAnswer: allFacts(e).slice(-8).join(" ") || "(no research yet)" });
-  r.facts.push(verdictLine(v), ...v.critiques.map((c) => `Evaluator note: ${c}`));
+  const v = await askReppo(e, step, `Answer to the user's question "${question}": ${allFacts(e).slice(-8).join(" ") || "(no research yet)"}`, { question });
+  r.facts.push(verdictLine(v), ...(v.reason ? [`Reppo's reasoning: ${v.reason}`] : []));
   r.output = { ...(r.output ?? {}), reppo: v };
   r.note = verdictLine(v);
 }
