@@ -102,7 +102,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov (evidence/celo/spikes.md).
 - [x] 23 Nov: Loops agent wallet on file = `0xc64d2153Bd39053913667A5c2eec8250d8AbC005` (Celo checklist on the Loops playground).
 - [ ] HUMAN: finish the Loops project form (Errand: Step 2 screenshots/repo/live URL, Team, Review) before Tue 24 Nov 14:00 GMT for AskBots round 1.
-- [ ] Phase 2 (pulled forward): ERC-8004 registration from the agent wallet, tagged (`packages/celo/scripts/register-8004.ts`; agent card `apps/web/public/.well-known/errand-agent.json`). Clears both Loops on-chain checks.
+- [x] 23 Nov: Phase 2 (pulled forward): ERC-8004 **agentId 10107** registered from the agent wallet, tagged (tx `0x8b60…2b7c`, `verifyTx` shows `celo_511bb691f2f0`). Evidence: `evidence/celo/identity.md`, `evidence/celo/erc8004-register.json`.
+- [ ] HUMAN: on the Loops Celo checklist, click **Find it** (tagged tx) and **Check on Celo** (ERC-8004).
 - [ ] Phase 2 identity: Self Agent ID, ERC-8004, Loops agent wallet + PayTo.
 - [ ] Phase 3 Celo rail in the agent.
 - [ ] Phase 4 web wallet + session; new deployments.
@@ -117,7 +118,6 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - A1/A2: Does the attribution tag survive Altana's relay, and is the relay a standard EntryPoint `handleOps`? (spike S1)
 - A3: Can a session be granted in the browser to a server-held key? (spike S2)
 - T1: Textile `takerProof` from an Altana smart wallet, or use an API key? (spike S3)
-- Is Self's own ERC-8004 registry enough for the "registers on ERC-8004" rule, or is the canonical registry `0x8004A169…a432` expected? Plan: register on both.
 
 ## Decisions
 
@@ -129,7 +129,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: T2 answered by spike S0: Textile previews USD₮→cNGN on 42220 at $1/$5/$20 (≈₦1,447.58 per USD₮, ≈$41k depth, fee ≈2 bps inside sellAmount). Stay on the cNGN corridor; no wFIAT fallback. Compute rates from sellAmount/buyAmount, not the undocumented `rateRay`.
 - 23 Nov: **Errand agent wallet = `0xc64d2153Bd39053913667A5c2eec8250d8AbC005`** (Self Agent ID agentId 214, wallet-free, mainnet; evidence/celo/identity.md). Use this one address for the whole event: Loops agent wallet, ERC-8004 owner, PayTo, session signer. Key in `.self/agent.key` on Benjamin's machine only.
 - 23 Nov: A4 measured: Altana KeyStore registration fee on Celo = `KeyStoreController.getRegistrationFeeInWei()` = 9.1047 CELO = **$0.50** (oracle-priced from a fixed $0.50 at CELO/USD 0.0549, Chainlink feed 0x0568…Ab7e). The SDK sends fee + 10% and the controller refunds the excess. Paid once per new wallet, in native CELO, from the wallet's own balance. Tell users: hold about 11 CELO (≈$0.60) before the first action.
-- 23 Nov: ERC-8004 agent card hosted at `https://raw.githubusercontent.com/softalpha0/Errand/celo/apps/web/public/.well-known/errand-agent.json` (stable HTTPS, same file the Celo web deployment will serve later). Lists only what exists today (`web` = repo, `x402Support: false`); update with `setAgentURI` when Errand Guard and the live site run.
+- 23 Nov: ERC-8004 agent card hosted at `https://raw.githubusercontent.com/softalpha0/Errand/celo/apps/web/public/.well-known/errand-agent.json` (stable HTTPS, same file the Celo web deployment will serve later). Lists only what exists today (`web` = repo, `x402Support: false`); edit the file (HTTPS URI, so no `setAgentURI` needed) when Errand Guard and the live site run.
+- 23 Nov: Registered on both ERC-8004 registries, as planned: Self Agent ID registry (agentId 214, proof of human) and the canonical Identity Registry (agentId **10107**, the one the Loops checklist and 8004scan read). Open question on which registry counts is closed.
 
 ## Blockers
 

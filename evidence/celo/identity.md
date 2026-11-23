@@ -24,6 +24,16 @@ Public facts only. The agent's private key lives in `.self/agent.key` on Benjami
 | Proof expires | 2027-11-23T09:56:57Z |
 | Human verification | Benjamin's passport in the Self app (zero-knowledge proof; no passport data on chain) |
 
-## ERC-8004 canonical registry
+## ERC-8004 canonical registry (done 23 Nov 2026)
 
-Not done yet (Phase 2): `register(agentURI)` on `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` from the agent address, tagged `celo_511bb691f2f0`. Needs a little CELO on the agent address for gas.
+| | |
+|---|---|
+| Registry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` (ERC-8004 Identity Registry, "AgentIdentity", Celo mainnet) |
+| agentId | **10107** (`agentRegistry` = `eip155:42220:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`) |
+| Registration tx | [`0x8b6048637d36104e7c89d85efee0e1be8e9696fa7f00e485b79b9ee76f162b7c`](https://celoscan.io/tx/0x8b6048637d36104e7c89d85efee0e1be8e9696fa7f00e485b79b9ee76f162b7c) · block 83528872 · gas 224,282 |
+| Sent by | The agent wallet itself (`register(agentURI)`), via `packages/celo/scripts/register-8004.ts --send` |
+| Attribution | Calldata ends with Errand's tag; `verifyTx` → `{"codes":["celo_511bb691f2f0"],"schemaId":0}`. **First credited Errand transaction.** |
+| Checked independently | `ownerOf(10107)` = agent wallet; `tokenURI(10107)` = the agent card URL below |
+| Agent card (agentURI) | https://raw.githubusercontent.com/softalpha0/Errand/celo/apps/web/public/.well-known/errand-agent.json (now includes the `registrations` entry; HTTPS URL, so no `setAgentURI` needed for edits) |
+| Raw evidence | `evidence/celo/erc8004-register.json` |
+| Explorer | https://8004scan.io (search the agent wallet or agentId 10107) |

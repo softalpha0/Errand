@@ -42,11 +42,11 @@ HUMAN steps in this phase:
 
 ## Phase 2: Identity (Wed 25 Nov)
 
-- [ ] Agent key from S4 = `ERRAND_AGENT_PRIVATE_KEY` in `.env` (never committed). Print only the address.
-- [ ] Agent card JSON (ERC-8004 registration file) hosted at a stable HTTPS URL on the new web deployment (`/.well-known/errand-agent.json` or similar): `type`, `name` "Errand", `description`, `image`, `services` (web, guard endpoint, MCP), `x402Support: true`, `active: true`, `supportedTrust`.
-- [ ] Script `packages/celo/scripts/register-8004.ts`: simulate → send `register(agentURI)` from the agent key with the tag → read `Registered` event → write `agentId` to `evidence/celo/identity.md` → update the file with `registrations` → `setAgentURI` if needed.
-- [ ] HUMAN: fund the agent key with a little CELO for gas (or USDC via the fee-currency adapter).
-- [ ] HUMAN: in the Loops playground, **ADD WALLET** = the agent key address. Register it as the **PayTo** too. Keep it for the whole event.
+- [x] Agent key from S4 → kept in `.self/agent.key` (git-ignored; scripts read it from there). Address `0xc64d…C005`.
+- [x] Agent card JSON (ERC-8004 registration file) hosted at a stable HTTPS URL on the new web deployment (`/.well-known/errand-agent.json` or similar): `type`, `name` "Errand", `description`, `image`, `services` (web, guard endpoint, MCP), `x402Support: true`, `active: true`, `supportedTrust`.
+- [x] Script `packages/celo/scripts/register-8004.ts`: simulate → send `register(agentURI)` from the agent key with the tag → read `Registered` event → write `agentId` to `evidence/celo/identity.md` → update the file with `registrations` → `setAgentURI` if needed.
+- [x] HUMAN: fund the agent key with a little CELO for gas (or USDC via the fee-currency adapter).
+- [x] HUMAN: in the Loops playground, **ADD WALLET** = the agent key address. Register it as the **PayTo** too. Keep it for the whole event.
 - [ ] Check on 8004scan.io that Errand shows up.
 
 ## Phase 3: Celo rail in the agent (Thu 26 – Sat 28 Nov)
