@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsc --noEmit",
-    "spike:s0": "node scripts/spike-s0-textile-preview.ts"
+    "spike:s0": "node scripts/spike-s0-textile-preview.ts",
+    "register:8004": "node scripts/register-8004.ts"
   },
   "dependencies": {
     "@celo/attribution-tags": "0.5.0",

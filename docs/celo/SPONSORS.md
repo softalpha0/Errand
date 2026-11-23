@@ -164,7 +164,7 @@ await client.revokeSession(/* see docs/pages/sdk/revoke-session.mdx */);
 
 ### Costs
 
-- A new wallet's first transaction pays the **KeyStore registration fee + relay fee in native CELO** from the wallet's balance. Unfunded, it throws. The SDK's error example for Celo reads "needs about 9.2 CELO". **UNVERIFIED as a real price: quote it on mainnet before telling users.**
+- A new wallet's first transaction pays the **KeyStore registration fee + relay fee in native CELO** from the wallet's balance. Unfunded, it throws. **Measured 23 Nov 2026:** `KeyStoreController.getRegistrationFeeInWei()` = 9.1047 CELO = $0.50 (a fixed $0.50 converted with Chainlink CELO/USD `0x0568fD19986748cEfF3301e55c0eb1E729E0Ab7e`, then 0.0549). The SDK sends fee + 10% (`REGISTRATION_FEE_MARGIN_PERCENT`) and the controller refunds the excess. The CELO amount moves with the CELO price; read it fresh.
 
 ### ERC-8004 auto-registration
 
@@ -181,7 +181,7 @@ On by default for a new wallet on Celo (name "Altana Agent"). Turn off with `age
 | A1 | Does a tag survive into the on-chain tx? The SDK has **no `dataSuffix` option**. A tag appended to an inner `call.data` ends up mid-calldata, not at the end of the UserOperation's `callData` | Untagged txs are never credited |
 | A2 | Does the relay go through a standard EntryPoint `handleOps`? (`verifyTx` only decodes v0.6/v0.7 bundles) | Same |
 | A3 | Can `sessionSigner` be a public-key-only signer (server holds the private key) when the user grants from the browser? `Signer` = `{ type, address, publicKey, signDigest }` | The user grants in the browser; Errand's server holds the agent key |
-| A4 | Real KeyStore registration cost on Celo mainnet | Each independent user pays it from their own wallet |
+| A4 | ~~Real KeyStore registration cost on Celo mainnet~~ **Answered 23 Nov: $0.50 in CELO (9.10 CELO at $0.0549)** | Each independent user pays it from their own wallet |
 
 Sources: https://docs.altana.network · https://github.com/altananetwork/altana-sdk (README.md, CHANGELOG.md, docs/pages/concepts/networks/index.mdx, concepts/sessions.mdx, concepts/keystore.mdx, sdk/grant-session.mdx, sdk/execute.mdx, sdk/x402.mdx, sdk/erc8004.mdx, sdk/errors.mdx, sdk/create-wallet.mdx, packages/wallet/src/internal/signer.ts)
 

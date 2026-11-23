@@ -1,0 +1,14 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "Errand",
+  "description": "Errand runs your errands in Naira from your own wallet. You keep USD₮ in your own Altana wallet and grant Errand a session with an onchain spend cap, a list of the only contracts it may call, and an expiry, revocable in one transaction. Errand plans each errand, checks every payment with its guard, converts USD₮ to cNGN on Textile FX, pays the named recipient, and returns a receipt with a Celoscan link for every transaction. Errand Guard (coming) lets other agents pay over x402 to have a payment checked; Self Agent ID decides which agents get served. Self Agent ID: agentId 214 on 0xaC3DF9ABf80d0F5c020C06B04Cced27763355944. Status: in development during Agents Open for Business on Celo.",
+  "image": "https://raw.githubusercontent.com/softalpha0/Errand/celo/apps/web/public/errand-logo.png",
+  "services": [
+    {
+      "name": "web",
+      "endpoint": "https://github.com/softalpha0/Errand/tree/celo"
+    }
+  ],
+  "x402Support": false,
+  "active": true
+}
