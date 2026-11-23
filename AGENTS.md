@@ -101,15 +101,19 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 23 Nov: Loops skill (`.claude/skills`, `.agents/skills`) + Celopedia skills (`.agents/skills`) installed in the repo.
 - [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov (evidence/celo/spikes.md).
 - [x] 23 Nov: Loops agent wallet on file = `0xc64d2153Bd39053913667A5c2eec8250d8AbC005` (Celo checklist on the Loops playground).
-- [ ] HUMAN: finish the Loops project form (Errand: Step 2 screenshots/repo/live URL, Team, Review) before Tue 24 Nov 14:00 GMT for AskBots round 1.
 - [x] 23 Nov: Phase 2 (pulled forward): ERC-8004 **agentId 10107** registered from the agent wallet, tagged (tx `0x8b60…2b7c`, `verifyTx` shows `celo_511bb691f2f0`). Evidence: `evidence/celo/identity.md`, `evidence/celo/erc8004-register.json`.
-- [ ] HUMAN: on the Loops Celo checklist, click **Find it** (tagged tx) and **Check on Celo** (ERC-8004).
+- [x] 23 Nov: Loops Celo checklist shows **ALL SET** (agent wallet on file, tag seen on-chain, ERC-8004 registered).
 - [ ] Phase 2 identity: Self Agent ID, ERC-8004, Loops agent wallet + PayTo.
 - [ ] Phase 3 Celo rail in the agent.
-- [ ] Phase 4 web wallet + session; new deployments.
+- [ ] Phase 4 web wallet + session; new deployments. (Started 23 Nov, ahead of Phase 3 at Benjamin's request; S1/S2 run inside it.)
+  - [x] 4.1 Celo home page (`apps/web`): pitch, how it works, verified on-chain facts, honest build status. Old Kite/SERV pages no longer linked.
+  - [ ] 4.1 HUMAN: new Vercel project on branch `celo` (never the SERV project).
+  - [ ] 4.2 Wallet screen (Altana passkey wallet, address, balances, funding instructions).
+  - [ ] 4.3 Session screen (cap, allowlist, expiry, grant, status, revoke) = spike S2.
+  - [ ] 4.4 Errand composer.
 - [ ] Phase 5 Errand Guard on Celo.
 - [ ] Phase 6 real users (≥ 3 independent).
-- [ ] Phase 7 freeze (Thu 3 Dec), README, video.
+- [ ] Phase 7 freeze (Thu 3 Dec), README, video. Then complete the Loops submit form (needs live URL, video, named user; other answers ready: agentId 10107, Self 214, tag, PayTo = agent wallet).
 - [ ] Phase 8 submit (Sun 6 Dec, before 18:00 Lagos).
 
 ## Open questions (resolve, then move the answer to Decisions)
@@ -131,6 +135,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: A4 measured: Altana KeyStore registration fee on Celo = `KeyStoreController.getRegistrationFeeInWei()` = 9.1047 CELO = **$0.50** (oracle-priced from a fixed $0.50 at CELO/USD 0.0549, Chainlink feed 0x0568…Ab7e). The SDK sends fee + 10% and the controller refunds the excess. Paid once per new wallet, in native CELO, from the wallet's own balance. Tell users: hold about 11 CELO (≈$0.60) before the first action.
 - 23 Nov: ERC-8004 agent card hosted at `https://raw.githubusercontent.com/softalpha0/Errand/celo/apps/web/public/.well-known/errand-agent.json` (stable HTTPS, same file the Celo web deployment will serve later). Lists only what exists today (`web` = repo, `x402Support: false`); edit the file (HTTPS URI, so no `setAgentURI` needed) when Errand Guard and the live site run.
 - 23 Nov: Registered on both ERC-8004 registries, as planned: Self Agent ID registry (agentId 214, proof of human) and the canonical Identity Registry (agentId **10107**, the one the Loops checklist and 8004scan read). Open question on which registry counts is closed.
+- 23 Nov: Loops submit form requires a live site, demo video and a named user. Not submitting placeholders; AskBots round 1 skipped if a full submission is required. Round 2 (Fri 4 Dec) is the target. On-chain entry requirements are already ALL SET.
+- 23 Nov: Phase 4 before Phase 3 (Benjamin's call) so a live Celo site exists early. Vercel auto-deploys the `celo` branch; each step ships as it lands.
 
 ## Blockers
 

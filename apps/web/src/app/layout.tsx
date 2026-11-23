@@ -5,12 +5,12 @@ import { Footer, Header } from "@/components/chrome";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Errand: errands paid for by an agent that explains every dollar", template: "%s · Errand" },
+  title: { default: "Errand: your errands in Naira, paid from your own wallet", template: "%s · Errand" },
   description:
-    "Errand researches, tops up phones and buys eSIMs for you. It pays sellers through Kite Passport within the limit you approve, checks every payment with SERV Reasoning, and gives you a receipt.",
+    "Errand converts USD₮ to cNGN on Celo and pays the person you name, from your own Altana wallet, under a session with a spend cap, a contract allowlist and an expiry that you can revoke in one transaction.",
   openGraph: {
-    title: "Errand",
-    description: "Give an agent the errand. Keep control of the money.",
+    title: "Errand on Celo",
+    description: "Your errands in Naira, paid from your own wallet. You set the cap.",
     type: "website",
   },
 };

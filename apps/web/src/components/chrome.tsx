@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { LinkButton } from "./ui";
-
-const REPO_URL = process.env.NEXT_PUBLIC_REPO_URL ?? "https://github.com/softalpha0/Errand";
+import { REPO_CELO_URL } from "@/lib/celo";
 
 export function Logo() {
   return (
@@ -24,19 +22,15 @@ export function Header() {
           <Link href="/#how" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
             How it works
           </Link>
-          <Link href="/repeat" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
-            Repeat
+          <Link href="/#onchain" className="rounded-full px-3 py-2 text-muted hover:text-ink">
+            On Celo
           </Link>
-          <Link href="/stats" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink md:block">
-            Results
+          <Link href="/#status" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
+            Status
           </Link>
-          <Link href="/connect" className="rounded-full px-3 py-2 text-muted hover:text-ink">
-            <span className="sm:hidden">Passport</span>
-            <span className="hidden sm:inline">Your Passport</span>
-          </Link>
-          <LinkButton href="/new" size="sm" className="ml-2">
-            Start an errand
-          </LinkButton>
+          <a href={REPO_CELO_URL} className="rounded-full px-3 py-2 text-muted hover:text-ink" rel="noreferrer">
+            Source
+          </a>
         </nav>
       </div>
     </header>
@@ -50,33 +44,27 @@ export function Footer() {
         <div className="max-w-sm">
           <Logo />
           <p className="mt-3 leading-relaxed">
-            Built for SERV Hackathon 02, Kite track. Reasoning by SERV, payments by Kite Agent Passport, independent grading by Reppo.
+            Built for Agents Open for Business on Celo (Loops House). Wallets by Altana, currency conversion by Textile FX, agent identity by Self Agent ID and ERC-8004.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-x-10 gap-y-2">
-          <Link href="/new" className="hover:text-ink">
-            Start an errand
+          <Link href="/#how" className="hover:text-ink">
+            How it works
           </Link>
-          <Link href="/stats" className="hover:text-ink">
-            Results
+          <Link href="/#onchain" className="hover:text-ink">
+            On Celo mainnet
           </Link>
-          <Link href="/#guarantees" className="hover:text-ink">
-            Guarantees
+          <Link href="/#status" className="hover:text-ink">
+            Build status
           </Link>
-          <Link href="/trap" className="hover:text-ink">
-            Guard test page
-          </Link>
-          <Link href="/repeat" className="hover:text-ink">
-            Repeat an errand
-          </Link>
-          <Link href="/connect" className="hover:text-ink">
-            Connect your Passport
-          </Link>
-          <a href={REPO_URL} className="hover:text-ink" rel="noreferrer">
+          <a href={REPO_CELO_URL} className="hover:text-ink" rel="noreferrer">
             Source code
           </a>
-          <a href="https://agentpassport.ai" className="hover:text-ink" rel="noreferrer">
-            Kite Passport
+          <a href="https://celo.org" className="hover:text-ink" rel="noreferrer">
+            Celo
+          </a>
+          <a href="/.well-known/errand-agent.json" className="hover:text-ink">
+            Agent card (ERC-8004)
           </a>
         </div>
       </div>
