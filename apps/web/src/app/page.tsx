@@ -1,4 +1,4 @@
-import { CardHeader, Card, Eyebrow, Pill } from "@/components/ui";
+import { CardHeader, Card, Eyebrow, LinkButton, Pill } from "@/components/ui";
 import { CELO, REPO_CELO_URL, addressUrl, short, txUrl } from "@/lib/celo";
 
 const STEPS = [
@@ -57,20 +57,20 @@ const FACTS: Fact[] = [
   },
 ];
 
-type StatusRow = { item: string; state: "live" | "building" | "next" };
+type StatusRow = { item: string; state: "live" | "try" | "building" | "next" };
 
 const STATUS: StatusRow[] = [
   { item: "Agent identity on Celo mainnet (ERC-8004 and Self Agent ID)", state: "live" },
   { item: "Attribution tag on every Errand transaction", state: "live" },
-  { item: "Your own Altana wallet, created with a passkey", state: "building" },
+  { item: "Your own Altana wallet, created with a passkey (free, no transaction)", state: "try" },
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN on Textile FX, paid to a named recipient", state: "next" },
   { item: "Receipts with a Celoscan link for every transaction", state: "next" },
   { item: "Errand Guard: other agents pay over x402; Self Agent ID decides who is served", state: "next" },
 ];
 
-const STATE_LABEL = { live: "Live on mainnet", building: "Building now", next: "Next" } as const;
-const STATE_TONE = { live: "approve", building: "ask", next: "neutral" } as const;
+const STATE_LABEL = { live: "Live on mainnet", try: "Ready to try", building: "Building now", next: "Next" } as const;
+const STATE_TONE = { live: "approve", try: "approve", building: "ask", next: "neutral" } as const;
 
 export default function Home() {
   return (
@@ -85,6 +85,7 @@ export default function Home() {
           with a receipt for every transaction.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-3">
+          <LinkButton href="/wallet">Create your wallet</LinkButton>
           <Pill tone="ask">In development · Agents Open for Business</Pill>
           <a href={REPO_CELO_URL} className="text-sm font-medium underline decoration-line-strong underline-offset-4 hover:decoration-ink" rel="noreferrer">
             Follow the build on GitHub
@@ -134,7 +135,7 @@ export default function Home() {
 
       <section id="status" className="scroll-mt-20 border-t border-line py-12">
         <Eyebrow>Build status</Eyebrow>
-        <p className="mt-3 max-w-2xl text-muted">Only what has run on Celo mainnet is marked live.</p>
+        <p className="mt-3 max-w-2xl text-muted">Only what has run on Celo mainnet is marked live. “Ready to try” works on the site but sends no transaction.</p>
         <ul className="mt-6 divide-y divide-line rounded-[var(--radius-card)] border border-line bg-card">
           {STATUS.map((row) => (
             <li key={row.item} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

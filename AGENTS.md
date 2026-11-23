@@ -108,7 +108,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [ ] Phase 4 web wallet + session; new deployments. (Started 23 Nov, ahead of Phase 3 at Benjamin's request; S1/S2 run inside it.)
   - [x] 4.1 Celo home page (`apps/web`): pitch, how it works, verified on-chain facts, honest build status. Old Kite/SERV pages no longer linked.
   - [x] 4.1 HUMAN: new Vercel project `errand-thgw`, production branch `celo` → **https://errand-thgw.vercel.app** (live 23 Nov). SERV project untouched.
-  - [ ] 4.2 Wallet screen (Altana passkey wallet, address, balances, funding instructions).
+  - [x] 4.2 Wallet screen `/wallet` (23 Nov): Altana passkey wallet (`agentIdentity: false`), address + copy + Celoscan, live USD₮/cNGN/CELO balances, KeyStore set-up status, live setup fee, funding steps, backup file, restore (passkey or file). E2E-tested in headless Chromium with a virtual passkey against the real Altana relay + Celo mainnet (no tx). `packages/celo/src/tokens.ts` + 6 tests.
   - [ ] 4.3 Session screen (cap, allowlist, expiry, grant, status, revoke) = spike S2.
   - [ ] 4.4 Errand composer.
 - [ ] Phase 5 Errand Guard on Celo.
@@ -138,6 +138,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: Loops submit form requires a live site, demo video and a named user. Not submitting placeholders; AskBots round 1 skipped if a full submission is required. Round 2 (Fri 4 Dec) is the target. On-chain entry requirements are already ALL SET.
 - 23 Nov: Phase 4 before Phase 3 (Benjamin's call) so a live Celo site exists early. Vercel auto-deploys the `celo` branch; each step ships as it lands.
 - 23 Nov: Celo live site = **https://errand-thgw.vercel.app** (Vercel project `errand-thgw`, Root Directory `apps/web`, production branch `celo`). Agent card `web` service now points there. Use this URL in the Loops form, README and video.
+- 23 Nov: **Passkeys are bound to the site's domain** (WebAuthn rpId = host). Wallets created on `errand-thgw.vercel.app` only open there. Don't change the production domain once real users have wallets; Vercel preview URLs won't open them. If a custom domain is wanted, add it before Phase 6.
+- 23 Nov: Altana `recoverFromPasskey` only works after a wallet's first transaction (it reads the admin key from KeyStore). Until then the browser's localStorage holds the only copy of the passkey's public key, so the wallet page offers a public-data backup file and a restore-from-file option.
 
 ## Blockers
 

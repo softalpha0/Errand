@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   // Pin the monorepo root so a stray lockfile higher up (e.g. in the home folder) is ignored.
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  transpilePackages: ["@errand/core"],
+  transpilePackages: ["@errand/core", "@errand/celo"],
   poweredByHeader: false,
   async headers() {
     return [

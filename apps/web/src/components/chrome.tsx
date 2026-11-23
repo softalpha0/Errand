@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { REPO_CELO_URL } from "@/lib/celo";
+import { LinkButton } from "./ui";
 
 export function Logo() {
   return (
@@ -28,9 +29,12 @@ export function Header() {
           <Link href="/#status" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
             Status
           </Link>
-          <a href={REPO_CELO_URL} className="rounded-full px-3 py-2 text-muted hover:text-ink" rel="noreferrer">
+          <a href={REPO_CELO_URL} className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block" rel="noreferrer">
             Source
           </a>
+          <LinkButton href="/wallet" size="sm" className="ml-2">
+            Your wallet
+          </LinkButton>
         </nav>
       </div>
     </header>
@@ -48,8 +52,8 @@ export function Footer() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-x-10 gap-y-2">
-          <Link href="/#how" className="hover:text-ink">
-            How it works
+          <Link href="/wallet" className="hover:text-ink">
+            Your wallet
           </Link>
           <Link href="/#onchain" className="hover:text-ink">
             On Celo mainnet
