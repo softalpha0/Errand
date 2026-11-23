@@ -6,7 +6,7 @@
   "services": [
     {
       "name": "web",
-      "endpoint": "https://github.com/softalpha0/Errand/tree/celo"
+      "endpoint": "https://errand-thgw.vercel.app"
     }
   ],
   "x402Support": false,
