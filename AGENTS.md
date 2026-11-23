@@ -98,7 +98,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 20 Nov: `packages/celo` attribution helpers + 5 tests (commit `aca3958`).
 - [x] 23 Nov: docs pack committed (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) (commit `a375eb4`).
 - [x] 23 Nov: `.self/` and `*.key` added to `.gitignore`.
-- [ ] HUMAN: Loops skill + Celopedia skills installed.
+- [x] 23 Nov: Loops skill (`.claude/skills`, `.agents/skills`) + Celopedia skills (`.agents/skills`) installed in the repo.
 - [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate.
 - [ ] Phase 2 identity: Self Agent ID, ERC-8004, Loops agent wallet + PayTo.
 - [ ] Phase 3 Celo rail in the agent.
@@ -124,7 +124,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 20 Nov: Build on branch `celo`; `main` stays as the SERV submission.
 - 20 Nov: Tag `celo_511bb691f2f0` lives in `packages/celo`; `ATTRIBUTION_CODE` env may override it.
 - 23 Nov: Agent wallet model (PRD §5): one Errand agent key from Self Agent ID `wallet-free` = session signer + ERC-8004 owner + PayTo + Loops agent wallet. User wallets created with `agentIdentity: false`. Pending Q1.
+- 23 Nov: Celopedia skill reviewed before commit: Markdown only, no scripts. The installer's "Critical Risk" scan flags code examples (curl, env private keys), not executable code. `docs-watch` (Celopedia maintainers' tool) installed too; not used by Errand.
 
 ## Blockers
 
-- (none yet)
+- 23 Nov: `loops auth login` times out: after Google sign-in the browser lands on loops.house/profile instead of the CLI callback (localhost:54321), also in an incognito window. The skill is installed; CLI sign-in is only needed for `loops project ...` commands. Retry later or ask in the Loops/Celo Telegram.
