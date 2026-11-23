@@ -99,7 +99,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 23 Nov: docs pack committed (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) (commit `a375eb4`).
 - [x] 23 Nov: `.self/` and `*.key` added to `.gitignore`.
 - [x] 23 Nov: Loops skill (`.claude/skills`, `.agents/skills`) + Celopedia skills (`.agents/skills`) installed in the repo.
-- [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS 23 Nov (evidence/celo/spikes.md).
+- [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov (evidence/celo/spikes.md).
 - [ ] HUMAN: finish the Loops project form (Errand: Step 2 screenshots/repo/live URL, Team, Review) before Tue 24 Nov 14:00 GMT for AskBots round 1. Agent wallet stays empty until Phase 2.
 - [ ] Phase 2 identity: Self Agent ID, ERC-8004, Loops agent wallet + PayTo.
 - [ ] Phase 3 Celo rail in the agent.
@@ -126,6 +126,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: Agent wallet model (PRD §5): one Errand agent key from Self Agent ID `wallet-free` = session signer + ERC-8004 owner + PayTo + Loops agent wallet. User wallets created with `agentIdentity: false`. Pending Q1.
 - 23 Nov: Celopedia skill reviewed before commit: Markdown only, no scripts. The installer's "Critical Risk" scan flags code examples (curl, env private keys), not executable code. `docs-watch` (Celopedia maintainers' tool) installed too; not used by Errand.
 - 23 Nov: T2 answered by spike S0: Textile previews USD₮→cNGN on 42220 at $1/$5/$20 (≈₦1,447.58 per USD₮, ≈$41k depth, fee ≈2 bps inside sellAmount). Stay on the cNGN corridor; no wFIAT fallback. Compute rates from sellAmount/buyAmount, not the undocumented `rateRay`.
+- 23 Nov: **Errand agent wallet = `0xc64d2153Bd39053913667A5c2eec8250d8AbC005`** (Self Agent ID agentId 214, wallet-free, mainnet; evidence/celo/identity.md). Use this one address for the whole event: Loops agent wallet, ERC-8004 owner, PayTo, session signer. Key in `.self/agent.key` on Benjamin's machine only.
 
 ## Blockers
 
