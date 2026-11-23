@@ -105,7 +105,11 @@ export type WalletState = {
   celo: bigint;
   /** True once the wallet's admin passkey is registered in Altana's KeyStore (after its first transaction). */
   registered: boolean;
-  /** CELO the first action must carry for KeyStore registration (fee + the SDK's 10% margin, excess refunded). */
+  /**
+   * CELO the first session grant must carry: two KeyStore registrations (the user's passkey and
+   * Errand's session key), each the fee + the SDK's 10% margin (excess refunded). Confirmed by the
+   * relay's own quote on 23 Nov 2026: "needs about 19.04 CELO" when the fee was 8.65 CELO.
+   */
   setupCeloNeeded: bigint;
   /** The fee itself, as the controller quotes it now. */
   setupFee: bigint;
@@ -125,7 +129,7 @@ export async function readWalletState(address: Address): Promise<WalletState> {
     celo: celoBalance,
     registered: keys.length > 0,
     setupFee: fee,
-    setupCeloNeeded: (fee * FEE_MARGIN_PERCENT) / 100n,
+    setupCeloNeeded: (2n * fee * FEE_MARGIN_PERCENT) / 100n,
   };
 }
 

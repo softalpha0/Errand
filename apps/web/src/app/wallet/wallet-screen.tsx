@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CNGN, USDT, formatUnitsExact } from "@errand/celo/tokens";
-import { Button, Card, CardHeader, ErrorNote, Pill, Skeleton } from "@/components/ui";
+import { Button, Card, CardHeader, ErrorNote, LinkButton, Pill, Skeleton } from "@/components/ui";
 import { addressUrl } from "@/lib/celo";
 import {
   backupFile,
@@ -251,7 +251,7 @@ export function WalletScreen() {
           <dl className="divide-y divide-line">
             <Row label="Naira (cNGN)" value={`₦${amount(state.cngn, CNGN.decimals, 2)}`} />
             <Row label="Dollars (USD₮)" value={`$${amount(state.usdt, USDT.decimals, 2)}`} />
-            <Row label="CELO, for the setup fee" value={`${amount(state.celo, 18, 4)} CELO`} />
+            <Row label="CELO, for setup fees" value={`${amount(state.celo, 18, 4)} CELO`} />
           </dl>
         )}
       </Card>
@@ -270,9 +270,10 @@ export function WalletScreen() {
             <li className="flex gap-3">
               <span className="num mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-sunken text-xs text-muted">2</span>
               <span>
-                Send at least <strong className="num">{celoAtLeast(state.setupCeloNeeded)} CELO</strong>. Altana charges a one-time setup fee of{" "}
-                <span className="num">{celoAtLeast(state.setupFee)} CELO</span> (about $0.50, priced live) on your wallet's first transaction. The wallet sends 10%
-                extra to cover price moves, and that extra comes straight back.
+                Send at least <strong className="num">{celoAtLeast(state.setupCeloNeeded)} CELO</strong>. Giving Errand a session for the first time registers two keys
+                in Altana's public KeyStore (your passkey and Errand's session key). Each costs a one-time fee of{" "}
+                <span className="num">{celoAtLeast(state.setupFee)} CELO</span> (about $0.50, priced live). The wallet sends 10% extra to cover price moves, and that
+                extra comes straight back.
                 {funded ? <Pill tone="approve">Enough CELO</Pill> : null}
               </span>
             </li>
@@ -307,9 +308,11 @@ export function WalletScreen() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-[15px] font-semibold">Next: give Errand a session</h2>
-            <p className="mt-1 text-sm text-muted">Set a daily cap, the contracts it may call, and an expiry. Coming in the next update.</p>
+            <p className="mt-1 text-sm text-muted">Set a daily cap, the contracts it may call, and an expiry.</p>
           </div>
-          <Pill>Step 2 of 3</Pill>
+          <LinkButton href="/session" size="sm">
+            Set up session
+          </LinkButton>
         </div>
       </Card>
     </div>

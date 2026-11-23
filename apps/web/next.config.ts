@@ -6,6 +6,11 @@ const config: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../.."),
   transpilePackages: ["@errand/core", "@errand/celo"],
   poweredByHeader: false,
+  // packages/celo uses NodeNext-style ".js" imports for ".ts" files; let webpack resolve them.
+  webpack(config) {
+    config.resolve.extensionAlias = { ".js": [".ts", ".tsx", ".js"], ...(config.resolve.extensionAlias ?? {}) };
+    return config;
+  },
   async headers() {
     return [
       {

@@ -18,3 +18,15 @@ export {
   formatUnitsExact,
   type Token,
 } from "./tokens.js";
+export {
+  ERRAND_AGENT,
+  EXPIRY_CHOICES_DAYS,
+  MAX_USDT_PER_DAY,
+  TEXTILE_REACTOR,
+  buildSessionPermissions,
+  describeAllowlist,
+  expiryFromNow,
+  toAtomic6,
+  type SessionCaps,
+  type SessionPermissions,
+} from "./session.js";
