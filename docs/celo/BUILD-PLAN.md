@@ -12,10 +12,10 @@ Legend: **HUMAN** = Benjamin must do it (the agent stops, prints exact steps, wa
 - [x] Enrolled on Loops House; tag `celo_511bb691f2f0`.
 - [x] Tag `pre-celo-hackathon` pushed; branch `celo` created.
 - [x] `packages/celo` with attribution helpers + 5 tests (commit `aca3958`).
-- [ ] Add these docs (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) and commit.
+- [x] Add these docs (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) and commit (commit `a375eb4`).
 - [ ] HUMAN: `npx loopshouse add agents-open-for-business` inside the repo (installs the Loops skill for the coding agent; sign-in opens in the browser).
 - [ ] HUMAN: `npx skills add celo-org/celopedia-skills` (verified Celo contract addresses for the coding agent).
-- [ ] Add `.self/` and `*.key` to `.gitignore`.
+- [x] Add `.self/` and `*.key` to `.gitignore`.
 - [ ] Make sure the repo is registered on Loops **before Tue 24 Nov 14:00 GMT** so AskBots review round 1 runs on it.
 
 ## Phase 1: Spikes (Mon 23 – Tue 24 Nov)

@@ -96,7 +96,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 20 Nov: enrolled on Loops House (solo); tag `celo_511bb691f2f0`.
 - [x] 20 Nov: tag `pre-celo-hackathon` pushed; branch `celo` created.
 - [x] 20 Nov: `packages/celo` attribution helpers + 5 tests (commit `aca3958`).
-- [ ] 23 Nov: docs pack committed (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*).
+- [x] 23 Nov: docs pack committed (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) (commit `a375eb4`).
+- [x] 23 Nov: `.self/` and `*.key` added to `.gitignore`.
 - [ ] HUMAN: Loops skill + Celopedia skills installed.
 - [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate.
 - [ ] Phase 2 identity: Self Agent ID, ERC-8004, Loops agent wallet + PayTo.

@@ -13,3 +13,7 @@ coverage
 .vercel
 .turbo
 evidence/raw
+
+# Self Agent ID session + exported agent key (secret)
+.self/
+*.key
