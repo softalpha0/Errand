@@ -1,0 +1,22 @@
+{
+  "what": "ERC-8004 registration of Errand's agent (canonical Identity Registry, Celo mainnet)",
+  "chainId": 42220,
+  "identityRegistry": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  "agentRegistry": "eip155:42220:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  "agentId": "10107",
+  "owner": "0xc64d2153Bd39053913667A5c2eec8250d8AbC005",
+  "agentURI": "https://raw.githubusercontent.com/softalpha0/Errand/celo/apps/web/public/.well-known/errand-agent.json",
+  "txHash": "0x8b6048637d36104e7c89d85efee0e1be8e9696fa7f00e485b79b9ee76f162b7c",
+  "celoscan": "https://celoscan.io/tx/0x8b6048637d36104e7c89d85efee0e1be8e9696fa7f00e485b79b9ee76f162b7c",
+  "blockNumber": "83528872",
+  "gasUsed": "224282",
+  "attributionCode": "celo_511bb691f2f0",
+  "calldataEndsWithTag": true,
+  "verifyTx": {
+    "codes": [
+      "celo_511bb691f2f0"
+    ],
+    "schemaId": 0
+  },
+  "recordedAt": "2026-11-23T10:27:10.619Z"
+}
