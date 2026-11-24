@@ -9,10 +9,10 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const base =
   "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 select-none";
-const sizes = { md: "h-11 px-5 text-[15px]", sm: "h-9 px-4 text-sm", lg: "h-12 px-6 text-base" };
+const sizes = { md: "h-11 px-5 text-[15px]", sm: "h-9 px-4 text-sm", lg: "h-13 px-7 text-base" };
 const variants: Record<Variant, string> = {
-  primary: "bg-ink text-paper hover:bg-ink/85",
-  secondary: "border border-line-strong bg-card text-ink hover:border-ink/40",
+  primary: "bg-accent font-semibold text-accent-ink btn-glow hover:brightness-110",
+  secondary: "border border-line-strong bg-white/[0.03] text-ink hover:border-ink/40 hover:bg-white/[0.06]",
   ghost: "text-muted hover:text-ink hover:bg-sunken",
   danger: "border border-block/30 text-block hover:bg-block-soft",
 };
@@ -46,7 +46,38 @@ export function CardHeader({ title, aside, sub }: { title: ReactNode; aside?: Re
 }
 
 export function Eyebrow({ children }: { children: ReactNode }) {
-  return <p className="text-[13px] font-medium tracking-wide text-muted uppercase">{children}</p>;
+  return <p className="text-[13px] font-semibold tracking-[0.12em] text-accent uppercase">{children}</p>;
+}
+
+/** Page title block for the app screens: step progress, big title, intro, soft glow. */
+export function PageHero({ step, title, children }: { step?: 1 | 2 | 3; title: ReactNode; children?: ReactNode }) {
+  const steps = ["Wallet", "Session", "Errand"];
+  return (
+    <div className="relative">
+      <div aria-hidden className="glow glow-green -top-40 max-w-[100vw] left-1/2 h-[380px] w-[620px] -translate-x-1/2" />
+      <div className="relative">
+        {step ? (
+          <ol className="flex items-center gap-1.5 text-[13px] sm:gap-2" aria-label={`Step ${step} of 3`}>
+            {steps.map((s, i) => (
+              <li key={s} className="flex items-center gap-1.5 sm:gap-2">
+                <span
+                  className={cx(
+                    "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium sm:px-3",
+                    i + 1 === step ? "bg-accent text-accent-ink" : i + 1 < step ? "bg-accent-soft text-accent" : "border border-line-strong text-muted",
+                  )}
+                >
+                  <span className="num">{i + 1}</span> {s}
+                </span>
+                {i < steps.length - 1 ? <span aria-hidden className="h-px w-2 bg-line-strong sm:w-8" /> : null}
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        <h1 className="mt-6 text-[40px] leading-[1] font-bold tracking-[-0.04em] sm:text-6xl">{title}</h1>
+        {children ? <div className="mt-4 max-w-2xl text-lg leading-relaxed text-muted">{children}</div> : null}
+      </div>
+    </div>
+  );
 }
 
 type Tone = "neutral" | "approve" | "block" | "ask" | "live";
@@ -55,7 +86,7 @@ const tones: Record<Tone, string> = {
   approve: "bg-accent-soft text-accent",
   block: "bg-block-soft text-block",
   ask: "bg-ask-soft text-ask",
-  live: "bg-ink text-paper",
+  live: "bg-accent text-accent-ink",
 };
 
 export function Pill({ tone = "neutral", children, dot }: { tone?: Tone; children: ReactNode; dot?: boolean }) {
@@ -85,7 +116,7 @@ export function Field({ label, hint, children, htmlFor }: { label: string; hint?
 }
 
 export const inputClass =
-  "h-11 w-full rounded-xl border border-line-strong bg-card px-3.5 text-[15px] text-ink placeholder:text-faint focus:border-ink/50 focus:outline-none focus-visible:outline-2";
+  "h-11 w-full rounded-xl border border-line-strong bg-card px-3.5 text-[15px] text-ink placeholder:text-faint focus:border-accent/70 focus:outline-none focus-visible:outline-2";
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (

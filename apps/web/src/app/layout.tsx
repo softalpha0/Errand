@@ -16,10 +16,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f3ed" },
-    { media: "(prefers-color-scheme: dark)", color: "#13120f" },
-  ],
+  themeColor: "#07090a",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -30,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <Header />
-        <main id="main">{children}</main>
+        <main id="main" className="overflow-x-clip">{children}</main>
         <Footer />
       </body>
     </html>

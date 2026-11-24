@@ -1,49 +1,35 @@
 @import "tailwindcss";
 
 /*
- * Errand design tokens.
- * Feel: calm, precise, trustworthy, like a bank statement that explains itself.
- * One accent (green = approved). Red only for blocked, amber only for "needs you".
- * No gradients, no glass, no glow.
+ * Errand design tokens: "bold fintech" (chosen 24 Nov 2026).
+ * Dark base, large display type, one colour per currency, soft glows allowed.
+ * Green = approved/primary, red only for blocked, amber only for "needs you".
  */
 :root {
-  --paper: #f6f3ed;
-  --card: #ffffff;
-  --sunken: #efebe3;
-  --ink: #1b1a17;
-  --muted: #625d53;
-  --faint: #8b857a;
-  --line: #e2dccf;
-  --line-strong: #cfc7b7;
-  --accent: #1d6a4c;
-  --accent-ink: #ffffff;
-  --accent-soft: #e2efe8;
-  --block: #b42318;
-  --block-soft: #fbe8e6;
-  --ask: #8f5400;
-  --ask-soft: #f9eedb;
-  --focus: #1d6a4c;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #13120f;
-    --card: #1b1a17;
-    --sunken: #100f0d;
-    --ink: #f1ede5;
-    --muted: #b0a99c;
-    --faint: #8a8478;
-    --line: #2f2d28;
-    --line-strong: #45423b;
-    --accent: #55b98f;
-    --accent-ink: #0d1f17;
-    --accent-soft: #15291f;
-    --block: #f2776b;
-    --block-soft: #2c1714;
-    --ask: #f0b65a;
-    --ask-soft: #2b2112;
-    --focus: #55b98f;
-  }
+  color-scheme: dark;
+  --paper: #07090a;
+  --card: #0f1314;
+  --sunken: #151a1b;
+  --ink: #f3f6f4;
+  --muted: #9ba5a1;
+  --faint: #67716d;
+  --line: #1e2526;
+  --line-strong: #2d3638;
+  --accent: #35d07f;
+  --accent-ink: #03140b;
+  --accent-soft: #0e2a1c;
+  --block: #ff6b5e;
+  --block-soft: #2c1412;
+  --ask: #f2c230;
+  --ask-soft: #2a220a;
+  --focus: #35d07f;
+  /* One colour per currency (tiles, avatars). */
+  --ngn: #0f7a4f;
+  --idr: #d6362f;
+  --ars: #3d8fd6;
+  --brl: #f2c230;
+  --mxn: #8b5cf6;
+  --cop: #f08a24;
 }
 
 @theme inline {
@@ -64,7 +50,7 @@
   --color-ask-soft: var(--ask-soft);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --radius-card: 14px;
+  --radius-card: 24px;
 }
 
 html {
@@ -158,4 +144,27 @@ body {
   body {
     background: #fff;
   }
+}
+
+/* Soft light behind heroes. Decorative only. */
+.glow {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(40px);
+}
+.glow-green {
+  background: radial-gradient(closest-side, rgba(53, 208, 127, 0.32), transparent);
+}
+.glow-blue {
+  background: radial-gradient(closest-side, rgba(61, 143, 214, 0.22), transparent);
+}
+.text-spectrum {
+  background: linear-gradient(90deg, #35d07f, #7be0ff 55%, #f2c230);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.btn-glow {
+  box-shadow: 0 0 36px -8px rgba(53, 208, 127, 0.7);
 }
