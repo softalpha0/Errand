@@ -10,6 +10,13 @@ import { explainError, loadWallet, type StoredWallet } from "@/lib/wallet";
 
 type Phase = "loading" | "no-wallet" | "form" | "active" | "ended";
 
+/**
+ * Granting stays closed until Altana confirms how to put Errand's attribution tag on grant
+ * transactions (AGENTS.md → Decisions, 23 Nov: Benjamin chose to wait). Turn on with
+ * NEXT_PUBLIC_GRANTS_OPEN=true in Vercel, then redeploy. Revoke is never gated.
+ */
+const GRANTS_OPEN = process.env.NEXT_PUBLIC_GRANTS_OPEN === "true";
+
 function fmt(value: bigint, decimals: number, maxFraction = 4) {
   const [whole, fraction = ""] = formatUnitsExact(value, decimals).split(".");
   const f = fraction.slice(0, maxFraction).replace(/0+$/, "");
@@ -281,10 +288,18 @@ export function SessionScreen() {
         <p className="mt-1 text-sm text-muted">
           One passkey tap. The session key belongs to Errand's agent (<span className="num">{short(ERRAND_AGENT.address)}</span>), which has its own identity on Celo.
         </p>
-        <Button className="mt-4" onClick={onGrant} disabled={!caps || !quote || shortOn || busy !== ""}>
+        <Button className="mt-4" onClick={onGrant} disabled={!GRANTS_OPEN || !caps || !quote || shortOn || busy !== ""}>
           {busy === "grant" ? "Waiting for your passkey…" : "Grant session"}
         </Button>
-        {!quote ? <p className="mt-2 text-[13px] text-muted">Check the cost first.</p> : shortOn ? <p className="mt-2 text-[13px] text-ask">Top up your wallet, then check the cost again.</p> : null}
+        {!GRANTS_OPEN ? (
+          <p className="mt-2 text-[13px] text-muted">
+            Granting opens soon. We're confirming with Altana how to label these transactions as Errand's on Celo. You can set your limits and check the cost now.
+          </p>
+        ) : !quote ? (
+          <p className="mt-2 text-[13px] text-muted">Check the cost first.</p>
+        ) : shortOn ? (
+          <p className="mt-2 text-[13px] text-ask">Top up your wallet, then check the cost again.</p>
+        ) : null}
       </Card>
     </div>
   );

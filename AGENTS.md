@@ -109,7 +109,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
   - [x] 4.1 Celo home page (`apps/web`): pitch, how it works, verified on-chain facts, honest build status. Old Kite/SERV pages no longer linked.
   - [x] 4.1 HUMAN: new Vercel project `errand-thgw`, production branch `celo` → **https://errand-thgw.vercel.app** (live 23 Nov). SERV project untouched.
   - [x] 4.2 Wallet screen `/wallet` (23 Nov): Altana passkey wallet (`agentIdentity: false`), address + copy + Celoscan, live USD₮/cNGN/CELO balances, KeyStore set-up status, live setup fee, funding steps, backup file, restore (passkey or file). E2E-tested in headless Chromium with a virtual passkey against the real Altana relay + Celo mainnet (no tx). `packages/celo/src/tokens.ts` + 6 tests.
-  - [x] 4.3 Session screen `/session` built (23 Nov): daily caps (₦ and USD₮), allowlist (USD₮ approve, Textile reactor, cNGN transfer), expiry 1/7/30 days, live Altana quote, grant (session key = agent public key only), status, revoke. `packages/celo/src/session.ts` + 9 tests. Quote path E2E-tested; **no grant sent yet** (waiting on the tag decision below).
+  - [x] 4.3 Session screen `/session` built (23 Nov): daily caps (₦ and USD₮), allowlist (USD₮ approve, Textile reactor, cNGN transfer), expiry 1/7/30 days, live Altana quote, grant (session key = agent public key only), status, revoke. `packages/celo/src/session.ts` + 9 tests. Quote path E2E-tested. **Grant button locked** (`NEXT_PUBLIC_GRANTS_OPEN` unset) until Altana answers on tagging; revoke never locked.
   - [ ] 4.4 Errand composer.
 - [ ] Phase 5 Errand Guard on Celo.
 - [ ] Phase 6 real users (≥ 3 independent).
@@ -121,13 +121,13 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - Q1: Do tagged txs from users' Altana wallets, signed by Errand's agent key as session signer, count toward the entry? (asked in Telegram)
 - A1/A2: Does the attribution tag survive Altana's relay, and is the relay a standard EntryPoint `handleOps`? (spike S1)
 - A3: Can a session be granted in the browser to a server-held key? **Yes by code reading** (SDK 1.1.0 grantSession reads only the session signer's `publicKey` and `address`); confirm with the first real grant.
-- Q2 (Benjamin): Altana's SDK has no way to add an attribution suffix, and grant/revoke take no custom calldata, so **grant and revoke txs cannot carry `celo_511bb691f2f0`**. Allow these two untagged user-admin txs (the Altana track requires them), or wait for Altana? Ask in Altana's Telegram too.
 - T1: Textile `takerProof` from an Altana smart wallet, or use an API key? (spike S3)
 
 ## Decisions
 
 - 20 Nov: Enter with existing project Errand (organisers confirmed existing projects are fine with new code written during the event).
 - 20 Nov: Build on branch `celo`; `main` stays as the SERV submission.
+- 23 Nov: Celo team (Susanne, Telegram) confirmed again: "We accept existing projects with activity (GitHub commits, new features, onchain traction, etc) during the hackathon period"; switching a project to Celo or making it multi-chain is welcome. Keep Errand; no new project.
 - 20 Nov: Tag `celo_511bb691f2f0` lives in `packages/celo`; `ATTRIBUTION_CODE` env may override it.
 - 23 Nov: Agent wallet model (PRD §5): one Errand agent key from Self Agent ID `wallet-free` = session signer + ERC-8004 owner + PayTo + Loops agent wallet. User wallets created with `agentIdentity: false`. Pending Q1.
 - 23 Nov: Celopedia skill reviewed before commit: Markdown only, no scripts. The installer's "Critical Risk" scan flags code examples (curl, env private keys), not executable code. `docs-watch` (Celopedia maintainers' tool) installed too; not used by Errand.
@@ -143,6 +143,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: Altana `recoverFromPasskey` only works after a wallet's first transaction (it reads the admin key from KeyStore). Until then the browser's localStorage holds the only copy of the passkey's public key, so the wallet page offers a public-data backup file and a restore-from-file option.
 - 23 Nov: **First session grant costs about 19.1 CELO (≈$1.05) per user wallet**: it registers two keys in Altana's KeyStore (the user's passkey + Errand's session key), each the $0.50 fee + 10% margin (excess refunded). Confirmed by the relay's own quote. Keeping `register: true` so the session is visible on the public KeyStore (core of the Altana track). Wallet funding steps ask for 2 × fee × 1.1.
 - 23 Nov: Errand's agent public key (`0x0460…6ac7`) recovered from the signature of its ERC-8004 tx; stored in `packages/celo/src/session.ts` (`ERRAND_AGENT`), test checks it maps to `0xc64d…C005`.
+- 23 Nov: **Q2 decided by Benjamin: B (wait).** Altana SDK 1.1.0 has no attribution/`dataSuffix` option and grant/revoke take no custom calldata, so those txs can't carry `celo_511bb691f2f0`. No grant is sent until Altana answers (asked in Altana's Telegram). The live site's Grant button is locked behind `NEXT_PUBLIC_GRANTS_OPEN=true`. Meanwhile build what doesn't need Altana txs (Errand Guard on x402: payments to the registered PayTo count without tags; Textile client).
 
 ## Blockers
 
