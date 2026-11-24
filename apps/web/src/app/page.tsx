@@ -72,7 +72,7 @@ const STATUS: StatusRow[] = [
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN on Textile FX, paid to a named recipient", state: "next" },
   { item: "Receipts with a Celoscan link for every transaction", state: "next" },
-  { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "try" },
+  { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "live" },
 ];
 
 const STATE_LABEL = { live: "Live on mainnet", try: "Ready to try", building: "Building now", next: "Next" } as const;

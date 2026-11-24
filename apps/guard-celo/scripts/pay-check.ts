@@ -70,7 +70,20 @@ let baseFetch: typeof fetch = fetch;
 if (verified) {
   if (!existsSync(AGENT_KEY_FILE)) stop("--verified needs .self/agent.key (Errand's Self Agent ID key).");
   const agent = new SelfAgent({ privateKey: readKey(AGENT_KEY_FILE), network: "mainnet" });
-  baseFetch = ((input: string | URL | Request, init?: RequestInit) => agent.fetch(input instanceof Request ? input.url : String(input), init)) as typeof fetch;
+  // wrapFetchWithPayment passes a Request object; SelfAgent.fetch(url, options) needs the method, headers
+  // and the exact body string to sign, so unpack the Request into those.
+  baseFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+    if (input instanceof Request) {
+      const headers: Record<string, string> = {};
+      input.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      const method = input.method.toUpperCase();
+      const body = method === "GET" || method === "HEAD" ? undefined : await input.text();
+      return agent.fetch(input.url, { ...init, method, headers, ...(body !== undefined ? { body } : {}) });
+    }
+    return agent.fetch(String(input), init);
+  }) as typeof fetch;
   console.log(`Signing the request as Errand's Self Agent ID (agent wallet ${AGENT_WALLET}).`);
 }
 

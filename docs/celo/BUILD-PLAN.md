@@ -29,7 +29,7 @@ Each spike is a script in `packages/celo/scripts/` with results written to `evid
 | S2 | Grant a session where `sessionSigner` is a key the browser doesn't hold (public-key-only signer object), then `execute` from the server with the real key | Execute `CONFIRMED` | Have the browser generate the session key and send it to the server over TLS (worse) or ask Altana |
 | S3 | Textile firm quote with `taker` = the Altana test wallet: keyless `takerProof` signed via the wallet (ERC-1271), then approve → wait → swap via `execute` (tagged), then `/submit` | RFQ reaches `filled`; swap tx tagged | Get a Textile API key (`Authorization: Bearer tx_live_…`, no `takerProof`) and repeat |
 | S4 ✅ PASS 23 Nov (agentId 214) | Self Agent ID `wallet-free` registration on **mainnet** (HUMAN: scan with the Self app), export key within 30 min | `agentId` returned, key saved to `.env` | Retry; check passport is supported by Self |
-| S5 | x402 Celo: Errand Guard test route priced $0.01 USD₮; pay it once from the agent key with `@x402/fetch` | 200 + settlement on Celoscan | Check `extra.name` = `Tether USD`, version `1`, amount `"10000"` |
+| S5 ✅ PASS 24 Nov | x402 Celo: Errand Guard test route priced $0.01 USD₮; pay it once from the agent key with `@x402/fetch` | 200 + settlement on Celoscan | Check `extra.name` = `Tether USD`, version `1`, amount `"10000"` |
 
 **Decision gate (end of Tue 24 Nov):** record S0–S5 results and the Telegram answer to Q1 in AGENTS.md → Decisions. Then fix the design in PRD §5 and §14.
 

@@ -10,7 +10,7 @@ Times are UTC. "Test" wallets are Benjamin's own and are never counted as users.
 | S2 | Server-held session signer | not run yet | |
 | S3 | Textile firm quote + swap from an Altana wallet | not run yet | |
 | S4 | Self Agent ID `wallet-free` on mainnet | **PASS** (agentId 214) | 23 Nov 2026 |
-| S5 | x402 Celo payment to an Errand Guard test route | not run yet | |
+| S5 | x402 Celo payment to Errand Guard | **PASS** (first paid check) | 24 Nov 2026 |
 
 ---
 
@@ -43,3 +43,13 @@ Times are UTC. "Test" wallets are Benjamin's own and are never counted as users.
 - **Registration tx:** `0xe46d880c3de064bc578effbc8f01cd430d0f665b231630cc3e95984a67296fb9` (sent by Self's relayer, so untagged; not an Errand transaction).
 - **Learned:** the CLI writes the generated key into `.self/session.json` at `init` (before the scan) and can export it to a file with `--out-key`, so the key never has to be printed. `register status` prints only public fields. The session lasts 30 minutes from `init`. Self pays the registration gas; the agent address still holds no CELO.
 - Full identity record: `evidence/celo/identity.md`.
+
+---
+
+## S5: x402 payment on Celo mainnet, to Errand Guard (PASS)
+
+- **Service:** Errand Guard, https://errand-guard-celo.onrender.com (`apps/guard-celo`), `POST /check` priced 10000 units of USD₮ ($0.01), PayTo = Errand's agent wallet `0xc64d2153Bd39053913667A5c2eec8250d8AbC005`, Celo facilitator `https://api.x402.celo.org` with an API key.
+- **Payer:** Benjamin's TEST wallet `0x58AcE9cB87Db8e5997288023a53f586498a36C36` (funded with 0.12 USD₮ from his own MiniPay; not a user). Script: `pnpm --filter @errand/guard-celo pay-check`.
+- **Result (unverified caller):** HTTP 200, `decision: approve`, tier `unverified`, remaining today 2. Payment settled: tx [`0x4781a9ca5856fba1c683793ff5868e848430c1221da74c719999e439742ea606`](https://celoscan.io/tx/0x4781a9ca5856fba1c683793ff5868e848430c1221da74c719999e439742ea606), block 83644058.
+- **Checked on chain:** status success; USD₮ Transfer of 0.01 from `0x58Ac…6C36` to the agent wallet. The tx was sent by the facilitator (`0x0d74d5cefd2e7f24e623330ebe3d8d4cb45ffb48`), which paid the gas. No attribution tag on it (x402 settlements can't carry one yet; the 402 declared `celo_511bb691f2f0` via the builder-code extension, and the PayTo is registered on Loops).
+- **Learned:** `wrapFetchWithPayment` passes a `Request` object to the inner fetch. A Self-signing wrapper must unpack method, headers and the exact body string before calling `SelfAgent.fetch(url, options)`, or the request goes out as GET (first `--verified` run got 404, nothing charged). Fixed in `pay-check.ts`.

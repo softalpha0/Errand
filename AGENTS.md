@@ -99,7 +99,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 23 Nov: docs pack committed (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) (commit `a375eb4`).
 - [x] 23 Nov: `.self/` and `*.key` added to `.gitignore`.
 - [x] 23 Nov: Loops skill (`.claude/skills`, `.agents/skills`) + Celopedia skills (`.agents/skills`) installed in the repo.
-- [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov (evidence/celo/spikes.md).
+- [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov, S5 PASS (first x402 payment to Errand Guard) 24 Nov (evidence/celo/spikes.md).
 - [x] 23 Nov: Loops agent wallet on file = `0xc64d2153Bd39053913667A5c2eec8250d8AbC005` (Celo checklist on the Loops playground).
 - [x] 23 Nov: Phase 2 (pulled forward): ERC-8004 **agentId 10107** registered from the agent wallet, tagged (tx `0x8b60…2b7c`, `verifyTx` shows `celo_511bb691f2f0`). Evidence: `evidence/celo/identity.md`, `evidence/celo/erc8004-register.json`.
 - [x] 23 Nov: Loops Celo checklist shows **ALL SET** (agent wallet on file, tag seen on-chain, ERC-8004 registered).
@@ -114,7 +114,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [ ] Phase 5 Errand Guard on Celo. (Started 24 Nov.)
   - [x] `apps/guard-celo` built: Hono + `@x402/hono` 2.32 + Celo facilitator (X-API-Key), `POST /check` $0.01 USD₮, PayTo = agent wallet, builder-code extension `a: celo_511bb691f2f0` in the 402, Self Agent ID gate (`SelfAgentVerifier`, mainnet, sybilLimit 1, raw body) → verified 100/day per human, unverified 3/day per IP, refusals (400/429) before payment. Rules G1–G8. 20 tests. Ran locally: real 402 challenge checked; a real Self-signed unregistered key verified against the mainnet registry → unverified.
   - [x] 24 Nov: x402 API key created; new Render web service `errand-guard-celo` (Node, branch `celo`, free) → **https://errand-guard-celo.onrender.com** live; `/health` shows facilitator configured; live 402 challenge checked. SERV services untouched.
-  - [ ] First paid check on mainnet (verified + unverified callers), evidence in `evidence/celo/`.
+  - [x] 24 Nov: **first paid check on mainnet** (unverified caller): $0.01 USD₮ test wallet → agent wallet, tx `0x4781…a606`, decision approve. Spike S5 PASS. Home page marks Errand Guard live.
+  - [ ] Paid check as a Self-verified caller (`pay-check -- --verified`; wrapper fixed after a 404 that charged nothing).
   - [x] Agent card: Guard endpoint added, `x402Support: true`; home page shows Errand Guard ("Ready to try" until the first paid check).
   - [x] `pnpm --filter @errand/guard-celo pay-check [-- --verified]`: pays one check from a test wallet (`.self/test-payer.key`), optional Self signing as agent 214, records to `evidence/celo/guard-checks.jsonl`.
 - [ ] Phase 6 real users (≥ 3 independent).
