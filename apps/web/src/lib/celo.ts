@@ -19,6 +19,11 @@ export const CELO = {
     registerTx: "0xe46d880c3de064bc578effbc8f01cd430d0f665b231630cc3e95984a67296fb9",
   },
   guardUrl: "https://errand-guard-celo.onrender.com",
+  textileSwap: {
+    // Spike S3, 24 Nov 2026 (evidence/celo/spikes.md): test wallet, 1 USD₮ → ₦1,445.12 cNGN, tagged.
+    tx: "0x9731a44d6f3b8c117059d313b33ace04ce3ca8b2e5420b476a5efdcb1b42528b",
+    naira: "1,445.12",
+  },
   textilePreview: {
     // Spike S0, 23 Nov 2026 (evidence/celo/spikes.md). Indicative only.
     nairaPerUsdt: 1447.58,

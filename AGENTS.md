@@ -99,7 +99,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 23 Nov: docs pack committed (PRD.md, AGENTS.md, CLAUDE.md, docs/celo/*) (commit `a375eb4`).
 - [x] 23 Nov: `.self/` and `*.key` added to `.gitignore`.
 - [x] 23 Nov: Loops skill (`.claude/skills`, `.agents/skills`) + Celopedia skills (`.agents/skills`) installed in the repo.
-- [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov, S5 PASS (first x402 payment to Errand Guard) 24 Nov (evidence/celo/spikes.md).
+- [ ] Phase 1 spikes S0–S5 (BUILD-PLAN) + decision gate. S0 PASS, S4 PASS (Self agentId 214) 23 Nov, S3 PASS (Textile swap, EOA taker), S5 PASS (first x402 payment to Errand Guard) 24 Nov (evidence/celo/spikes.md).
 - [x] 23 Nov: Loops agent wallet on file = `0xc64d2153Bd39053913667A5c2eec8250d8AbC005` (Celo checklist on the Loops playground).
 - [x] 23 Nov: Phase 2 (pulled forward): ERC-8004 **agentId 10107** registered from the agent wallet, tagged (tx `0x8b60…2b7c`, `verifyTx` shows `celo_511bb691f2f0`). Evidence: `evidence/celo/identity.md`, `evidence/celo/erc8004-register.json`.
 - [x] 23 Nov: Loops Celo checklist shows **ALL SET** (agent wallet on file, tag seen on-chain, ERC-8004 registered).
@@ -107,7 +107,9 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [ ] Phase 3 Celo rail in the agent. (Started 24 Nov.)
   - [x] `packages/celo/src/textile.ts`: Textile RFQ v2 client (preview, request with keyless TakerControl v1 proof on 401, get/submit/cancel with X-Rfq-Claim, TextileError with code/reason), `validateFirmQuote` (rule R15), 11 tests. **Proof format confirmed live**: Textile accepted our signature and answered `insufficient_funds` for an empty wallet; `builderCodes: ["celo_511bb691f2f0"]` accepted.
   - [x] `pnpm --filter @errand/celo textile-swap [-- --send] [--usd N]`: firm quote → R15 → (dry run: release) / (send: reset+approve → wait → expiry recheck → tagged swap → /submit → poll → verifyTx → evidence JSON). Taker = test wallet.
-  - [ ] HUMAN: fund the test wallet with ~1.1 USD₮ + ~0.2 CELO; dry run; then `--send` for the first real conversion (spike S3, EOA variant).
+  - [x] 24 Nov: **first tagged Textile FX conversion on mainnet**: 1 USD₮ → ₦1,445.12 cNGN, rfq `rfq_VaBvtTmO22gNGDPw`, approve `0xea7a…4d71` + swap `0x9731…528b`, both `verifyTx` = `celo_511bb691f2f0`, Textile `filled`. Taker = test wallet (not a user). Spike S3 PASS (EOA variant).
+  - [ ] Put the conversion inside an errand in the product (Corridors: "used in the product flow").
+  - [ ] cNGN payout to a recipient outside the team (Corridors requirement 2; Phase 6).
 - [ ] Phase 4 web wallet + session; new deployments. (Started 23 Nov, ahead of Phase 3 at Benjamin's request; S1/S2 run inside it.)
   - [x] 4.1 Celo home page (`apps/web`): pitch, how it works, verified on-chain facts, honest build status. Old Kite/SERV pages no longer linked.
   - [x] 4.1 HUMAN: new Vercel project `errand-thgw`, production branch `celo` → **https://errand-thgw.vercel.app** (live 23 Nov). SERV project untouched.

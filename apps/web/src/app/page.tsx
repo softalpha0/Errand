@@ -57,6 +57,12 @@ const FACTS: Fact[] = [
     note: "Added to the end of every transaction Errand sends, so each one can be traced to Errand.",
   },
   {
+    label: "Textile FX conversion",
+    value: `1 USD₮ → ₦${CELO.textileSwap.naira} cNGN`,
+    href: txUrl(CELO.textileSwap.tx),
+    note: "A real USD₮ to cNGN swap on Textile FX from Errand's test wallet, 24 Nov 2026. The transaction carries Errand's attribution tag.",
+  },
+  {
     label: "Textile FX price check",
     value: `≈ ₦${CELO.textilePreview.nairaPerUsdt.toLocaleString("en-NG")} per USD₮`,
     note: `Indicative USD₮→cNGN price for $1–$20 on Celo mainnet, ${CELO.textilePreview.date}. Not a live quote.`,
@@ -70,7 +76,8 @@ const STATUS: StatusRow[] = [
   { item: "Attribution tag on every Errand transaction", state: "live" },
   { item: "Your own Altana wallet, created with a passkey (free, no transaction)", state: "try" },
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
-  { item: "USD₮ → cNGN on Textile FX, paid to a named recipient", state: "next" },
+  { item: "USD₮ → cNGN conversion on Textile FX, tagged", state: "live" },
+  { item: "Conversion inside an errand, cNGN paid to the person you name", state: "building" },
   { item: "Receipts with a Celoscan link for every transaction", state: "next" },
   { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "live" },
 ];
