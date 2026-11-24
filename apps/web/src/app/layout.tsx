@@ -5,12 +5,12 @@ import { Footer, Header } from "@/components/chrome";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "Errand: your errands in Naira, paid from your own wallet", template: "%s · Errand" },
+  title: { default: "Errand: send local money to anyone, paid from your own wallet", template: "%s · Errand" },
   description:
-    "Errand converts USD₮ to cNGN on Celo and pays the person you name, from your own Altana wallet, under a session with a spend cap, a contract allowlist and an expiry that you can revoke in one transaction.",
+    "Errand converts USD₮ to local stablecoins on Celo (cNGN, IDRX, wARS, wBRL) and pays the person you name, from your own Altana wallet, under a session with a spend cap, a contract allowlist and an expiry that you can revoke in one transaction.",
   openGraph: {
     title: "Errand on Celo",
-    description: "Your errands in Naira, paid from your own wallet. You set the cap.",
+    description: "Send local money to anyone, paid from your own wallet. You set the cap.",
     type: "website",
   },
 };

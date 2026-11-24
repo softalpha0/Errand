@@ -9,24 +9,13 @@
 import { decodeFunctionData, encodeFunctionData, type Address, type Hex } from "viem";
 import { hasErrandTag, tagCalldata } from "./attribution.js";
 import { TEXTILE_REACTOR } from "./session.js";
-import { CNGN, USDT } from "./tokens.js";
+import { LOCAL_TOKEN_ADDRESSES, MAX_ERRAND_USDT, MIN_ERRAND_USDT, currencyByToken } from "./currencies.js";
+import { USDT } from "./tokens.js";
 
 export type RuleFinding = { rule: string; reason: string };
 
 /** Hackathon corridors: USD₮ ↔ cNGN, IDRX, wARS, wBRL, wMXN, wCOP (RULES.md). */
-export const CORRIDOR_TOKENS: readonly Address[] = [
-  CNGN.address,
-  "0x18Bc5bcC660cf2B9cE3cd51a404aFe1a0cBD3C22", // IDRX
-  "0x0DC4F92879B7670e5f4e4e6e3c801D229129D90D", // wARS
-  "0xD76f5Faf6888e24D9F04Bf92a0c8B921FE4390e0", // wBRL
-  "0x337E7456B420bD3481e7FA61fA9850343d610d34", // wMXN
-  "0x8a1D45e102e886510e891d2Ec656a708991e2D76", // wCOP
-];
-
-/** Largest single errand while Errand is in testing: ₦50,000 (about $35 at ₦1,445/USD₮). */
-export const MAX_ERRAND_NAIRA_ATOMIC = 50_000n * 10n ** 6n;
-/** Smallest: Textile's minimum is about $1 notional, so ask for at least ₦1,500. */
-export const MIN_ERRAND_NAIRA_ATOMIC = 1_500n * 10n ** 6n;
+export const CORRIDOR_TOKENS: readonly Address[] = LOCAL_TOKEN_ADDRESSES;
 
 const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -42,17 +31,21 @@ export function r14Corridor(chainId: number, sellToken: string, buyToken: string
   return out;
 }
 
-/** The calls an errand may make: the same three the Altana session allows (session.ts). */
-export const ERRAND_ALLOWLIST: readonly { to: Address; selector?: Hex; label: string }[] = [
-  { to: USDT.address, selector: "0x095ea7b3", label: "USD₮ approve" },
-  { to: TEXTILE_REACTOR, label: "Textile FX swap" },
-  { to: CNGN.address, selector: "0xa9059cbb", label: "cNGN transfer" },
-];
+/** The calls an errand may make: the same three the Altana session allows (session.ts), for one local currency. */
+export function errandAllowlist(localToken: Address): { to: Address; selector?: Hex; label: string }[] {
+  const sym = currencyByToken(localToken)?.token.symbol ?? "local";
+  return [
+    { to: USDT.address, selector: "0x095ea7b3", label: "USD₮ approve" },
+    { to: TEXTILE_REACTOR, label: "Textile FX swap" },
+    { to: localToken, selector: "0xa9059cbb", label: `${sym} transfer` },
+  ];
+}
 
-export function r16Allowlist(calls: readonly { to: string; data: Hex }[]): RuleFinding[] {
+export function r16Allowlist(calls: readonly { to: string; data: Hex }[], localToken: Address): RuleFinding[] {
+  const allow = errandAllowlist(localToken);
   const out: RuleFinding[] = [];
   for (const c of calls) {
-    const ok = ERRAND_ALLOWLIST.some((a) => eq(a.to, c.to) && (!a.selector || c.data.toLowerCase().startsWith(a.selector)));
+    const ok = allow.some((a) => eq(a.to, c.to) && (!a.selector || c.data.toLowerCase().startsWith(a.selector)));
     if (!ok) out.push({ rule: "R16", reason: `A call to ${c.to} is outside the contracts and functions you approved.` });
   }
   return out;
@@ -62,26 +55,34 @@ export function r17Tagged(calls: readonly { to: string; data: Hex }[]): RuleFind
   return calls.filter((c) => !hasErrandTag(c.data)).map((c) => ({ rule: "R17", reason: `A transaction to ${c.to} is missing Errand's attribution tag.` }));
 }
 
-export function checkErrandRequest(p: { nairaAtomic: bigint; recipient: string; payer?: string }): RuleFinding[] {
+/** Checks before pricing: a supported currency, a positive amount, a sensible recipient. */
+export function checkErrandRequest(p: { localToken: string; amountAtomic: bigint; recipient: string; payer?: string }): RuleFinding[] {
   const out: RuleFinding[] = [];
-  if (p.nairaAtomic < MIN_ERRAND_NAIRA_ATOMIC) out.push({ rule: "E1", reason: "Send at least ₦1,500 (Textile's minimum is about $1)." });
-  if (p.nairaAtomic > MAX_ERRAND_NAIRA_ATOMIC) out.push({ rule: "E1", reason: "While Errand is in testing, one errand sends at most ₦50,000." });
+  if (!currencyByToken(p.localToken)) out.push({ rule: "E0", reason: "Pick one of the local currencies Errand supports." });
+  if (p.amountAtomic <= 0n) out.push({ rule: "E1", reason: "Enter an amount above zero." });
   if (!ADDRESS.test(p.recipient)) out.push({ rule: "E2", reason: "The recipient must be a Celo address (0x followed by 40 characters)." });
   else {
     if (eq(p.recipient, ZERO)) out.push({ rule: "E2", reason: "The recipient is the zero address; the money would be lost." });
-    if ([USDT.address, CNGN.address, TEXTILE_REACTOR].some((a) => eq(a, p.recipient))) out.push({ rule: "E2", reason: "The recipient is a contract Errand uses, not a person." });
+    if ([USDT.address, TEXTILE_REACTOR, ...LOCAL_TOKEN_ADDRESSES].some((a) => eq(a, p.recipient))) out.push({ rule: "E2", reason: "The recipient is a contract Errand uses, not a person." });
     if (p.payer && eq(p.payer, p.recipient)) out.push({ rule: "E2", reason: "The recipient is your own wallet." });
   }
   return out;
+}
+
+/** Checks once priced: what the sender pays must sit within Errand's testing limits ($1.10–$35). */
+export function checkErrandCost(takerPaysUsdtAtomic: bigint): RuleFinding[] {
+  if (takerPaysUsdtAtomic < MIN_ERRAND_USDT) return [{ rule: "E1", reason: "That's below Textile's minimum. Send at least about $1.10 worth." }];
+  if (takerPaysUsdtAtomic > MAX_ERRAND_USDT) return [{ rule: "E1", reason: "While Errand is in testing, one errand costs at most $35." }];
+  return [];
 }
 
 const transferAbi = [
   { type: "function", name: "transfer", stateMutability: "nonpayable", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
 ] as const;
 
-/** cNGN transfer to the recipient, tagged. */
-export function buildPayout(recipient: Address, nairaAtomic: bigint): { to: Address; data: Hex } {
-  return { to: CNGN.address, data: tagCalldata(encodeFunctionData({ abi: transferAbi, functionName: "transfer", args: [recipient, nairaAtomic] })) };
+/** Local-stablecoin transfer to the recipient, tagged. */
+export function buildPayout(localToken: Address, recipient: Address, amountAtomic: bigint): { to: Address; data: Hex } {
+  return { to: localToken, data: tagCalldata(encodeFunctionData({ abi: transferAbi, functionName: "transfer", args: [recipient, amountAtomic] })) };
 }
 
 /** Reads back a payout's recipient and amount (for receipts and tests). */

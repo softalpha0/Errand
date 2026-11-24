@@ -4,9 +4,10 @@
  * reaches the browser. Keyless: the user's wallet signs the TakerControl proof in the browser and we relay it.
  */
 import { NextResponse } from "next/server";
-import { CNGN, USDT } from "@errand/celo/tokens";
+import { USDT } from "@errand/celo/tokens";
+import { LOCAL_CURRENCIES, MAX_ERRAND_USDT, currencyByCode, type LocalCurrency } from "@errand/celo/currencies";
 import { TextileClient, TextileError, type TakerProof } from "@errand/celo/textile";
-import { MAX_ERRAND_NAIRA_ATOMIC, MIN_ERRAND_NAIRA_ATOMIC, r14Corridor } from "@errand/celo/rules";
+import { r14Corridor } from "@errand/celo/rules";
 
 export const textile = new TextileClient({ apiKey: process.env.TEXTILE_API_KEY });
 export const CHAIN_ID = 42220;
@@ -26,11 +27,16 @@ export function fromError(e: unknown) {
   return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 });
 }
 
-/** Exact-output Naira amount (cNGN atomic units, 6 decimals) within Errand's testing limits. */
+/** A supported local currency by its code ("NGN", "IDR", …). */
+export function parseCurrency(v: unknown): LocalCurrency | null {
+  return typeof v === "string" ? (currencyByCode(v) ?? null) : null;
+}
+
+/** Exact-output amount in the local token's atomic units. The dollar limits are checked on the quote. */
 export function parseBuyAmount(v: unknown): bigint | null {
-  if (typeof v !== "string" || !/^\d{1,30}$/.test(v)) return null;
+  if (typeof v !== "string" || !/^\d{1,40}$/.test(v)) return null;
   const n = BigInt(v);
-  return n >= MIN_ERRAND_NAIRA_ATOMIC && n <= MAX_ERRAND_NAIRA_ATOMIC ? n : null;
+  return n > 0n ? n : null;
 }
 
 export function parseAddress(v: unknown): `0x${string}` | null {
@@ -54,5 +60,10 @@ export function parseRfq(body: Record<string, unknown>): { rfqId: string; claimT
   return { rfqId, claimToken };
 }
 
-export const PAIR = { chainId: CHAIN_ID, sellToken: USDT.address, buyToken: CNGN.address };
-if (r14Corridor(PAIR.chainId, PAIR.sellToken, PAIR.buyToken).length) throw new Error("R14: the composer's pair is outside the hackathon corridors.");
+export function pair(c: LocalCurrency) {
+  const p = { chainId: CHAIN_ID, sellToken: USDT.address, buyToken: c.token.address };
+  if (r14Corridor(p.chainId, p.sellToken, p.buyToken).length) throw new Error("R14: outside the hackathon corridors.");
+  return p;
+}
+
+export { LOCAL_CURRENCIES, MAX_ERRAND_USDT };

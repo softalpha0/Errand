@@ -48,14 +48,24 @@ export {
 } from "./textile.js";
 export {
   CORRIDOR_TOKENS,
-  ERRAND_ALLOWLIST,
-  MAX_ERRAND_NAIRA_ATOMIC,
-  MIN_ERRAND_NAIRA_ATOMIC,
   buildPayout,
+  checkErrandCost,
   checkErrandRequest,
   decodePayout,
+  errandAllowlist,
   r14Corridor,
   r16Allowlist,
   r17Tagged,
   type RuleFinding,
 } from "./rules.js";
+export {
+  LOCAL_CURRENCIES,
+  LOCAL_TOKEN_ADDRESSES,
+  MAX_ERRAND_USDT,
+  MIN_ERRAND_USDT,
+  currencyByCode,
+  currencyByToken,
+  toAtomic,
+  type CurrencyCode,
+  type LocalCurrency,
+} from "./currencies.js";

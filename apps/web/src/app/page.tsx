@@ -16,11 +16,11 @@ const STEPS = [
   },
   {
     title: "Every payment is checked, then converted and paid",
-    body: "Errand's guard checks each payment first. Then it converts USD₮ to cNGN on Textile FX and pays the cNGN to the named recipient, from your wallet, under your session.",
+    body: "Errand's guard checks each payment first. Then it converts USD₮ to the local stablecoin on Textile FX (cNGN, IDRX, wARS, wBRL…) and pays it to the named recipient, from your wallet, under your session.",
   },
   {
     title: "You get a receipt for every transaction",
-    body: "The amount in Naira and what it cost in USD₮, the rate, why it was approved, and a Celoscan link for each transaction.",
+    body: "The amount in local money and what it cost in USD₮, the rate, why it was approved, and a Celoscan link for each transaction.",
   },
 ];
 
@@ -77,7 +77,7 @@ const STATUS: StatusRow[] = [
   { item: "Your own Altana wallet, created with a passkey (free, no transaction)", state: "try" },
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN conversion on Textile FX, tagged", state: "live" },
-  { item: "Errands on the site: exact Naira to the person you name, from your own wallet", state: "try" },
+  { item: "Errands on the site: an exact amount in ₦, Rp, AR$ or R$ to the person you name, from your own wallet", state: "try" },
   { item: "Receipts with a Celoscan link for every transaction", state: "next" },
   { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "live" },
 ];
@@ -91,14 +91,14 @@ export default function Home() {
       <section className="pt-14 pb-12 sm:pt-20">
         <Eyebrow>Errand on Celo</Eyebrow>
         <h1 className="mt-3 max-w-3xl text-[34px] leading-[1.1] font-semibold tracking-tight sm:text-5xl">
-          Your errands in Naira, paid from your own wallet.
+          Send local money to anyone, paid from your own wallet.
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
-          You set the cap, Errand can only call what you allow, and you can stop it in one transaction. It converts USD₮ to cNGN and pays the person you name,
-          with a receipt for every transaction.
+          Naira in Nigeria, rupiah in Indonesia, pesos in Argentina, reais in Brazil. Errand converts your USD₮ to the local stablecoin on Textile FX and pays the
+          person you name the exact amount. You set the cap, Errand can only call what you allow, and you can stop it in one transaction.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-3">
-          <LinkButton href="/errand">Send Naira</LinkButton>
+          <LinkButton href="/errand">Send money</LinkButton>
           <LinkButton href="/wallet" variant="secondary">
             Create your wallet
           </LinkButton>

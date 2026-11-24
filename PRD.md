@@ -13,6 +13,8 @@
 
 ---
 
+> **Update 24 Nov 2026:** Errand is no longer Nigeria-only. It pays out in any hackathon corridor with live Textile liquidity (cNGN, IDRX, wARS, wBRL today; wMXN/wCOP when makers return), with limits in dollars ($1.10–$35 per errand while testing). Nigeria stays the launch market for the first named users. Details: AGENTS.md → Decisions.
+
 ## 1. Problem
 
 People in Nigeria pay people and small businesses in Naira every day: a market supplier, a tailor, rent, a family member's data. A person who holds dollars in stablecoins has two bad options for letting an agent do this:

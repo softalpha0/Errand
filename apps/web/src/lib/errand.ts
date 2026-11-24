@@ -12,10 +12,11 @@
 import { createWalletClient, custom, formatEther, type Address, type EIP1193Provider, type Hex, type WalletClient } from "viem";
 import { celo } from "viem/chains";
 import { assertTagged, tagCalldata } from "@errand/celo/attribution";
-import { CNGN, USDT, erc20Abi, formatUnitsExact } from "@errand/celo/tokens";
+import { USDT, erc20Abi, formatUnitsExact } from "@errand/celo/tokens";
+import { currencyByCode, type LocalCurrency } from "@errand/celo/currencies";
 import { TEXTILE_REACTOR } from "@errand/celo/session";
 import { encodeApprove, isTerminal, randomNonce, takerControlTypedData, validateFirmQuote, type FirmQuote, type NoQuote, type RfqStatus } from "@errand/celo/textile";
-import { buildPayout, checkErrandRequest, r16Allowlist, r17Tagged, type RuleFinding } from "@errand/celo/rules";
+import { buildPayout, checkErrandCost, checkErrandRequest, r16Allowlist, r17Tagged, type RuleFinding } from "@errand/celo/rules";
 import { publicClient } from "@/lib/wallet";
 
 declare global {
@@ -55,12 +56,11 @@ export async function connectWallet(): Promise<ConnectedWallet> {
 }
 
 export async function readBalances(address: Address) {
-  const [usdt, cngn, celoBal] = await Promise.all([
+  const [usdt, celoBal] = await Promise.all([
     publicClient.readContract({ address: USDT.address, abi: erc20Abi, functionName: "balanceOf", args: [address] }),
-    publicClient.readContract({ address: CNGN.address, abi: erc20Abi, functionName: "balanceOf", args: [address] }),
     publicClient.getBalance({ address }),
   ]);
-  return { usdt, cngn, celo: celoBal };
+  return { usdt, celo: celoBal };
 }
 
 async function api<T>(path: string, body?: unknown): Promise<T> {
@@ -75,22 +75,32 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 
 export type Preview = { status: string; takerPays?: string; buyAmount?: string; feeAmount?: string; reason?: string };
 
-export function previewCost(nairaAtomic: bigint): Promise<Preview> {
-  return api<Preview>("/api/textile/preview", { buyAmount: nairaAtomic.toString() });
+export function previewCost(currency: LocalCurrency, amountAtomic: bigint): Promise<Preview> {
+  return api<Preview>("/api/textile/preview", { currency: currency.code, buyAmount: amountAtomic.toString() });
+}
+
+export type Availability = { code: string; available: boolean; reason?: string; perUsdt?: number; depthUsd?: number };
+
+export function currencyAvailability(): Promise<Availability[]> {
+  return api<Availability[]>("/api/textile/currencies");
 }
 
 export type StepId = "check" | "quote" | "approve" | "swap" | "settle" | "pay" | "verify";
 export type StepState = "waiting" | "running" | "done" | "failed" | "skipped";
 export type StepUpdate = { id: StepId; state: StepState; detail?: string; tx?: Hex };
 
-export type ErrandInput = { nairaAtomic: bigint; recipient: Address; label: string };
+export type ErrandInput = { currency: LocalCurrency; amountAtomic: bigint; recipient: Address; label: string };
 
 export type Receipt = {
   id: string;
   createdAt: string;
   label: string;
   recipient: Address;
-  nairaAtomic: string;
+  /** Local currency code (older receipts without it were Naira). */
+  currency?: string;
+  amountAtomic?: string;
+  /** Older receipts only. */
+  nairaAtomic?: string;
   taker: Address;
   rfqId?: string;
   paidUsdt?: string;
@@ -124,7 +134,7 @@ function explain(findings: RuleFinding[]) {
   return findings.map((f) => `${f.rule}: ${f.reason}`).join(" ");
 }
 
-async function firmQuote(wallet: ConnectedWallet, nairaAtomic: bigint, keyed: boolean): Promise<FirmQuote> {
+async function firmQuote(wallet: ConnectedWallet, currency: LocalCurrency, amountAtomic: bigint, keyed: boolean): Promise<FirmQuote> {
   let takerProof: { nonce: Hex; issuedAt: number; signature: Hex } | undefined;
   if (!keyed) {
     const nonce = randomNonce();
@@ -133,7 +143,7 @@ async function firmQuote(wallet: ConnectedWallet, nairaAtomic: bigint, keyed: bo
     const signature = await wallet.client.signTypedData({ account: wallet.address, ...td });
     takerProof = { nonce, issuedAt, signature };
   }
-  const res = await api<FirmQuote | NoQuote>("/api/textile/quote", { buyAmount: nairaAtomic.toString(), taker: wallet.address, ...(takerProof ? { takerProof } : {}) });
+  const res = await api<FirmQuote | NoQuote>("/api/textile/quote", { currency: currency.code, buyAmount: amountAtomic.toString(), taker: wallet.address, ...(takerProof ? { takerProof } : {}) });
   if (res.status !== "quoted") throw new Error(`Textile has no quote right now (${(res as NoQuote).reason}). Try again in a minute.`);
   return res as FirmQuote;
 }
@@ -154,7 +164,8 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
     createdAt: new Date().toISOString(),
     label: input.label,
     recipient: input.recipient,
-    nairaAtomic: input.nairaAtomic.toString(),
+    currency: input.currency.code,
+    amountAtomic: input.amountAtomic.toString(),
     taker: wallet.address,
     txs: {},
     tagged: {},
@@ -169,10 +180,13 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
   try {
     // 1. Checks before anything is signed
     step("check", "running");
-    const findings = checkErrandRequest({ nairaAtomic: input.nairaAtomic, recipient: input.recipient, payer: wallet.address });
+    const token = input.currency.token;
+    const findings = checkErrandRequest({ localToken: token.address, amountAtomic: input.amountAtomic, recipient: input.recipient, payer: wallet.address });
     if (findings.length) throw new Error(explain(findings));
-    const preview = await previewCost(input.nairaAtomic);
+    const preview = await previewCost(input.currency, input.amountAtomic);
     if (preview.status !== "preview" || !preview.takerPays) throw new Error(`Textile can't price this right now (${preview.reason ?? preview.status}).`);
+    const cost = checkErrandCost(BigInt(preview.takerPays));
+    if (cost.length) throw new Error(explain(cost));
     const maxTakerPays = (BigInt(preview.takerPays) * (10_000n + SLIPPAGE_BPS)) / 10_000n;
     const bal = await readBalances(wallet.address);
     if (bal.usdt < maxTakerPays) throw new Error(`Your wallet needs about ${formatUnitsExact(maxTakerPays, 6)} USD₮ (it has ${formatUnitsExact(bal.usdt, 6)}).`);
@@ -184,21 +198,21 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
     for (let attempt = 1; attempt <= 2; attempt++) {
       // 2. Firm quote + R15
       step("quote", "running", { detail: keyed ? "Asking Textile for a firm quote…" : "Sign the Textile request in your wallet (it moves no money)…" });
-      const quote = await firmQuote(wallet, input.nairaAtomic, keyed);
+      const quote = await firmQuote(wallet, input.currency, input.amountAtomic, keyed);
       const r15 = validateFirmQuote(quote, { taker: wallet.address, sellToken: USDT.address, maxTakerPays, chainId: 42220, nowMs: Date.now() });
-      if (BigInt(quote.quote.buyAmount) < input.nairaAtomic) r15.push("Quote delivers less Naira than asked.");
+      if (BigInt(quote.quote.buyAmount) < input.amountAtomic) r15.push(`Quote delivers less ${token.symbol} than asked.`);
       if (r15.length) throw new Error(`R15 refused the quote: ${r15.join(" ")}`);
       receipt.rfqId = quote.rfqId;
       receipt.paidUsdt = quote.quote.takerPays;
       receipt.feeUsdt = quote.quote.feeAmount;
-      step("quote", "done", { detail: `Firm quote: ${formatUnitsExact(BigInt(quote.quote.takerPays), 6)} USD₮ → ₦${formatUnitsExact(BigInt(quote.quote.buyAmount), 6)}.` });
+      step("quote", "done", { detail: `Firm quote: ${formatUnitsExact(BigInt(quote.quote.takerPays), 6)} USD₮ → ${formatLocal(input.currency, quote.quote.buyAmount)}.` });
 
       // Build every call first, then R16 + R17 on all of them
       const takerPays = BigInt(quote.quote.takerPays);
       const approveCall = { to: quote.transactions.approval.to, data: tagCalldata(quote.transactions.approval.data) };
       const swapCall = { to: quote.transactions.swap.to, data: tagCalldata(quote.transactions.swap.data) };
-      const payout = buildPayout(input.recipient, input.nairaAtomic);
-      const policy = [...r16Allowlist([approveCall, swapCall, payout]), ...r17Tagged([approveCall, swapCall, payout])];
+      const payout = buildPayout(token.address, input.recipient, input.amountAtomic);
+      const policy = [...r16Allowlist([approveCall, swapCall, payout], token.address), ...r17Tagged([approveCall, swapCall, payout])];
       if (policy.length) throw new Error(explain(policy));
 
       // 3. Approve (reset first if an old allowance exists)
@@ -244,7 +258,7 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
       step("settle", "done", { detail: "Textile confirmed the conversion." });
 
       // 6. Pay the recipient the exact Naira
-      step("pay", "running", { detail: "Confirm the cNGN payment in your wallet…" });
+      step("pay", "running", { detail: `Confirm the ${token.symbol} payment in your wallet…` });
       receipt.txs.payout = await send(wallet, payout.to, payout.data);
       await confirm(receipt.txs.payout, "Payment");
       step("pay", "done", { tx: receipt.txs.payout });
@@ -273,4 +287,17 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
     saveReceipt(receipt);
     throw new Error(receipt.failure);
   }
+}
+
+/** "₦2,000", "Rp91,659.19", "R$29.53": the local amount with its sign and up to 2 decimals. */
+export function formatLocal(currency: LocalCurrency, atomic: string | bigint): string {
+  const [w, f = ""] = formatUnitsExact(BigInt(atomic), currency.token.decimals).split(".");
+  const frac = f.slice(0, 2).replace(/0+$/, "");
+  return `${currency.sign}${BigInt(w!).toLocaleString("en-US")}${frac ? `.${frac.padEnd(2, "0")}` : ""}`;
+}
+
+/** The currency of a stored receipt (older receipts were Naira). */
+export function receiptCurrency(r: Receipt): { currency: LocalCurrency; amount: string } {
+  const currency = currencyByCode(r.currency ?? "NGN") ?? currencyByCode("NGN")!;
+  return { currency, amount: r.amountAtomic ?? r.nairaAtomic ?? "0" };
 }

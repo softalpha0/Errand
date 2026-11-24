@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUnitsExact } from "@errand/celo/tokens";
 import { ERRAND_AGENT, EXPIRY_CHOICES_DAYS, describeAllowlist, expiryFromNow, toAtomic6 } from "@errand/celo/session";
+import { LOCAL_CURRENCIES, currencyByCode, currencyByToken, toAtomic, type LocalCurrency } from "@errand/celo/currencies";
 import { Button, Card, CardHeader, ErrorNote, Field, LinkButton, Pill, Skeleton, inputClass } from "@/components/ui";
 import { addressUrl, short, txUrl } from "@/lib/celo";
 import { grant, loadSession, quoteGrant, revoke, type QuoteView, type StoredSession } from "@/lib/session";
@@ -23,6 +24,12 @@ function fmt(value: bigint, decimals: number, maxFraction = 4) {
   return `${BigInt(whole!).toLocaleString("en-US")}${f ? `.${f}` : ""}`;
 }
 
+/** The local token a stored session pays out in (spend[1].token), if any. */
+function sessionToken(session: StoredSession | null): string | undefined {
+  if (!session) return undefined;
+  return (session.session.permissions as { spend?: { token?: string }[] }).spend?.[1]?.token;
+}
+
 function limitOf(session: StoredSession, index: number): bigint | null {
   const spend = (session.session.permissions as { spend?: { limit: string }[] }).spend;
   const raw = spend?.[index]?.limit;
@@ -38,6 +45,7 @@ export function SessionScreen() {
   const [wallet, setWallet] = useState<StoredWallet | null>(null);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [usd, setUsd] = useState("5");
+  const [currency, setCurrency] = useState<LocalCurrency>(LOCAL_CURRENCIES[0]!);
   const [naira, setNaira] = useState("7000");
   const [days, setDays] = useState<number>(7);
   const [quote, setQuote] = useState<QuoteView | null>(null);
@@ -60,13 +68,13 @@ export function SessionScreen() {
 
   const caps = useMemo(() => {
     try {
-      return { usdtPerDay: toAtomic6(usd), cngnPerDay: toAtomic6(naira) };
+      return { usdtPerDay: toAtomic6(usd), local: { token: currency.token.address, perDay: toAtomic(naira, currency.token.decimals) } };
     } catch {
       return null;
     }
-  }, [usd, naira]);
+  }, [usd, naira, currency]);
 
-  useEffect(() => setQuote(null), [usd, naira, days]);
+  useEffect(() => setQuote(null), [usd, naira, days, currency]);
 
   async function onQuote() {
     if (!wallet || !caps) return;
@@ -112,7 +120,7 @@ export function SessionScreen() {
 
   const allowlist = (
     <ul className="divide-y divide-line">
-      {describeAllowlist().map((a) => (
+      {describeAllowlist((sessionToken(session) as `0x${string}` | undefined) ?? currency.token.address).map((a) => (
         <li key={a.to} className="flex flex-col gap-0.5 px-5 py-3">
           <span className="text-[15px]">{a.label}</span>
           <span className="text-[13px] text-muted">
@@ -149,7 +157,8 @@ export function SessionScreen() {
 
   if ((phase === "active" || phase === "ended") && session) {
     const usdtCap = limitOf(session, 0);
-    const cngnCap = limitOf(session, 1);
+    const localCap = limitOf(session, 1);
+    const localCurrency = currencyByToken(sessionToken(session) ?? "") ?? currencyByCode("NGN")!;
     const revoked = Boolean(session.revokedAt);
     return (
       <div className="flex flex-col gap-4">
@@ -161,7 +170,7 @@ export function SessionScreen() {
             aside={phase === "active" ? <Pill tone="approve">Active</Pill> : revoked ? <Pill tone="block">Revoked</Pill> : <Pill>Expired</Pill>}
           />
           <dl className="divide-y divide-line">
-            <Line label="Daily cap, Naira" value={cngnCap !== null ? `₦${fmt(cngnCap, 6, 2)}` : "–"} />
+            <Line label={`Daily cap, ${localCurrency.name}`} value={localCap !== null ? `${localCurrency.sign}${fmt(localCap, localCurrency.token.decimals, 2)}` : "–"} />
             <Line label="Daily cap, dollars" value={usdtCap !== null ? `$${fmt(usdtCap, 6, 2)}` : "–"} note="Also pays Altana's small network fees." />
             <Line label={revoked ? "Revoked" : "Ends"} value={revoked && session.revokedAt ? new Date(session.revokedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" }) : dateOf(session.session.expiry)} />
             {session.grantTx ? <Line label="Granted in" value={short(session.grantTx)} href={txUrl(session.grantTx)} /> : null}
@@ -208,7 +217,24 @@ export function SessionScreen() {
       <Card>
         <CardHeader title="Your limits" sub="Celo enforces them on your wallet." />
         <div className="grid gap-5 px-5 py-5 sm:grid-cols-2">
-          <Field label="Most Errand may pay out per day, in Naira" htmlFor="naira" hint="cNGN sent to the people you name.">
+          <fieldset className="sm:col-span-2">
+            <legend className="text-sm font-medium">Currency Errand pays out in</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {LOCAL_CURRENCIES.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => setCurrency(c)}
+                  aria-pressed={currency.code === c.code}
+                  className={`h-9 rounded-full border px-4 text-sm ${currency.code === c.code ? "border-ink bg-ink text-paper" : "border-line-strong bg-card text-ink hover:border-ink/40"}`}
+                >
+                  {c.sign} {c.token.symbol}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-[13px] text-muted">One currency per session keeps the list of contracts Errand may call as short as possible.</p>
+          </fieldset>
+          <Field label={`Most Errand may pay out per day, in ${currency.name}`} htmlFor="naira" hint={`${currency.token.symbol} sent to the people you name.`}>
             <input id="naira" inputMode="decimal" className={inputClass} value={naira} onChange={(e) => setNaira(e.target.value)} />
           </Field>
           <Field label="Most USD₮ it may convert per day" htmlFor="usd" hint="Up to $100. Also covers Altana's small network fees.">

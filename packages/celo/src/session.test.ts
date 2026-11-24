@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { publicKeyToAddress } from "viem/accounts";
 import { CNGN, USDT } from "./tokens.js";
+import { LOCAL_CURRENCIES } from "./currencies.js";
 import { ERRAND_AGENT, TEXTILE_REACTOR, buildSessionPermissions, describeAllowlist, expiryFromNow, toAtomic6 } from "./session.js";
 
 describe("Errand agent key", () => {
@@ -10,7 +11,7 @@ describe("Errand agent key", () => {
 });
 
 describe("buildSessionPermissions", () => {
-  const caps = { usdtPerDay: 5_000_000n, cngnPerDay: 10_000_000_000n };
+  const caps = { usdtPerDay: 5_000_000n, local: { token: CNGN.address, perDay: 10_000_000_000n } };
 
   it("always sets an allowlist of exactly three calls", () => {
     const p = buildSessionPermissions(caps);
@@ -31,11 +32,19 @@ describe("buildSessionPermissions", () => {
 
   it("refuses zero caps and caps above $100/day", () => {
     expect(() => buildSessionPermissions({ ...caps, usdtPerDay: 0n })).toThrow();
+    expect(() => buildSessionPermissions({ ...caps, local: { token: USDT.address, perDay: 1n } })).toThrow(/local currencies/);
     expect(() => buildSessionPermissions({ ...caps, usdtPerDay: 100_000_001n })).toThrow(/100/);
   });
 
   it("describes every allowed call in plain words", () => {
-    expect(describeAllowlist().map((a) => a.to)).toEqual(buildSessionPermissions(caps).calls.map((c) => ("to" in c ? c.to : null)));
+    expect(describeAllowlist(CNGN.address).map((a) => a.to)).toEqual(buildSessionPermissions(caps).calls.map((c) => ("to" in c ? c.to : null)));
+  });
+
+  it("allows transfer() on the one chosen currency only", () => {
+    const wbrl = LOCAL_CURRENCIES.find((c) => c.code === "BRL")!.token.address;
+    const p = buildSessionPermissions({ usdtPerDay: 5_000_000n, local: { token: wbrl, perDay: 10n ** 20n } });
+    expect(p.calls[2]).toEqual({ signature: "transfer(address,uint256)", to: wbrl });
+    expect(p.calls.some((c) => "to" in c && c.to === CNGN.address)).toBe(false);
   });
 });
 

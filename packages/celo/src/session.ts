@@ -1,5 +1,6 @@
 import type { Address, Hex } from "viem";
-import { CNGN, USDT } from "./tokens.js";
+import { currencyByToken } from "./currencies.js";
+import { USDT } from "./tokens.js";
 
 /**
  * Errand's agent: the session key every user grants (PRD §5, AGENTS.md → Decisions).
@@ -24,8 +25,8 @@ export type SessionPermissions = { calls: readonly CallPermission[]; spend: read
 export type SessionCaps = {
   /** USD₮ per day, in atomic units (6 decimals). Also pays Altana relay fees, so leave headroom. */
   usdtPerDay: bigint;
-  /** cNGN per day, in atomic units (6 decimals). */
-  cngnPerDay: bigint;
+  /** The one local currency this session may pay out in, and its daily cap in that token's atomic units. */
+  local: { token: Address; perDay: bigint };
 };
 
 export const MAX_USDT_PER_DAY = 100n * 10n ** 6n;
@@ -35,31 +36,35 @@ export const EXPIRY_CHOICES_DAYS = [1, 7, 30] as const;
  * The only calls Errand may make from a user's wallet, enforced on-chain by the Altana account:
  *  1. USD₮ approve: lets Textile's reactor pull the USD₮ being converted.
  *  2. Textile LimitOrderReactor: the swap itself.
- *  3. cNGN transfer: pays the named recipient.
+ *  3. transfer() on the session's one local stablecoin (cNGN, IDRX, wARS, …): pays the named recipient.
  * `calls` is always set: an omitted allowlist means unrestricted (SPONSORS.md §5).
+ * One currency per session keeps the allowlist as small as possible.
  */
 export function buildSessionPermissions(caps: SessionCaps): SessionPermissions {
-  if (caps.usdtPerDay <= 0n || caps.cngnPerDay <= 0n) throw new Error("Daily caps must be above zero.");
+  if (caps.usdtPerDay <= 0n || caps.local.perDay <= 0n) throw new Error("Daily caps must be above zero.");
   if (caps.usdtPerDay > MAX_USDT_PER_DAY) throw new Error("The USD₮ cap is above Errand's $100/day limit.");
+  if (!currencyByToken(caps.local.token)) throw new Error("That token isn't one of Errand's local currencies.");
   return {
     calls: [
       { signature: "approve(address,uint256)", to: USDT.address },
       { to: TEXTILE_REACTOR },
-      { signature: "transfer(address,uint256)", to: CNGN.address },
+      { signature: "transfer(address,uint256)", to: caps.local.token },
     ],
     spend: [
       { limit: caps.usdtPerDay, period: "day", token: USDT.address },
-      { limit: caps.cngnPerDay, period: "day", token: CNGN.address },
+      { limit: caps.local.perDay, period: "day", token: caps.local.token },
     ],
   };
 }
 
 /** Plain-words version of the allowlist for the screen and receipts. */
-export function describeAllowlist(): { label: string; detail: string; to: Address }[] {
+export function describeAllowlist(localToken: Address): { label: string; detail: string; to: Address }[] {
+  const c = currencyByToken(localToken);
+  const sym = c?.token.symbol ?? "local stablecoin";
   return [
     { label: "USD₮: approve for the Textile FX swap", detail: "approve(address,uint256) on the USD₮ token", to: USDT.address },
-    { label: "Textile FX swap contract", detail: "LimitOrderReactor, converts USD₮ to cNGN", to: TEXTILE_REACTOR },
-    { label: "cNGN: send only", detail: "transfer(address,uint256) on the cNGN token", to: CNGN.address },
+    { label: "Textile FX swap contract", detail: `LimitOrderReactor, converts USD₮ to ${sym}`, to: TEXTILE_REACTOR },
+    { label: `${sym}: send only`, detail: `transfer(address,uint256) on the ${sym} token`, to: localToken },
   ];
 }
 

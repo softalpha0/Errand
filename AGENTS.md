@@ -6,7 +6,7 @@ Read this first, every session. Then read, in this order: `PRD.md` → `docs/cel
 
 ## Project
 
-**Errand** runs a person's errands in Naira from their own wallet. The person holds USD₮ in a non-custodial **Altana** wallet and grants Errand a session (spend cap + contract allowlist + expiry, revocable in one tx). Errand plans each errand, checks every payment with its guard, converts USD₮→cNGN on **Textile FX**, pays cNGN to the named recipient, pays for its own tools on **buy**, and gives a receipt with a Celoscan link for every tx. **Errand Guard** is an x402 service on Celo where **Self Agent ID** decides which agents get served and at what limit.
+**Errand** sends local money to anyone from the person's own wallet: Naira first, plus rupiah, Argentine pesos and Brazilian reais (all hackathon corridors with live liquidity). The person holds USD₮ in a non-custodial **Altana** wallet and grants Errand a session (spend cap + contract allowlist + expiry, revocable in one tx). Errand plans each errand, checks every payment with its guard, converts USD₮→cNGN on **Textile FX**, pays cNGN to the named recipient, pays for its own tools on **buy**, and gives a receipt with a Celoscan link for every tx. **Errand Guard** is an x402 service on Celo where **Self Agent ID** decides which agents get served and at what limit.
 
 - Event: Agents Open for Business (Celo · Loops House). **Submissions close Mon 7 Dec 2026, 09:00 GMT (10:00 Lagos).** Internal deadline Sun 6 Dec, 18:00 Lagos.
 - Tracks: Altana Agent Wallets · Stablecoin Corridors · Self Agent ID (Agent Vault = stretch only).
@@ -111,6 +111,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
   - [x] 24 Nov: **first tagged Textile FX conversion on mainnet**: 1 USD₮ → ₦1,445.12 cNGN, rfq `rfq_VaBvtTmO22gNGDPw`, approve `0xea7a…4d71` + swap `0x9731…528b`, both `verifyTx` = `celo_511bb691f2f0`, Textile `filled`. Taker = test wallet (not a user). Spike S3 PASS (EOA variant).
   - [x] Conversion inside an errand in the product: built (4.4).
   - [ ] First real errand through the site (test wallet in a browser wallet; recipient outside the team for it to count).
+  - [x] 24 Nov: **multi-currency**: `packages/celo/src/currencies.ts` (cNGN, IDRX, wARS, wBRL, wMXN, wCOP with their decimals 6/2/18), limits in dollars ($1.10–$35 per errand, enforced on the preview and again on the firm quote server-side), currency picker with live availability (`/api/textile/currencies`: $5 preview each, greyed out when no makers or <$35 depth, cached 60 s), one-currency sessions (allowlist = transfer() on that token only, per-currency daily cap), copy now "Send local money to anyone" with Nigeria first. E2E: NGN/BRL/IDR live previews, MXN shown unavailable, $35 cap message.
   - [ ] cNGN payout to a recipient outside the team (Corridors requirement 2; Phase 6).
 - [ ] Phase 4 web wallet + session; new deployments. (Started 23 Nov, ahead of Phase 3 at Benjamin's request; S1/S2 run inside it.)
   - [x] 4.1 Celo home page (`apps/web`): pitch, how it works, verified on-chain facts, honest build status. Old Kite/SERV pages no longer linked.
@@ -167,6 +168,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 24 Nov: First Textile conversion uses an EOA taker (Benjamin's test wallet) so the Corridors path is proven while Altana grant/revoke waits on Q2. Product decision on whose wallet converts for real users comes after Altana answers.
 - 24 Nov: Errand composer runs from the user's own connected wallet (EIP-1193, e.g. MetaMask) until Altana answers; the user confirms each tx; the same steps will run under an Altana session later. Errands use **exact output** (`buyAmount`) so the recipient gets exactly the Naira asked. Testing limits ₦1,500–₦50,000 per errand.
 - 24 Nov: **MiniPay can't sign `eth_signTypedData`/`personal_sign`** (Celopedia minipay-requirements), so keyless Textile proofs are impossible there. MiniPay support needs a **Textile API key** on the server (`TEXTILE_API_KEY`; keyed requests need no proof) plus legacy txs with the USD₮ fee-currency adapter for gas. The composer tells MiniPay users "not yet" until then.
+- 24 Nov: **Errand is not Nigeria-only** (Benjamin's call). It pays out in every hackathon corridor Textile can serve at that moment: live check 24 Nov 20:10 UTC ("$5 →"): cNGN ₦7,220 (depth ~$6.5k), IDRX Rp91,659 (~$258k), wARS 8,854 (~$25k), wBRL R$29.53 (~$4.5k); wCOP ~$7 depth and wMXN no makers (shown unavailable). **Nigeria stays the launch market** for the first named users and the video; pitch: "built for any local stablecoin on Celo; first users in Nigeria". Recipients in AR/BR/MX/CO can off-ramp with Ripio (ramp.ripio.com, SPONSORS §10).
 
 ## Blockers
 
