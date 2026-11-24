@@ -111,7 +111,11 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
   - [x] 4.2 Wallet screen `/wallet` (23 Nov): Altana passkey wallet (`agentIdentity: false`), address + copy + Celoscan, live USD₮/cNGN/CELO balances, KeyStore set-up status, live setup fee, funding steps, backup file, restore (passkey or file). E2E-tested in headless Chromium with a virtual passkey against the real Altana relay + Celo mainnet (no tx). `packages/celo/src/tokens.ts` + 6 tests.
   - [x] 4.3 Session screen `/session` built (23 Nov): daily caps (₦ and USD₮), allowlist (USD₮ approve, Textile reactor, cNGN transfer), expiry 1/7/30 days, live Altana quote, grant (session key = agent public key only), status, revoke. `packages/celo/src/session.ts` + 9 tests. Quote path E2E-tested. **Grant button locked** (`NEXT_PUBLIC_GRANTS_OPEN` unset) until Altana answers on tagging; revoke never locked.
   - [ ] 4.4 Errand composer.
-- [ ] Phase 5 Errand Guard on Celo.
+- [ ] Phase 5 Errand Guard on Celo. (Started 24 Nov.)
+  - [x] `apps/guard-celo` built: Hono + `@x402/hono` 2.32 + Celo facilitator (X-API-Key), `POST /check` $0.01 USD₮, PayTo = agent wallet, builder-code extension `a: celo_511bb691f2f0` in the 402, Self Agent ID gate (`SelfAgentVerifier`, mainnet, sybilLimit 1, raw body) → verified 100/day per human, unverified 3/day per IP, refusals (400/429) before payment. Rules G1–G8. 20 tests. Ran locally: real 402 challenge checked; a real Self-signed unregistered key verified against the mainnet registry → unverified.
+  - [ ] HUMAN: x402 API key; new Render web service for `apps/guard-celo` (never the SERV services); env `X402_API_KEY`.
+  - [ ] First paid check on mainnet (verified + unverified callers), evidence in `evidence/celo/`.
+  - [ ] Agent card: add the Guard endpoint, `x402Support: true`.
 - [ ] Phase 6 real users (≥ 3 independent).
 - [ ] Phase 7 freeze (Thu 3 Dec), README, video. Then complete the Loops submit form (needs live URL, video, named user; other answers ready: agentId 10107, Self 214, tag, PayTo = agent wallet).
 - [ ] Phase 8 submit (Sun 6 Dec, before 18:00 Lagos).
@@ -147,6 +151,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: **First session grant costs about 19.1 CELO (≈$1.05) per user wallet**: it registers two keys in Altana's KeyStore (the user's passkey + Errand's session key), each the $0.50 fee + 10% margin (excess refunded). Confirmed by the relay's own quote. Keeping `register: true` so the session is visible on the public KeyStore (core of the Altana track). Wallet funding steps ask for 2 × fee × 1.1.
 - 23 Nov: Errand's agent public key (`0x0460…6ac7`) recovered from the signature of its ERC-8004 tx; stored in `packages/celo/src/session.ts` (`ERRAND_AGENT`), test checks it maps to `0xc64d…C005`.
 - 23 Nov: **Q2 decided by Benjamin: B (wait).** Altana SDK 1.1.0 has no attribution/`dataSuffix` option and grant/revoke take no custom calldata, so those txs can't carry `celo_511bb691f2f0`. No grant is sent until Altana answers (asked in Altana's Telegram). The live site's Grant button is locked behind `NEXT_PUBLIC_GRANTS_OPEN=true`. Meanwhile build what doesn't need Altana txs (Errand Guard on x402: payments to the registered PayTo count without tags; Textile client).
+- 24 Nov: Errand Guard tiers: Self Agent ID verified = 100 checks/day per human (nullifier), unverified = 3/day per IP; same $0.01 price. Over-limit and invalid requests are refused before the x402 payment, so nobody is charged for a refusal. Limits are in memory (reset on restart); noted for the README.
+- 24 Nov: **Don't register a second Self Agent ID with Benjamin's passport.** Verifiers with the default `sybilLimit(1)` (including Errand Guard) reject every agent of a human who has more than one, which would break Errand's own agent 214. Demo "verified caller" = agent 214 signing; its x402 payment comes from a separate test wallet (never agent wallet → agent wallet).
 
 ## Blockers
 
