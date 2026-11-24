@@ -30,3 +30,18 @@ export {
   type SessionCaps,
   type SessionPermissions,
 } from "./session.js";
+export {
+  REQUEST_TIMEOUT_MS,
+  TEXTILE_API,
+  TextileClient,
+  TextileError,
+  encodeApprove,
+  isTerminal,
+  randomNonce,
+  takerControlTypedData,
+  validateFirmQuote,
+  type FirmQuote,
+  type NoQuote,
+  type RfqRequest,
+  type RfqStatus,
+} from "./textile.js";

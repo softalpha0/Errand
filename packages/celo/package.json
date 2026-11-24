@@ -8,14 +8,16 @@
   "exports": {
     ".": "./src/index.ts",
     "./tokens": "./src/tokens.ts",
-    "./session": "./src/session.ts"
+    "./session": "./src/session.ts",
+    "./textile": "./src/textile.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsc --noEmit",
     "spike:s0": "node scripts/spike-s0-textile-preview.ts",
-    "register:8004": "node scripts/register-8004.ts"
+    "register:8004": "node scripts/register-8004.ts",
+    "textile-swap": "tsx scripts/textile-swap.ts"
   },
   "dependencies": {
     "@celo/attribution-tags": "0.5.0",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "22.20.5",
+    "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
   }

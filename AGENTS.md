@@ -104,7 +104,10 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - [x] 23 Nov: Phase 2 (pulled forward): ERC-8004 **agentId 10107** registered from the agent wallet, tagged (tx `0x8b60…2b7c`, `verifyTx` shows `celo_511bb691f2f0`). Evidence: `evidence/celo/identity.md`, `evidence/celo/erc8004-register.json`.
 - [x] 23 Nov: Loops Celo checklist shows **ALL SET** (agent wallet on file, tag seen on-chain, ERC-8004 registered).
 - [ ] Phase 2 identity: Self Agent ID, ERC-8004, Loops agent wallet + PayTo.
-- [ ] Phase 3 Celo rail in the agent.
+- [ ] Phase 3 Celo rail in the agent. (Started 24 Nov.)
+  - [x] `packages/celo/src/textile.ts`: Textile RFQ v2 client (preview, request with keyless TakerControl v1 proof on 401, get/submit/cancel with X-Rfq-Claim, TextileError with code/reason), `validateFirmQuote` (rule R15), 11 tests. **Proof format confirmed live**: Textile accepted our signature and answered `insufficient_funds` for an empty wallet; `builderCodes: ["celo_511bb691f2f0"]` accepted.
+  - [x] `pnpm --filter @errand/celo textile-swap [-- --send] [--usd N]`: firm quote → R15 → (dry run: release) / (send: reset+approve → wait → expiry recheck → tagged swap → /submit → poll → verifyTx → evidence JSON). Taker = test wallet.
+  - [ ] HUMAN: fund the test wallet with ~1.1 USD₮ + ~0.2 CELO; dry run; then `--send` for the first real conversion (spike S3, EOA variant).
 - [ ] Phase 4 web wallet + session; new deployments. (Started 23 Nov, ahead of Phase 3 at Benjamin's request; S1/S2 run inside it.)
   - [x] 4.1 Celo home page (`apps/web`): pitch, how it works, verified on-chain facts, honest build status. Old Kite/SERV pages no longer linked.
   - [x] 4.1 HUMAN: new Vercel project `errand-thgw`, production branch `celo` → **https://errand-thgw.vercel.app** (live 23 Nov). SERV project untouched.
@@ -115,7 +118,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
   - [x] `apps/guard-celo` built: Hono + `@x402/hono` 2.32 + Celo facilitator (X-API-Key), `POST /check` $0.01 USD₮, PayTo = agent wallet, builder-code extension `a: celo_511bb691f2f0` in the 402, Self Agent ID gate (`SelfAgentVerifier`, mainnet, sybilLimit 1, raw body) → verified 100/day per human, unverified 3/day per IP, refusals (400/429) before payment. Rules G1–G8. 20 tests. Ran locally: real 402 challenge checked; a real Self-signed unregistered key verified against the mainnet registry → unverified.
   - [x] 24 Nov: x402 API key created; new Render web service `errand-guard-celo` (Node, branch `celo`, free) → **https://errand-guard-celo.onrender.com** live; `/health` shows facilitator configured; live 402 challenge checked. SERV services untouched.
   - [x] 24 Nov: **first paid check on mainnet** (unverified caller): $0.01 USD₮ test wallet → agent wallet, tx `0x4781…a606`, decision approve. Spike S5 PASS. Home page marks Errand Guard live.
-  - [ ] Paid check as a Self-verified caller (`pay-check -- --verified`; wrapper fixed after a 404 that charged nothing).
+  - [x] 24 Nov: paid check as a **Self-verified caller** (agent 214): tier verified, 99 left, tx `0x2108…1c03`, 0.01 USD₮ test wallet → agent wallet (checked on chain).
   - [x] Agent card: Guard endpoint added, `x402Support: true`; home page shows Errand Guard ("Ready to try" until the first paid check).
   - [x] `pnpm --filter @errand/guard-celo pay-check [-- --verified]`: pays one check from a test wallet (`.self/test-payer.key`), optional Self signing as agent 214, records to `evidence/celo/guard-checks.jsonl`.
 - [ ] Phase 6 real users (≥ 3 independent).
@@ -127,7 +130,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - Q1: Do tagged txs from users' Altana wallets, signed by Errand's agent key as session signer, count toward the entry? (asked in Telegram)
 - A1/A2: Does the attribution tag survive Altana's relay, and is the relay a standard EntryPoint `handleOps`? (spike S1)
 - A3: Can a session be granted in the browser to a server-held key? **Yes by code reading** (SDK 1.1.0 grantSession reads only the session signer's `publicKey` and `address`); confirm with the first real grant.
-- T1: Textile `takerProof` from an Altana smart wallet, or use an API key? (spike S3)
+- T1: Textile `takerProof` from an Altana smart wallet, or use an API key? Textile docs: smart accounts verify via EIP-1271 (counterfactual via ERC-6492); EOA proof confirmed live 24 Nov. Altana variant still to test (blocked on Q2).
 
 ## Decisions
 
@@ -156,6 +159,8 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 24 Nov: Errand Guard tiers: Self Agent ID verified = 100 checks/day per human (nullifier), unverified = 3/day per IP; same $0.01 price. Over-limit and invalid requests are refused before the x402 payment, so nobody is charged for a refusal. Limits are in memory (reset on restart); noted for the README.
 - 24 Nov: **Don't register a second Self Agent ID with Benjamin's passport.** Verifiers with the default `sybilLimit(1)` (including Errand Guard) reject every agent of a human who has more than one, which would break Errand's own agent 214. Demo "verified caller" = agent 214 signing; its x402 payment comes from a separate test wallet (never agent wallet → agent wallet).
 - 24 Nov: Errand Guard live at **https://errand-guard-celo.onrender.com** (Render free plan: sleeps after 15 min idle, first call ~1 min). PayTo = agent wallet. Payments carry no tag (x402 can't yet); the builder-code extension declares `celo_511bb691f2f0` in every 402.
+- 24 Nov: Textile attribution, keyless: `includeAttribution` is for partner keys only, so Errand appends its own ERC-8021 suffix to `transactions.swap.data` (Loops FAQ), once, via the wallet client's `errandAttribution()` extension (never also `tagCalldata`). Also sends `builderCodes: ["celo_511bb691f2f0"]` on the request (accepted; doesn't enable Textile's own tag). The approval tx is tagged too (same client).
+- 24 Nov: First Textile conversion uses an EOA taker (Benjamin's test wallet) so the Corridors path is proven while Altana grant/revoke waits on Q2. Product decision on whose wallet converts for real users comes after Altana answers.
 
 ## Blockers
 

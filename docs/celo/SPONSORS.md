@@ -214,7 +214,7 @@ Sources: https://docs.altana.network · https://github.com/altananetwork/altana-
 
 ### Auth
 
-- **Keyless:** `takerProof` = EIP-712 `TakerControl` v1 by default. `issuedAt` within 60 s of server time. One proof covers that wallet + chain for about 12 hours; then `401 proof_of_control_required`. Follow-up calls use the `X-Rfq-Claim` header (claim token, returned once only; store it).
+- **Keyless:** `takerProof` = EIP-712 `TakerControl` v1 by default: domain `{ name: "Textile Taker Control", version: "1", chainId }` (no verifyingContract), types `taker address, chainId uint256, nonce bytes32, issuedAt uint256`; `nonce` = 32 client-random bytes; **`issuedAt` in Unix milliseconds**, within 60 s of server time. Body `{ nonce, issuedAt, signature }`. Send unsigned first; on `401` with `details.reason = proof_of_control_required` sign and resend. A verified proof grants that wallet + chain ~12 h for the same caller (key/session/IP). Smart accounts verify via EIP-1271 (ERC-6492 for counterfactual). Follow-up calls (GET, submit, cancel) use the `X-Rfq-Claim` header (claim token, returned once only; store it). **Confirmed live 24 Nov 2026.**
 - **API key:** `Authorization: Bearer tx_live_…` or `X-API-Key`. Replaces `takerProof`. "Your key makes you accountable for the `taker`." `tx_test_…` keys only work on 97 and 84532. Scopes `trades:write`, `trades:read`. Get one: https://fx-docs.textilecredit.com/api/how-to-get-an-api-key.html (optional per the Loops page: "quotes work with just a wallet").
 
 ### Response (firm quote)
@@ -227,7 +227,7 @@ Sources: https://docs.altana.network · https://github.com/altananetwork/altana-
 1. If allowance < `takerPays`, approve `takerPays` of the sell token to `quote.reactor` with `transactions.approval`. USDT-style tokens may reject nonzero→nonzero approvals: reset to 0 first.
 2. **Wait for the approval receipt.** Don't send approve and swap in the same block; the swap can revert.
 3. If `now >= expiresAt`, request a new quote. Don't send.
-4. Broadcast `transactions.swap` from the `taker` wallet with `value: "0"`. **Append Errand's attribution suffix to `transactions.swap.data`** (Loops FAQ) when not using `includeAttribution`. Always broadcast `transactions.swap`, even for split fills.
+4. Broadcast `transactions.swap` from the `taker` wallet with `value: "0"`. **Append Errand's attribution suffix to `transactions.swap.data`** (Loops FAQ) when not using `includeAttribution` (keyless callers can't use it: it's for partner keys, and then Textile says not to append again). Always broadcast `transactions.swap`, even for split fills. `builderCodes` (≤3 codes) is accepted on the request but doesn't add a tag by itself.
 5. `POST /v2/rfq/{id}/submit` with the hash. Poll `GET /v2/rfq/{id}` (or use webhooks) until `filled`. `failed`/`expired` can flip to `filled` for up to 24 h.
 
 Client timeout: **75 seconds** (worst case ~70 s on a cold corridor).
@@ -236,7 +236,7 @@ Client timeout: **75 seconds** (worst case ~70 s on a cold corridor).
 
 | # | Question |
 |---|---|
-| T1 | Keyless `takerProof` from an **Altana smart wallet**: the docs list EIP-712 `TakerControl`, the app's Proof of Funds v2, `eip191`, and `nonceSecret` proofs "for Safe and custody co-signing". ERC-1271 isn't mentioned. If it fails, use a Textile API key (no `takerProof`) |
+| T1 | (Partly answered 24 Nov: EOA proof works live; docs say smart accounts verify via EIP-1271.) Keyless `takerProof` from an **Altana smart wallet**: the docs list EIP-712 `TakerControl`, the app's Proof of Funds v2, `eip191`, and `nonceSecret` proofs "for Safe and custody co-signing". ERC-1271 isn't mentioned. If it fails, use a Textile API key (no `takerProof`) |
 | T2 | Live depth for USD₮→cNGN at Errand's sizes ($1–$20) |
 
 Sources: https://fx-docs.textilecredit.com/api/v2/rfq.html · /api/v2/authentication.html · /protocol/address-book.html · /fees.html · / (corridors) · Loops FAQ
