@@ -46,6 +46,12 @@ const FACTS: Fact[] = [
     note: "A real person stands behind this agent, proved with a passport in the Self app. Only “18 or older” is disclosed.",
   },
   {
+    label: "Errand Guard",
+    value: "errand-guard-celo.onrender.com",
+    href: CELO.guardUrl,
+    note: "An x402 service on Celo: other agents pay $0.01 USD₮ to have a payment checked first. Agents with a Self Agent ID get 100 checks a day, others 3.",
+  },
+  {
     label: "Attribution tag",
     value: CELO.attributionTag,
     note: "Added to the end of every transaction Errand sends, so each one can be traced to Errand.",
@@ -66,7 +72,7 @@ const STATUS: StatusRow[] = [
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN on Textile FX, paid to a named recipient", state: "next" },
   { item: "Receipts with a Celoscan link for every transaction", state: "next" },
-  { item: "Errand Guard: other agents pay over x402; Self Agent ID decides who is served", state: "next" },
+  { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "try" },
 ];
 
 const STATE_LABEL = { live: "Live on mainnet", try: "Ready to try", building: "Building now", next: "Next" } as const;
@@ -135,7 +141,7 @@ export default function Home() {
 
       <section id="status" className="scroll-mt-20 border-t border-line py-12">
         <Eyebrow>Build status</Eyebrow>
-        <p className="mt-3 max-w-2xl text-muted">Only what has run on Celo mainnet is marked live. “Ready to try” works on the site but sends no transaction.</p>
+        <p className="mt-3 max-w-2xl text-muted">Only what has run on Celo mainnet is marked live. “Ready to try” works today but hasn’t made a mainnet transaction yet.</p>
         <ul className="mt-6 divide-y divide-line rounded-[var(--radius-card)] border border-line bg-card">
           {STATUS.map((row) => (
             <li key={row.item} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

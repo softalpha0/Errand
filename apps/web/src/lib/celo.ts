@@ -18,6 +18,7 @@ export const CELO = {
     registry: "0xaC3DF9ABf80d0F5c020C06B04Cced27763355944",
     registerTx: "0xe46d880c3de064bc578effbc8f01cd430d0f665b231630cc3e95984a67296fb9",
   },
+  guardUrl: "https://errand-guard-celo.onrender.com",
   textilePreview: {
     // Spike S0, 23 Nov 2026 (evidence/celo/spikes.md). Indicative only.
     nairaPerUsdt: 1447.58,

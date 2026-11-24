@@ -113,9 +113,10 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
   - [ ] 4.4 Errand composer.
 - [ ] Phase 5 Errand Guard on Celo. (Started 24 Nov.)
   - [x] `apps/guard-celo` built: Hono + `@x402/hono` 2.32 + Celo facilitator (X-API-Key), `POST /check` $0.01 USD₮, PayTo = agent wallet, builder-code extension `a: celo_511bb691f2f0` in the 402, Self Agent ID gate (`SelfAgentVerifier`, mainnet, sybilLimit 1, raw body) → verified 100/day per human, unverified 3/day per IP, refusals (400/429) before payment. Rules G1–G8. 20 tests. Ran locally: real 402 challenge checked; a real Self-signed unregistered key verified against the mainnet registry → unverified.
-  - [ ] HUMAN: x402 API key; new Render web service for `apps/guard-celo` (never the SERV services); env `X402_API_KEY`.
+  - [x] 24 Nov: x402 API key created; new Render web service `errand-guard-celo` (Node, branch `celo`, free) → **https://errand-guard-celo.onrender.com** live; `/health` shows facilitator configured; live 402 challenge checked. SERV services untouched.
   - [ ] First paid check on mainnet (verified + unverified callers), evidence in `evidence/celo/`.
-  - [ ] Agent card: add the Guard endpoint, `x402Support: true`.
+  - [x] Agent card: Guard endpoint added, `x402Support: true`; home page shows Errand Guard ("Ready to try" until the first paid check).
+  - [x] `pnpm --filter @errand/guard-celo pay-check [-- --verified]`: pays one check from a test wallet (`.self/test-payer.key`), optional Self signing as agent 214, records to `evidence/celo/guard-checks.jsonl`.
 - [ ] Phase 6 real users (≥ 3 independent).
 - [ ] Phase 7 freeze (Thu 3 Dec), README, video. Then complete the Loops submit form (needs live URL, video, named user; other answers ready: agentId 10107, Self 214, tag, PayTo = agent wallet).
 - [ ] Phase 8 submit (Sun 6 Dec, before 18:00 Lagos).
@@ -153,6 +154,7 @@ Calm, precise, trustworthy, like a bank statement that explains itself. Warm pap
 - 23 Nov: **Q2 decided by Benjamin: B (wait).** Altana SDK 1.1.0 has no attribution/`dataSuffix` option and grant/revoke take no custom calldata, so those txs can't carry `celo_511bb691f2f0`. No grant is sent until Altana answers (asked in Altana's Telegram). The live site's Grant button is locked behind `NEXT_PUBLIC_GRANTS_OPEN=true`. Meanwhile build what doesn't need Altana txs (Errand Guard on x402: payments to the registered PayTo count without tags; Textile client).
 - 24 Nov: Errand Guard tiers: Self Agent ID verified = 100 checks/day per human (nullifier), unverified = 3/day per IP; same $0.01 price. Over-limit and invalid requests are refused before the x402 payment, so nobody is charged for a refusal. Limits are in memory (reset on restart); noted for the README.
 - 24 Nov: **Don't register a second Self Agent ID with Benjamin's passport.** Verifiers with the default `sybilLimit(1)` (including Errand Guard) reject every agent of a human who has more than one, which would break Errand's own agent 214. Demo "verified caller" = agent 214 signing; its x402 payment comes from a separate test wallet (never agent wallet → agent wallet).
+- 24 Nov: Errand Guard live at **https://errand-guard-celo.onrender.com** (Render free plan: sleeps after 15 min idle, first call ~1 min). PayTo = agent wallet. Payments carry no tag (x402 can't yet); the builder-code extension declares `celo_511bb691f2f0` in every 402.
 
 ## Blockers
 

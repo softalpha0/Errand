@@ -62,6 +62,9 @@ importers:
       '@x402/extensions':
         specifier: 2.32.0
         version: 2.32.0(ethers@6.17.0)(typescript@5.9.3)
+      '@x402/fetch':
+        specifier: 2.32.0
+        version: 2.32.0
       '@x402/hono':
         specifier: 2.32.0
         version: 2.32.0(ethers@6.17.0)(hono@4.13.16)(typescript@5.9.3)
@@ -945,6 +948,9 @@ packages:
 
   '@x402/extensions@2.32.0':
     resolution: {integrity: sha512-bvhqNqCjmULkjCpjM1fJvDfoL8tzp1IFcMTXN7QJTwqM22ucNe8B4UefKeQOCpjJ3tuIEbp8k9A0fR0CiYtjrQ==}
+
+  '@x402/fetch@2.32.0':
+    resolution: {integrity: sha512-MxDqmBxQz6I5NWUVu90cQ1XRZayAi8oDpGllDwrwihxfAHloE7eqXkNuFC80IRE3BbMwj8h65aBEaOaiq3EBUQ==}
 
   '@x402/hono@2.32.0':
     resolution: {integrity: sha512-afLNgcwgaO0384EWGl6JzLQn1fQbyr0dmiBJ1wYgNDPW5G047GIW9ST3dV7UNjrEvxyRLztrftv7k/GJEh9B3Q==}
@@ -2512,6 +2518,10 @@ snapshots:
       - mppx
       - typescript
       - utf-8-validate
+
+  '@x402/fetch@2.32.0':
+    dependencies:
+      '@x402/core': 2.32.0
 
   '@x402/hono@2.32.0(ethers@6.17.0)(hono@4.13.16)(typescript@5.9.3)':
     dependencies:
