@@ -15,6 +15,7 @@ Submit on Loops House by **Sun 6 Dec, 18:00 Lagos** (hard close Mon 7 Dec, 09:00
 - [ ] Altana: Errand acts from a non-custodial Altana wallet under a session key with cap + allowlist + expiry, and revoke works in one tx (grant tx, execute txs, revoke tx).
 - [ ] Self: Errand Guard decides who gets served/limited with Self Agent ID, payments through x402. Show one accepted and one rejected/limited agent.
 - [ ] All tracks selected that we enter (Altana, Corridors, Self; Agent Vault only if the stretch works).
+- [ ] **Public post from Benjamin on X** with the demo clip and the repo link, tagging **@selfxyz** and **@Celo** (stated as a requirement on the Self livestream, 24 Nov). Do it for the Self track too, to be safe.
 
 ## 2. Description (lead with the problem, plain words)
 

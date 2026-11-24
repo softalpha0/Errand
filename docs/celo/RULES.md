@@ -1,6 +1,6 @@
 # Hackathon rules: Agents Open for Business (Celo · Loops House)
 
-Source of truth: https://www.loops.house/agents-open-for-business (read 20 Nov and 23 Nov 2026).
+Source of truth: https://www.loops.house/agents-open-for-business (read 20 Nov and 23 Nov 2026) and the organiser email of 24 Nov 2026.
 If the event page changes, the page wins. Update this file and note it in AGENTS.md → Decisions.
 
 ## The brief
@@ -12,8 +12,10 @@ Start with a task a real person or business needs done, build the agent that doe
 | When | What |
 |---|---|
 | Fri 20 Nov, 14:00 | Build opens, kickoff livestream |
-| Tue 24 Nov, 14:00 | Altana livestream · **AskBots review round 1** (projects registered by then get a review posted as a GitHub issue on the repo) |
-| Tue 1 Dec, 14:00 | Self livestream (Agent Vault and Agent ID) |
+| Mon 24 Nov, 14:00 | Self livestream (Agent Vault and Self Agent ID tracks). https://www.youtube.com/watch?v=ccos5Dak-Pk *(moved from 1 Dec, organiser email 24 Nov)* |
+| Tue 25 Nov, 14:00 | Altana livestream (Altana track). https://www.youtube.com/watch?v=MYMouKWtOQM *(moved from 24 Nov)* |
+| Thu 26 Nov | **AskBots review round 1** (first batch; register the project on the hackathon page before it) *(moved from 24 Nov)* |
+| Thursdays, 12:00 | Office hours with Celo DevRel. Sign up: https://luma.com/1zx5u8ga |
 | Thu 3 Dec, 14:00 | Stablecoin Corridors livestream |
 | Fri 4 Dec | **AskBots review round 2** (snapshot of submitted projects) |
 | **Mon 7 Dec, 09:00 GMT (10:00 Lagos)** | **Submissions close** |
@@ -87,7 +89,31 @@ The other three tracks list no extra written requirements beyond their descripti
 | Support | Telegram https://t.me/celoagenthackathons · office hours Thursdays 12:00 GMT · Self's and Altana's own channels |
 | After | Prezenti Grants Frontier pool: $45,000 for AI and agent infrastructure on Celo, grants up to $15,000, applications until 29 Dec |
 
+## Self livestream notes (Mon 24 Nov, Self team + Celo DevRel)
+
+Track requirements as stated on the stream (the event page still wins if it differs):
+
+**Agent Vault track:** the agent signs in or checks out on at least one regular website through Agent Vault · at least one x402 payment on Celo · a spending limit or rule in Agent Vault, and **the demo shows what happens when the agent hits it** · the agent never sees the card number or password in the demo · ERC-8004 identity · **a public post from a team member** with a demo clip (YouTube or X) and the open-source repo link, **tagging Self and Celo**. Quick checkout works on Amazon in the US and 7 countries in North/South America (Nigeria not mentioned).
+
+**Self Agent ID track:** Self Agent ID proves a unique real person stands behind an agent without sharing personal data; every request the agent sends is signed, so an API, merchant or Celo contract can check it **with no API key**. Build a service where Self Agent ID decides who gets served, paid or limited, with payments through x402 on Celo. Ideas named: know-your-agent (KYA) gateway, age check, agent checkout, dispute kit, fair cashback on MiniPay, agent passport. Judging: quality of integration, innovation and value, a named user with a real job done, real use.
+
+Other points from the stream:
+- Paid calls from your agent to services on **buy** count in your favour as real use (700+ services, Agent Vault can pay them).
+- **Nigerian passports work** in the Self app now (an earlier issue was fixed). Supported documents per country: https://maps.self.xyz
+- One project may enter **both Self tracks**.
+- Self recommends installing the **Self MCP and Self docs MCP** in the coding agent. Support and feedback: Self's Discord.
+- AskBots round 1 runs **Thursday** on submitted projects; reviews arrive as GitHub issues on the repo.
+- The Altana livestream was announced as "tomorrow, same time" (the email says Tue 25 Nov, 14:00 GMT; one speaker said 9 a.m. GMT, which is likely a time-zone slip). Use the email time.
+
 ## Perks
+
+**Faucets (Celo mainnet, open until 7 Dec, first come first served; also under Resources on the hackathon page):**
+- CELO: https://app.faucetdrops.io/faucet/celo-agentic-hackathons-celo-3585 · code `PM2M4C` · 0.25 CELO per claim (deploys and transactions)
+- USD₮: https://app.faucetdrops.io/faucet/celo-agentic-hackathons-usdt-c654 · code `QXO4ND` (third character is the letter O) · 0.10 USD₮ per claim (test x402 payments, buy calls)
+- For Benjamin's own test/agent wallets only. Never point a user at them as "funding from Errand", and never count faucet-funded wallets as independent users.
+
+**Free for 3 months:** Chainstack Growth Plan (claim the code on the hackathon page) · Agent Vault Plus (agentvault.io).
+
 
 Two AskBots reviews (24 Nov, 4 Dec) · 3 months Agent Vault Plus · 3 months Chainstack Growth Plan · 700+ services on buy · weekly office hours.
 

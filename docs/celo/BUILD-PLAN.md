@@ -16,7 +16,7 @@ Legend: **HUMAN** = Benjamin must do it (the agent stops, prints exact steps, wa
 - [x] HUMAN: `npx loopshouse add agents-open-for-business` inside the repo (installs the Loops skill for the coding agent; sign-in opens in the browser).
 - [x] HUMAN: `npx skills add celo-org/celopedia-skills` (verified Celo contract addresses for the coding agent).
 - [x] Add `.self/` and `*.key` to `.gitignore`.
-- [ ] Make sure the repo is registered on Loops **before Tue 24 Nov 14:00 GMT** so AskBots review round 1 runs on it.
+- [ ] Make sure the repo is registered on Loops **before Thu 26 Nov** (AskBots round 1 moved, organiser email 24 Nov).
 
 ## Phase 1: Spikes (Mon 23 – Tue 24 Nov)
 
@@ -38,7 +38,7 @@ HUMAN steps in this phase:
 2. Fund a **test** wallet with ~$5 USD₮ + a little CELO for S1/S3 (from your own funds; this wallet is not a user).
 3. Self app: install, scan passport, complete S4 on your phone.
 4. Create the x402 API key at https://x402.celo.org (connect wallet → Create API key → sign). Paste it into `.env` as `X402_API_KEY`.
-5. Join the Altana livestream Tue 24 Nov 14:00 GMT (15:00 Lagos) and ask A1/A2/A3 if still open.
+5. Join the Altana livestream **Tue 25 Nov 14:00 GMT (15:00 Lagos)** and ask A1/A2 (attribution tag on grant/revoke/execute) live.
 
 ## Phase 2: Identity (Wed 25 Nov)
 
@@ -74,7 +74,7 @@ HUMAN steps in this phase:
 - [ ] Self gating: verify `x-self-agent-*` headers with `SelfAgentVerifier` (mainnet, raw body bytes). Verified: higher daily limit. Unverified: lower limit or 403 with a clear message. Unit tests.
 - [ ] Declare the builder code in 402 responses if the x402 `builder-code` extension is available in the installed `@x402/*` version (harmless now).
 - [ ] A small demo client agent (with its own Self Agent ID) that pays `/check`; and one without, to show the rejection.
-- [ ] Watch the Self livestream (Tue 1 Dec 14:00 GMT) for anything that changes this.
+- [ ] Watch the Self livestream (**moved to Mon 24 Nov 14:00 GMT**; recording https://www.youtube.com/watch?v=ccos5Dak-Pk) for anything that changes this.
 
 ## Phase 6: Real users (Mon 30 Nov – Thu 3 Dec, in parallel)
 
