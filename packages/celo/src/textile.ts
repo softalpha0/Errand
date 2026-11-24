@@ -113,25 +113,45 @@ export function randomNonce(): Hex {
   return toHex(globalThis.crypto.getRandomValues(new Uint8Array(32)));
 }
 
-export type TextileClientOptions = { baseUrl?: string; fetch?: typeof fetch; timeoutMs?: number; now?: () => number };
+export type TextileClientOptions = {
+  baseUrl?: string;
+  fetch?: typeof fetch;
+  timeoutMs?: number;
+  now?: () => number;
+  /** Textile API key (tx_live_…). With a key, takerProof is not needed ("your key makes you accountable for the taker"). Server-side only. */
+  apiKey?: string;
+};
+
+export type TakerProof = { nonce: Hex; issuedAt: number; signature: Hex };
 
 export class TextileClient {
   private readonly base: string;
   private readonly doFetch: typeof fetch;
   private readonly timeoutMs: number;
   private readonly now: () => number;
+  private readonly apiKey: string | undefined;
 
   constructor(opts: TextileClientOptions = {}) {
     this.base = (opts.baseUrl ?? TEXTILE_API).replace(/\/$/, "");
     this.doFetch = opts.fetch ?? fetch;
     this.timeoutMs = opts.timeoutMs ?? REQUEST_TIMEOUT_MS;
     this.now = opts.now ?? Date.now;
+    this.apiKey = opts.apiKey?.trim() || undefined;
+  }
+
+  /** True when requests carry an API key, so no takerProof is needed. */
+  get keyed(): boolean {
+    return Boolean(this.apiKey);
   }
 
   private async call<T>(method: "GET" | "POST", path: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
     const res = await this.doFetch(`${this.base}${path}`, {
       method,
-      headers: { ...(body !== undefined ? { "content-type": "application/json" } : {}), ...headers },
+      headers: {
+        ...(body !== undefined ? { "content-type": "application/json" } : {}),
+        ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
+        ...headers,
+      },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       signal: AbortSignal.timeout(this.timeoutMs),
     });
@@ -180,6 +200,14 @@ export class TextileClient {
     const issuedAt = this.now();
     const signature = await sign(takerControlTypedData({ taker: req.taker, chainId: req.chainId, nonce, issuedAtMs: issuedAt }));
     return this.call<FirmQuote | NoQuote>("POST", "/rfq/request", { ...req, takerProof: { nonce, issuedAt, signature } });
+  }
+
+  /**
+   * Firm quote with a proof the caller already has (e.g. signed in the user's browser), or none when keyed.
+   * Use this on a server that relays requests for a wallet it doesn't hold.
+   */
+  requestWithProof(req: RfqRequest, proof?: TakerProof): Promise<FirmQuote | NoQuote> {
+    return this.call<FirmQuote | NoQuote>("POST", "/rfq/request", this.apiKey || !proof ? req : { ...req, takerProof: proof });
   }
 
   get(rfqId: string, claimToken: string) {

@@ -128,3 +128,29 @@ describe("isTerminal", () => {
     expect(isTerminal("submitted")).toBe(false);
   });
 });
+
+describe("TextileClient keyed and relayed requests", () => {
+  it("sends the API key as a Bearer token and no takerProof", async () => {
+    let seen: { auth: string | null; body: Record<string, unknown> } | undefined;
+    const fake = async (_u: string | URL | Request, init?: RequestInit) => {
+      seen = { auth: new Headers(init?.headers).get("Authorization"), body: JSON.parse(String(init?.body)) };
+      return new Response(JSON.stringify({ data: firmQuote() }), { status: 200 });
+    };
+    const client = new TextileClient({ fetch: fake as unknown as typeof fetch, apiKey: "tx_live_test" });
+    expect(client.keyed).toBe(true);
+    await client.requestWithProof({ chainId: 42220, sellToken: USDT.address, buyToken: CNGN.address, buyAmount: "1", taker: TAKER }, { nonce: "0x01", issuedAt: 1, signature: "0x02" });
+    expect(seen!.auth).toBe("Bearer tx_live_test");
+    expect(seen!.body.takerProof).toBeUndefined();
+  });
+
+  it("relays a browser-signed proof when keyless", async () => {
+    let body: Record<string, unknown> = {};
+    const fake = async (_u: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ data: firmQuote() }), { status: 200 });
+    };
+    const client = new TextileClient({ fetch: fake as unknown as typeof fetch });
+    await client.requestWithProof({ chainId: 42220, sellToken: USDT.address, buyToken: CNGN.address, buyAmount: "1", taker: TAKER }, { nonce: "0x01", issuedAt: 5, signature: "0x02" });
+    expect(body.takerProof).toEqual({ nonce: "0x01", issuedAt: 5, signature: "0x02" });
+  });
+});

@@ -9,7 +9,9 @@
     ".": "./src/index.ts",
     "./tokens": "./src/tokens.ts",
     "./session": "./src/session.ts",
-    "./textile": "./src/textile.ts"
+    "./textile": "./src/textile.ts",
+    "./rules": "./src/rules.ts",
+    "./attribution": "./src/attribution.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

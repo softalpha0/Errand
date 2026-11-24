@@ -77,7 +77,7 @@ const STATUS: StatusRow[] = [
   { item: "Your own Altana wallet, created with a passkey (free, no transaction)", state: "try" },
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN conversion on Textile FX, tagged", state: "live" },
-  { item: "Conversion inside an errand, cNGN paid to the person you name", state: "building" },
+  { item: "Errands on the site: exact Naira to the person you name, from your own wallet", state: "try" },
   { item: "Receipts with a Celoscan link for every transaction", state: "next" },
   { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "live" },
 ];
@@ -98,7 +98,10 @@ export default function Home() {
           with a receipt for every transaction.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-3">
-          <LinkButton href="/wallet">Create your wallet</LinkButton>
+          <LinkButton href="/errand">Send Naira</LinkButton>
+          <LinkButton href="/wallet" variant="secondary">
+            Create your wallet
+          </LinkButton>
           <Pill tone="ask">In development · Agents Open for Business</Pill>
           <a href={REPO_CELO_URL} className="text-sm font-medium underline decoration-line-strong underline-offset-4 hover:decoration-ink" rel="noreferrer">
             Follow the build on GitHub

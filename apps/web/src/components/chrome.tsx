@@ -23,7 +23,10 @@ export function Header() {
           <Link href="/#how" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
             How it works
           </Link>
-          <Link href="/#onchain" className="rounded-full px-3 py-2 text-muted hover:text-ink">
+          <Link href="/errand" className="rounded-full px-3 py-2 text-muted hover:text-ink">
+            New errand
+          </Link>
+          <Link href="/#onchain" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
             On Celo
           </Link>
           <Link href="/#status" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
@@ -54,6 +57,9 @@ export function Footer() {
         <div className="grid grid-cols-2 gap-x-10 gap-y-2">
           <Link href="/wallet" className="hover:text-ink">
             Your wallet
+          </Link>
+          <Link href="/errand" className="hover:text-ink">
+            New errand
           </Link>
           <Link href="/#onchain" className="hover:text-ink">
             On Celo mainnet

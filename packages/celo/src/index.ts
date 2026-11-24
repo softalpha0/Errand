@@ -44,4 +44,18 @@ export {
   type NoQuote,
   type RfqRequest,
   type RfqStatus,
+  type TakerProof,
 } from "./textile.js";
+export {
+  CORRIDOR_TOKENS,
+  ERRAND_ALLOWLIST,
+  MAX_ERRAND_NAIRA_ATOMIC,
+  MIN_ERRAND_NAIRA_ATOMIC,
+  buildPayout,
+  checkErrandRequest,
+  decodePayout,
+  r14Corridor,
+  r16Allowlist,
+  r17Tagged,
+  type RuleFinding,
+} from "./rules.js";
