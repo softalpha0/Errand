@@ -44,6 +44,14 @@ export const FORBIDDEN_ADAPTERS: readonly Address[] = [
   "0x0357EE22278c922e1D36cFe6b899269b161880C4", // USA₮ adapter
 ];
 
+/**
+ * The USD₮ fee-currency adapter, for the `feeCurrency` field ONLY (pay the network fee in USD₮, CIP-64).
+ * Never a payment or approval token (see FORBIDDEN_ADAPTERS). It normalises USD₮ to 18 decimals, so
+ * gas × eth_gasPrice(adapter) is in 18-decimal units: divide by 1e12 for USD₮ atomic (6 decimals).
+ * Source: Celopedia builder-guide "Allowed Fee Currencies (Mainnet)"; checked on forno 25 Nov 2026.
+ */
+export const USDT_FEE_CURRENCY: Address = FORBIDDEN_ADAPTERS[0]!;
+
 export const erc20Abi = [
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "owner", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },

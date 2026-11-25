@@ -14,6 +14,8 @@
     "@altananetwork/sdk": "1.1.0",
     "@errand/celo": "workspace:*",
     "@errand/core": "workspace:*",
+    "@x402/evm": "2.32.0",
+    "@x402/fetch": "2.32.0",
     "geist": "1.9.0",
     "next": "15.5.29",
     "react": "19.1.10",

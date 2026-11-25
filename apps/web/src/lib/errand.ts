@@ -6,13 +6,17 @@
  * Every transaction Errand builds ends with Errand's attribution tag (R17) and goes only to an
  * allowed contract and function (R16). The user approves each one in their wallet.
  *
+ * Inside MiniPay (window.ethereum.isMiniPay): no connect button, no message signing (needs the
+ * server's Textile API key), legacy transactions with the network fee paid in USD₮ (feeCurrency =
+ * USD₮ adapter), and a pre-flight check that USD₮ covers the conversion plus the network fees.
+ *
  * When Altana answers on tagging (AGENTS.md Q2), the same steps run from the user's Altana wallet
  * under their session, without a prompt per transaction.
  */
 import { createWalletClient, custom, formatEther, type Address, type EIP1193Provider, type Hex, type WalletClient } from "viem";
 import { celo } from "viem/chains";
 import { assertTagged, tagCalldata } from "@errand/celo/attribution";
-import { USDT, erc20Abi, formatUnitsExact } from "@errand/celo/tokens";
+import { USDT, USDT_FEE_CURRENCY, erc20Abi, formatUnitsExact } from "@errand/celo/tokens";
 import { currencyByCode, type LocalCurrency } from "@errand/celo/currencies";
 import { TEXTILE_REACTOR } from "@errand/celo/session";
 import { encodeApprove, isTerminal, randomNonce, takerControlTypedData, validateFirmQuote, type FirmQuote, type NoQuote, type RfqStatus } from "@errand/celo/textile";
@@ -31,8 +35,34 @@ const SLIPPAGE_BPS = 200n; // the firm quote may cost at most 2% more than the p
 
 export type ConnectedWallet = { address: Address; client: WalletClient; isMiniPay: boolean };
 
+/** MiniPay's Add Cash screen (docs.minipay.xyz deeplinks), for a low USD₮ balance. */
+export const MINIPAY_DEPOSIT_URL = "https://link.minipay.xyz/add_cash?tokens=USDT";
+
+/** Thrown when the wallet can't cover the errand; the screen offers a Deposit link in MiniPay. */
+export class LowBalanceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "LowBalanceError";
+  }
+}
+
 export function hasBrowserWallet(): boolean {
   return typeof window !== "undefined" && Boolean(window.ethereum);
+}
+
+export function inMiniPay(): boolean {
+  return typeof window !== "undefined" && window.ethereum?.isMiniPay === true;
+}
+
+/**
+ * Network fees for a whole errand, paid in USD₮ (MiniPay): up to 4 transactions (reset, approve,
+ * swap, payment) at a generous 400k gas each, priced with eth_gasPrice for the USD₮ adapter.
+ * The adapter is 18-decimal, so divide by 1e12 for USD₮ atomic. Measured ≈ $0.002 per tx on 25 Nov.
+ */
+export async function networkFeeReserveUsdt(): Promise<bigint> {
+  const hex = (await (publicClient.request as (a: { method: string; params: unknown[] }) => Promise<string>)({ method: "eth_gasPrice", params: [USDT_FEE_CURRENCY] })) as Hex;
+  const fee = (BigInt(hex) * 4n * 400_000n) / 10n ** 12n;
+  return fee < 10_000n ? 10_000n : fee; // never reserve less than $0.01
 }
 
 export async function connectWallet(): Promise<ConnectedWallet> {
@@ -40,6 +70,10 @@ export async function connectWallet(): Promise<ConnectedWallet> {
   if (!eth) throw new Error("No browser wallet found. Open this page in a browser with a Celo wallet (for example MetaMask).");
   const accounts = (await eth.request({ method: "eth_requestAccounts" })) as Address[];
   if (!accounts[0]) throw new Error("The wallet didn't share an address.");
+  if (eth.isMiniPay) {
+    // MiniPay is always on Celo; no chain switching, no prompts.
+    return { address: accounts[0], client: createWalletClient({ account: accounts[0], chain: celo, transport: custom(eth) }), isMiniPay: true };
+  }
   const chainId = (await eth.request({ method: "eth_chainId" })) as string;
   if (chainId.toLowerCase() !== CELO_HEX) {
     try {
@@ -85,7 +119,7 @@ export function currencyAvailability(): Promise<Availability[]> {
   return api<Availability[]>("/api/textile/currencies");
 }
 
-export type StepId = "check" | "quote" | "approve" | "swap" | "settle" | "pay" | "verify";
+export type StepId = "check" | "quote" | "approve" | "swap" | "settle" | "pay" | "verify" | "tool";
 export type StepState = "waiting" | "running" | "done" | "failed" | "skipped";
 export type StepUpdate = { id: StepId; state: StepState; detail?: string; tx?: Hex };
 
@@ -107,9 +141,17 @@ export type Receipt = {
   feeUsdt?: string;
   txs: { reset?: Hex; approve?: Hex; swap?: Hex; payout?: Hex };
   tagged: Record<string, boolean>;
+  /** Errand's paid tool call on buy: Chainstack reads every tx back (see /api/receipt/verify). */
+  buyCheck?: BuyCheck;
   status: "done" | "failed";
   failure?: string;
 };
+
+export type BuyCheck =
+  | { status: "checked"; ok: boolean; checked: number; results: { hash: Hex; success: boolean; tagged: boolean }[]; paymentTx?: Hex; provider: string; at: string }
+  | { status: "skipped"; reason: string };
+
+const usdtShort = (atomic: bigint) => Number(formatUnitsExact(atomic, 6)).toFixed(2);
 
 const RECEIPTS_KEY = "errand.celo.receipts.v1";
 
@@ -149,6 +191,11 @@ async function firmQuote(wallet: ConnectedWallet, currency: LocalCurrency, amoun
 }
 
 async function send(wallet: ConnectedWallet, to: Address, data: Hex): Promise<Hex> {
+  if (wallet.isMiniPay) {
+    // MiniPay: legacy transaction (no EIP-1559 fields), network fee in USD₮ via the adapter (CIP-64).
+    const request = window.ethereum!.request as (a: { method: string; params: unknown[] }) => Promise<unknown>;
+    return (await request({ method: "eth_sendTransaction", params: [{ from: wallet.address, to, data, value: "0x0", feeCurrency: USDT_FEE_CURRENCY }] })) as Hex;
+  }
   return wallet.client.sendTransaction({ account: wallet.address, chain: celo, to, data, value: 0n });
 }
 
@@ -189,11 +236,19 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
     if (cost.length) throw new Error(explain(cost));
     const maxTakerPays = (BigInt(preview.takerPays) * (10_000n + SLIPPAGE_BPS)) / 10_000n;
     const bal = await readBalances(wallet.address);
-    if (bal.usdt < maxTakerPays) throw new Error(`Your wallet needs about ${formatUnitsExact(maxTakerPays, 6)} USD₮ (it has ${formatUnitsExact(bal.usdt, 6)}).`);
-    if (bal.celo < MIN_GAS_CELO) throw new Error(`Your wallet needs a little CELO for network fees (about 0.02; it has ${formatEther(bal.celo)}).`);
+    if (wallet.isMiniPay) {
+      // Network fees come out of USD₮ too, so the balance must cover both.
+      const fees = await networkFeeReserveUsdt();
+      if (bal.usdt < maxTakerPays + fees)
+        throw new LowBalanceError(`You need about ${usdtShort(maxTakerPays + fees)} USD₮ (the conversion plus about ${usdtShort(fees)} in network fees). You have ${usdtShort(bal.usdt)}.`);
+    } else {
+      if (bal.usdt < maxTakerPays) throw new LowBalanceError(`Your wallet needs about ${usdtShort(maxTakerPays)} USD₮ (it has ${usdtShort(bal.usdt)}).`);
+      if (bal.celo < MIN_GAS_CELO) throw new LowBalanceError(`Your wallet needs a little CELO for network fees (about 0.02; it has ${formatEther(bal.celo)}).`);
+    }
     step("check", "done", { detail: `Costs about ${formatUnitsExact(BigInt(preview.takerPays), 6)} USD₮. Checks passed.` });
 
     const { keyed } = await api<{ keyed: boolean }>("/api/textile/config");
+    if (wallet.isMiniPay && !keyed) throw new Error("MiniPay can't sign Textile's request, and Errand's Textile key isn't set up on this site yet.");
 
     for (let attempt = 1; attempt <= 2; attempt++) {
       // 2. Firm quote + R15
@@ -279,12 +334,27 @@ export async function runErrand(input: ErrandInput, wallet: ConnectedWallet, onS
     step("verify", "done", { detail: Object.values(receipt.tagged).every(Boolean) ? "Every transaction carries Errand's tag." : "A transaction is missing the tag. See the receipt." });
     receipt.status = "done";
     saveReceipt(receipt);
+
+    // 8. Independent check: Errand pays $0.01 on buy for a Chainstack Celo node to read the same txs back.
+    step("tool", "running", { detail: "Errand is paying $0.01 on buy for an independent Celo node to check your receipt…" });
+    try {
+      receipt.buyCheck = await api<BuyCheck>("/api/receipt/verify", { txs: Object.values(receipt.txs).filter(Boolean) });
+      const b = receipt.buyCheck;
+      if (b.status === "checked") step("tool", b.ok ? "done" : "failed", { detail: b.ok ? `Chainstack confirmed all ${b.checked} transactions succeeded and carry the tag.` : "The independent node disagreed. See the receipt.", ...(b.paymentTx ? { tx: b.paymentTx } : {}) });
+      else step("tool", "skipped", { detail: b.reason });
+    } catch (e) {
+      receipt.buyCheck = { status: "skipped", reason: e instanceof Error ? e.message : String(e) };
+      step("tool", "skipped", { detail: "The independent check isn't available right now. Your receipt is still valid on Celoscan." });
+    }
+    saveReceipt(receipt);
     return receipt;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    receipt.failure = /User rejected|denied|rejected the request/i.test(message) ? "You declined in your wallet. Nothing more was sent." : message;
+    const declined = (e as { code?: number })?.code === 4001 || /User rejected|denied|rejected the request/i.test(message);
+    receipt.failure = declined ? "You declined in your wallet. Nothing more was sent." : message;
     step(current, "failed", { detail: receipt.failure });
     saveReceipt(receipt);
+    if (e instanceof LowBalanceError) throw e;
     throw new Error(receipt.failure);
   }
 }

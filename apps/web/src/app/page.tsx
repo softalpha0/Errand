@@ -80,7 +80,9 @@ const STATUS: StatusRow[] = [
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN conversion on Textile FX, tagged", state: "live" },
   { item: "Errands on the site: an exact amount in ₦, Rp, AR$ or R$ to the person you name, from your own wallet", state: "try" },
-  { item: "Receipts with a Celoscan link for every transaction", state: "next" },
+  { item: "Shareable receipts that re-check every transaction on Celo when opened", state: "try" },
+  { item: "Works inside MiniPay: no connect button, network fees paid in USD₮", state: "try" },
+  { item: "Errand pays for its own tools on buy: $0.01 for an independent Celo node to check each receipt", state: "try" },
   { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "live" },
 ];
 

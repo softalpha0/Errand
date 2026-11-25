@@ -20,7 +20,8 @@
     "build": "tsc --noEmit",
     "spike:s0": "node scripts/spike-s0-textile-preview.ts",
     "register:8004": "node scripts/register-8004.ts",
-    "textile-swap": "tsx scripts/textile-swap.ts"
+    "textile-swap": "tsx scripts/textile-swap.ts",
+    "tools-wallet": "tsx scripts/tools-wallet.ts"
   },
   "dependencies": {
     "@celo/attribution-tags": "0.5.0",

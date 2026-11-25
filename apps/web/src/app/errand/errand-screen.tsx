@@ -5,13 +5,18 @@ import type { Address } from "viem";
 import { formatUnitsExact } from "@errand/celo/tokens";
 import { LOCAL_CURRENCIES, toAtomic, type LocalCurrency } from "@errand/celo/currencies";
 import { checkErrandCost, checkErrandRequest } from "@errand/celo/rules";
+import { ReceiptView } from "@/components/receipt-view";
 import { Button, Card, CardHeader, ErrorNote, Field, Pill, inputClass } from "@/components/ui";
 import { short, txUrl } from "@/lib/celo";
+import { receiptLink } from "@/lib/receipt-link";
 import {
+  LowBalanceError,
+  MINIPAY_DEPOSIT_URL,
   connectWallet,
   currencyAvailability,
   formatLocal,
   hasBrowserWallet,
+  inMiniPay,
   loadReceipts,
   previewCost,
   readBalances,
@@ -38,6 +43,7 @@ function stepsFor(c: LocalCurrency): { id: StepId; label: string }[] {
     { id: "settle", label: "Textile confirms the fill" },
     { id: "pay", label: "Pay the recipient" },
     { id: "verify", label: "Check Errand's tag on every transaction" },
+    { id: "tool", label: "Independent check on a second Celo node (Errand pays $0.01 on buy)" },
   ];
 }
 
@@ -57,10 +63,15 @@ export function ErrandScreen() {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [history, setHistory] = useState<Receipt[]>([]);
   const [walletAvailable, setWalletAvailable] = useState(true);
+  const [lowBalance, setLowBalance] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
     setHistory(loadReceipts());
     setWalletAvailable(hasBrowserWallet());
+    setOrigin(window.location.origin);
+    // MiniPay: connect without a button (zero-click), as MiniPay requires.
+    if (inMiniPay()) void onConnect();
     currencyAvailability()
       .then((list) => setAvailability(Object.fromEntries(list.map((a) => [a.code, a]))))
       .catch(() => setAvailability({}));
@@ -121,6 +132,7 @@ export function ErrandScreen() {
   async function onRun() {
     if (!wallet || amountAtomic === null) return;
     setError(null);
+    setLowBalance(false);
     setReceipt(null);
     setSteps({});
     setRunning(true);
@@ -131,6 +143,7 @@ export function ErrandScreen() {
       setReceipt(r);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setLowBalance(e instanceof LowBalanceError);
     } finally {
       setRunning(false);
       setHistory(loadReceipts());
@@ -240,7 +253,12 @@ export function ErrandScreen() {
       <Card>
         <CardHeader title="Pay from" sub="Your own wallet on Celo. You confirm each step in it." aside={wallet ? <Pill tone="approve">Connected</Pill> : null} />
         <div className="px-5 py-5">
-          {wallet ? (
+          {wallet?.isMiniPay ? (
+            <div className="flex flex-col gap-1">
+              <span className="text-[15px] font-medium">Your MiniPay wallet</span>
+              {balances ? <span className="num text-sm text-muted">{usdt(balances.usdt)} available · network fees are paid in USD₮</span> : null}
+            </div>
+          ) : wallet ? (
             <div className="flex flex-col gap-1">
               <span className="num text-[15px] break-all">{wallet.address}</span>
               {balances ? (
@@ -248,26 +266,36 @@ export function ErrandScreen() {
                   {usdt(balances.usdt)} · {Number(formatUnitsExact(balances.celo, 18)).toFixed(4)} CELO for network fees
                 </span>
               ) : null}
-              {wallet.isMiniPay ? <p className="mt-2 text-sm text-ask">MiniPay can&apos;t sign Textile&apos;s request yet. Errand will support MiniPay once its Textile API key is set up.</p> : null}
             </div>
+          ) : walletAvailable && inMiniPay() ? (
+            <p className="text-sm text-muted">Opening your MiniPay wallet…</p>
           ) : walletAvailable ? (
             <Button variant="secondary" onClick={onConnect}>
               Connect wallet
             </Button>
           ) : (
-            <p className="text-sm text-muted">No browser wallet found. Open this page in a browser with a Celo wallet such as MetaMask.</p>
+            <p className="text-sm text-muted">No wallet found. Open this page inside MiniPay, or in a browser with a Celo wallet such as MetaMask.</p>
           )}
           <p className="mt-4 text-[13px] leading-snug text-muted">
-            Your wallet asks you to confirm about four times: a Textile request (moves no money), the USD₮ approval, the conversion, and the payment. With an Altana
-            session (coming soon), Errand does these for you within the limits you set.
+            Your wallet asks you to confirm three times: the USD₮ approval, the conversion, and the payment. With an Altana session (coming soon), Errand does these for
+            you within the limits you set.
           </p>
         </div>
       </Card>
 
-      {error ? <ErrorNote>{error}</ErrorNote> : null}
+      {error ? (
+        <ErrorNote>
+          {error}
+          {lowBalance && wallet?.isMiniPay ? (
+            <a href={MINIPAY_DEPOSIT_URL} className="mt-3 block font-semibold underline underline-offset-4">
+              Deposit USD₮ in MiniPay →
+            </a>
+          ) : null}
+        </ErrorNote>
+      ) : null}
 
       <Card className="p-5">
-        <Button onClick={onRun} disabled={!ready || Boolean(wallet?.isMiniPay)}>
+        <Button onClick={onRun} disabled={!ready}>
           {running ? "Running…" : amountAtomic !== null && amountAtomic > 0n ? `Send ${formatLocal(currency, amountAtomic)}` : "Send"}
         </Button>
         {Object.keys(steps).length ? (
@@ -297,7 +325,7 @@ export function ErrandScreen() {
         ) : null}
       </Card>
 
-      {receipt?.status === "done" ? <ReceiptCard r={receipt} /> : null}
+      {receipt?.status === "done" ? <ReceiptView r={{ ...receipt, ...(receipt.buyCheck?.status === "checked" ? { buy: { ok: receipt.buyCheck.ok, at: receipt.buyCheck.at, ...(receipt.buyCheck.paymentTx ? { tx: receipt.buyCheck.paymentTx } : {}) } } : {}) }} shareUrl={origin ? receiptLink(receipt, origin) : undefined} /> : null}
 
       {history.length ? (
         <Card>
@@ -312,7 +340,11 @@ export function ErrandScreen() {
                     <span className="text-muted"> · {new Date(r.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
                   </span>
                   <span className="flex items-center gap-3">
-                    {r.txs.payout ? (
+                    {r.status === "done" && origin ? (
+                      <a href={receiptLink(r, origin)} className="text-accent underline decoration-accent/30 underline-offset-2">
+                        Receipt
+                      </a>
+                    ) : r.txs.payout ? (
                       <a href={txUrl(r.txs.payout)} className="num underline decoration-line-strong underline-offset-2" rel="noreferrer">
                         {short(r.txs.payout)}
                       </a>
@@ -325,48 +357,6 @@ export function ErrandScreen() {
           </ul>
         </Card>
       ) : null}
-    </div>
-  );
-}
-
-function ReceiptCard({ r }: { r: Receipt }) {
-  const { currency, amount } = receiptCurrency(r);
-  const rows: [string, "approve" | "swap" | "payout"][] = [
-    ["USD₮ approval", "approve"],
-    ["Conversion on Textile FX", "swap"],
-    ["Payment to recipient", "payout"],
-  ];
-  return (
-    <Card>
-      <CardHeader title="Receipt" sub={new Date(r.createdAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} aside={<Pill tone="approve">Paid</Pill>} />
-      <dl className="divide-y divide-line">
-        <Line label="Recipient received" value={`${formatLocal(currency, amount)} (${currency.token.symbol})`} />
-        <Line label="To" value={r.label ? `${r.label} · ${short(r.recipient)}` : r.recipient} />
-        {r.paidUsdt ? <Line label="You paid" value={usdt(r.paidUsdt)} /> : null}
-        {r.feeUsdt ? <Line label="Textile fee (included)" value={usdt(r.feeUsdt)} /> : null}
-        {rows.map(([label, key]) => {
-          const hash = r.txs[key];
-          return hash ? <Line key={key} label={label} value={`${short(hash)}${r.tagged[key] ? " · tagged" : ""}`} href={txUrl(hash)} /> : null;
-        })}
-        {r.rfqId ? <Line label="Textile quote" value={r.rfqId} /> : null}
-      </dl>
-    </Card>
-  );
-}
-
-function Line({ label, value, href }: { label: string; value: string; href?: string }) {
-  return (
-    <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-3">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="num text-[15px] break-all">
-        {href ? (
-          <a href={href} className="underline decoration-line-strong underline-offset-4 hover:decoration-ink" rel="noreferrer">
-            {value}
-          </a>
-        ) : (
-          value
-        )}
-      </dd>
     </div>
   );
 }

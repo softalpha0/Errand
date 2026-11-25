@@ -12,6 +12,7 @@ export {
   CELO_TOKEN,
   CNGN,
   FORBIDDEN_ADAPTERS,
+  USDT_FEE_CURRENCY,
   USDT,
   assertTokenDecimals,
   erc20Abi,
