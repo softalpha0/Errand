@@ -65,6 +65,12 @@ const FACTS: Fact[] = [
     note: "A real USD₮ to cNGN swap on Textile FX from Errand's test wallet, 24 Nov 2026. The transaction carries Errand's attribution tag.",
   },
   {
+    label: "First real errand",
+    value: "₦2,000 cNGN paid, from MiniPay",
+    href: txUrl(CELO.firstErrand.payoutTx),
+    note: "25 Nov 2026: a person outside the team sent exactly ₦2,000 to someone else from their own MiniPay wallet. Approval, conversion and payment all carry Errand's tag; a second Celo node, paid by Errand on buy, confirmed them.",
+  },
+  {
     label: "Textile FX price check",
     value: `≈ ₦${CELO.textilePreview.nairaPerUsdt.toLocaleString("en-NG")} per USD₮`,
     note: `Indicative USD₮→cNGN price for $1–$20 on Celo mainnet, ${CELO.textilePreview.date}. Not a live quote.`,
@@ -79,10 +85,10 @@ const STATUS: StatusRow[] = [
   { item: "Your own Altana wallet, created with a passkey (free, no transaction)", state: "try" },
   { item: "Session with spend cap, contract allowlist, expiry and one-tap revoke", state: "building" },
   { item: "USD₮ → cNGN conversion on Textile FX, tagged", state: "live" },
-  { item: "Errands on the site: an exact amount in ₦, Rp, AR$ or R$ to the person you name, from your own wallet", state: "try" },
-  { item: "Shareable receipts that re-check every transaction on Celo when opened", state: "try" },
-  { item: "Works inside MiniPay: no connect button, network fees paid in USD₮", state: "try" },
-  { item: "Errand pays for its own tools on buy: $0.01 for an independent Celo node to check each receipt", state: "try" },
+  { item: "Errands on the site: an exact amount in ₦, Rp, AR$ or R$ to the person you name, from your own wallet", state: "live" },
+  { item: "Shareable receipts that re-check every transaction on Celo when opened", state: "live" },
+  { item: "Works inside MiniPay: no connect button, network fees paid in USD₮", state: "live" },
+  { item: "Errand pays for its own tools on buy: $0.01 for an independent Celo node to check each receipt", state: "live" },
   { item: "Errand Guard: other agents pay $0.01 over x402; Self Agent ID decides who is served", state: "live" },
 ];
 

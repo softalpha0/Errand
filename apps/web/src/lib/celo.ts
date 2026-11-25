@@ -24,6 +24,11 @@ export const CELO = {
     tx: "0x9731a44d6f3b8c117059d313b33ace04ce3ca8b2e5420b476a5efdcb1b42528b",
     naira: "1,445.12",
   },
+  firstErrand: {
+    // 25 Nov 2026 (evidence/celo/first-errand.md): independent user in MiniPay, ₦2,000 cNGN to a recipient outside the team.
+    payoutTx: "0xbc98dba3494297855374c797b939fc761964de23d119ab86f9e2541a1fd1e4e7",
+    swapTx: "0x1a260a0db329d452ed7c25d48c7e83bc6c217e8a37c2c5f50b0d6975df4a004e",
+  },
   textilePreview: {
     // Spike S0, 23 Nov 2026 (evidence/celo/spikes.md). Indicative only.
     nairaPerUsdt: 1447.58,
