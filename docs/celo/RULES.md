@@ -105,6 +105,17 @@ Other points from the stream:
 - AskBots round 1 runs **Thursday** on submitted projects; reviews arrive as GitHub issues on the repo.
 - The Altana livestream was announced as "tomorrow, same time" (the email says Tue 25 Nov, 14:00 GMT; one speaker said 9 a.m. GMT, which is likely a time-zone slip). Use the email time.
 
+## Altana livestream notes (Tue 25 Nov, Altana co-founder + Celo DevRel; Benjamin watched the recording transcript)
+
+- What Altana wants in its track: **outstanding UX**, "real problems with an innovative twist" (simple is fine), passkeys and mobile-friendly flows, and (moonshot) new DeFi primitives for agentic finance. Advice: "show, don't tell": the demo carries the pitch.
+- **Remittances are named as an Altana use case**: a remittance that "can only be used for this, in these specific cases" through session limits. That is Errand's pitch; say it in those words in the video.
+- Celo DevRel wants LatAm stablecoin ↔ USD₮ liquidity and combinations with Textile FX and Self. Errand already combines Altana + Textile + Self.
+- Judging repeated: quality of execution · clear value proposition · initial traction with **tagged** onchain activity · a named user and a real job done.
+- **Altana product reviews**: up to 10 per team (5,000 XP each); must be specific, reproducible, and posted new in Altana's SDK bug-report channel (Telegram). Errand's findings are candidates: no `dataSuffix`/attribution option on grant/revoke; `recoverFromPasskey` fails before the first tx; first grant needs 2 KeyStore fees (~19 CELO).
+- **Altana XP page**: creating a smart agentic wallet and setting permissions earns 3K XP, open during the hackathon only. URL said aloud as "XP.network"; take the real link from the Loops track page or Altana's Telegram, don't guess it.
+- Not answered on the stream: whether Altana grant/revoke txs can carry the attribution tag (Q2) or whether user-wallet session txs count (Q1). Ask in Altana's Telegram.
+- Dates restated: office hours Thu 26 Nov; **AskBots round 1 reviews projects submitted by Thu 26 Nov morning**; second round next week; submissions close 7 Dec.
+
 ## Perks
 
 **Faucets (Celo mainnet, open until 7 Dec, first come first served; also under Resources on the hackathon page):**

@@ -173,6 +173,7 @@ Dark base (`#07090a`), large bold display type (Geist Sans, tight tracking), Gei
 
 - 24 Nov: Textile live API key set as `TEXTILE_API_KEY` on Vercel (`errand-thgw`); `/api/textile/config` shows `keyed: true`; keyed quotes need no taker proof. A key allows at most 4 outstanding RFQs, so the site must not leave quotes open.
 - 24 Nov: **Design direction B, "bold fintech"** (Benjamin chose it from two home-page mock-ups). Replaces the calm paper look: dark base, big type, currency colour tiles, glows and gradient CTAs allowed. Design section above rewritten. Home page now says what Errand is (an agent that runs money errands for you inside your limits, plus Errand Guard for other agents), not only "send money".
+- 25 Nov: Altana livestream (RULES.md → Altana livestream notes): Altana names remittances limited by session rules as a use case it wants, so Errand's pitch fits the track as is. Q1/Q2 were not answered; re-asked in Altana's Telegram. Altana product reviews (5,000 XP each, specific + reproducible, in their bug-report channel) are worth filing for the SDK gaps we hit.
 
 ## Blockers
 
