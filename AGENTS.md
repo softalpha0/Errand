@@ -130,7 +130,7 @@ Dark base (`#07090a`), large bold display type (Geist Sans, tight tracking), Gei
   - [x] 24 Nov: paid check as a **Self-verified caller** (agent 214): tier verified, 99 left, tx `0x2108…1c03`, 0.01 USD₮ test wallet → agent wallet (checked on chain).
   - [x] Agent card: Guard endpoint added, `x402Support: true`; home page shows Errand Guard ("Ready to try" until the first paid check).
   - [x] `pnpm --filter @errand/guard-celo pay-check [-- --verified]`: pays one check from a test wallet (`.self/test-payer.key`), optional Self signing as agent 214, records to `evidence/celo/guard-checks.jsonl`.
-- [ ] Phase 6 real users (≥ 3 independent). **1 of 3** (25 Nov, MiniPay; name pending consent).
+- [ ] Phase 6 real users (≥ 3 independent). **1 of 3** (25 Nov, MiniPay; Benjamin confirmed he did not fund the payer; recipient confirmed receipt; names pending consent).
 - [ ] Phase 7 freeze (Thu 3 Dec), README, video. Then complete the Loops submit form (needs live URL, video, named user; other answers ready: agentId 10107, Self 214, tag, PayTo = agent wallet).
 - [ ] Phase 8 submit (Sun 6 Dec, before 18:00 Lagos).
 

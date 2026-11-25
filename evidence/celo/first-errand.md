@@ -26,4 +26,4 @@ Independent check (Chainstack Celo RPC bought on buy) confirmed all 3 errand txs
 Notes
 - First attempt (~22:09 UTC) stopped at the approval before anything was sent ("reading '_request'" bug, fixed in `405570f`); no money moved.
 - Not under an Altana session yet (Q2): the user confirmed each tx in MiniPay.
-- Still to confirm with Benjamin: he did not fund the payer wallet (independent-user rule).
+- Independent-user rule: Benjamin confirmed on 25 Nov that he sent the payer no money; the payer funded their own MiniPay wallet. The recipient confirmed receiving the ₦2,000.
