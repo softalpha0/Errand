@@ -151,7 +151,7 @@ body {
   pointer-events: none;
   position: absolute;
   border-radius: 9999px;
-  filter: blur(40px);
+  /* No filter: blur(); Android WebViews (MiniPay) clip nearby text when repainting large blurs. The radial gradient is soft enough. */
 }
 .glow-green {
   background: radial-gradient(closest-side, rgba(53, 208, 127, 0.32), transparent);

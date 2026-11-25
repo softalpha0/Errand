@@ -15,7 +15,7 @@ export function Logo() {
 
 export function Header() {
   return (
-    <header className="no-print sticky top-0 z-30 border-b border-white/[0.06] bg-paper/80 backdrop-blur-md">
+    <header className="no-print sticky top-0 z-30 border-b border-white/[0.06] bg-paper/95">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Logo />
         <nav className="flex items-center gap-1 text-sm" aria-label="Main">

@@ -204,17 +204,8 @@ export function ErrandScreen() {
               htmlFor="recipient"
               hint={
                 <>
-                  The wallet that should receive the {currency.token.symbol}. Check it with them first: payments can&apos;t be reversed.
-                  {currency.offRamp ? (
-                    <>
-                      {" "}
-                      They can turn it into bank money with{" "}
-                      <a href={currency.offRamp.url} className="underline underline-offset-2" rel="noreferrer">
-                        {currency.offRamp.name}
-                      </a>
-                      .
-                    </>
-                  ) : null}
+                  The Celo wallet that should receive the {currency.token.symbol} (a MiniPay or Valora address works). Check it with them first: payments can&apos;t be
+                  reversed. They receive {currency.token.symbol}, a {currency.name} stablecoin, in that wallet, not in a bank account.
                 </>
               }
             >

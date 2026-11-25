@@ -193,8 +193,9 @@ async function firmQuote(wallet: ConnectedWallet, currency: LocalCurrency, amoun
 async function send(wallet: ConnectedWallet, to: Address, data: Hex): Promise<Hex> {
   if (wallet.isMiniPay) {
     // MiniPay: legacy transaction (no EIP-1559 fields), network fee in USD₮ via the adapter (CIP-64).
-    const request = window.ethereum!.request as (a: { method: string; params: unknown[] }) => Promise<unknown>;
-    return (await request({ method: "eth_sendTransaction", params: [{ from: wallet.address, to, data, value: "0x0", feeCurrency: USDT_FEE_CURRENCY }] })) as Hex;
+    // Call request() ON the provider: MiniPay's request uses `this` (a detached call throws "reading '_request'").
+    const eth = window.ethereum as unknown as { request(a: { method: string; params: unknown[] }): Promise<unknown> };
+    return (await eth.request({ method: "eth_sendTransaction", params: [{ from: wallet.address, to, data, value: "0x0", feeCurrency: USDT_FEE_CURRENCY }] })) as Hex;
   }
   return wallet.client.sendTransaction({ account: wallet.address, chain: celo, to, data, value: 0n });
 }

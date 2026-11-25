@@ -184,7 +184,7 @@ export default function Home() {
         <div className="mt-12 grid gap-4 lg:grid-cols-3">
           {DOES.map((d) => (
             <div key={d.title} className="relative overflow-hidden rounded-3xl border border-line bg-card p-6 sm:p-7">
-              <div aria-hidden className="absolute -top-20 -right-20 size-48 rounded-full opacity-40 blur-3xl" style={{ background: d.color }} />
+              <div aria-hidden className="absolute -top-24 -right-24 size-56 rounded-full opacity-40" style={{ background: `radial-gradient(closest-side, ${d.color}, transparent)` }} />
               <span aria-hidden className="relative block h-1.5 w-10 rounded-full" style={{ background: d.color }} />
               <h3 className="relative mt-6 text-2xl font-semibold tracking-tight">{d.title}</h3>
               <p className="relative mt-3 leading-relaxed text-muted">{d.body}</p>
