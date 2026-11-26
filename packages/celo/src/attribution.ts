@@ -1,4 +1,4 @@
-import { fromDataSuffix, toDataSuffix, verifyTx, withAttribution } from "@celo/attribution-tags";
+import { fromDataSuffix, fromOrchestratorCalldata, toDataSuffix, verifyTx, withAttribution } from "@celo/attribution-tags";
 import { concat, type Hex, type PublicClient } from "viem";
 
 /**
@@ -38,6 +38,19 @@ export function errandAttribution() {
 export function hasErrandTag(data: Hex): boolean {
   const decoded = fromDataSuffix(data);
   return decoded !== null && decoded.codes.includes(attributionCode());
+}
+
+/**
+ * True if a transaction's input carries Errand's code, offline (no RPC):
+ *  - a direct transaction: the tag at the very end of the input (EOA / MiniPay errands);
+ *  - an Altana relayed intent (`Orchestrator.execute`): the tag on a call inside the signed intent,
+ *    e.g. `altana,celo_511bb691f2f0` when the Altana SDK is created with `appCode` (SDK 1.2.0).
+ * For crediting, prefer `assertTagged`, which also checks that a relayed intent executed.
+ */
+export function carriesErrandTag(input: Hex): boolean {
+  if (hasErrandTag(input)) return true;
+  const intents = fromOrchestratorCalldata(input);
+  return Boolean(intents?.some((i) => i.attribution?.codes.includes(attributionCode())));
 }
 
 /**

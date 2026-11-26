@@ -17,11 +17,12 @@ import { createWalletClient, custom, formatEther, type Address, type EIP1193Prov
 import { celo } from "viem/chains";
 import { assertTagged, tagCalldata } from "@errand/celo/attribution";
 import { USDT, USDT_FEE_CURRENCY, erc20Abi, formatUnitsExact } from "@errand/celo/tokens";
-import { currencyByCode, type LocalCurrency } from "@errand/celo/currencies";
+import { currencyByCode, currencyByToken, type LocalCurrency } from "@errand/celo/currencies";
 import { TEXTILE_REACTOR } from "@errand/celo/session";
 import { encodeApprove, isTerminal, randomNonce, takerControlTypedData, validateFirmQuote, type FirmQuote, type NoQuote, type RfqStatus } from "@errand/celo/textile";
 import { buildPayout, checkErrandCost, checkErrandRequest, r16Allowlist, r17Tagged, type RuleFinding } from "@errand/celo/rules";
-import { publicClient } from "@/lib/wallet";
+import { publicClient, type StoredWallet } from "@/lib/wallet";
+import { executeWithSession, type StoredSession } from "@/lib/session";
 
 declare global {
   interface Window {
@@ -141,6 +142,8 @@ export type Receipt = {
   feeUsdt?: string;
   txs: { reset?: Hex; approve?: Hex; swap?: Hex; payout?: Hex };
   tagged: Record<string, boolean>;
+  /** "session": run from the user's Altana wallet under their session, no prompts. Absent: their own browser wallet / MiniPay. */
+  mode?: "session";
   /** Errand's paid tool call on buy: Chainstack reads every tx back (see /api/receipt/verify). */
   buyCheck?: BuyCheck;
   status: "done" | "failed";
@@ -371,4 +374,168 @@ export function formatLocal(currency: LocalCurrency, atomic: string | bigint): s
 export function receiptCurrency(r: Receipt): { currency: LocalCurrency; amount: string } {
   const currency = currencyByCode(r.currency ?? "NGN") ?? currencyByCode("NGN")!;
   return { currency, amount: r.amountAtomic ?? r.nairaAtomic ?? "0" };
+}
+
+/** Network-fee headroom for the two session transactions, paid in USD₮ from the session allowance. */
+const SESSION_FEE_RESERVE = 100_000n; // $0.10
+
+/** The one local token a session may pay out in: the `to` of its transfer() permission. */
+export function sessionPayoutToken(stored: StoredSession): Address | null {
+  const calls = (stored.session.permissions as { calls?: { signature?: string; to?: string }[] }).calls ?? [];
+  const t = calls.find((c) => c.signature?.startsWith("transfer(") && c.to);
+  return (t?.to as Address | undefined) ?? null;
+}
+
+/**
+ * The same errand, run by Errand under the user's Altana session, with no prompt per step:
+ *   checks → firm Textile quote (taker = the Altana wallet; keyed, no signature) → R15 →
+ *   ONE session transaction: [reset approval if needed, approve, swap] → Textile confirms the fill →
+ *   ONE session transaction: [transfer to the recipient] → tags read back from Celo → $0.01 check on buy.
+ * The session's on-chain rules (caps, the three allowed calls, expiry) bound everything; Errand's
+ * rules R14–R16 run first anyway. Each transaction carries `altana,celo_511bb691f2f0` (SDK appCode).
+ */
+export async function runSessionErrand(
+  input: ErrandInput,
+  wallet: StoredWallet,
+  stored: StoredSession & { deviceKey: Hex },
+  onStep: (u: StepUpdate) => void,
+): Promise<Receipt> {
+  const owner = wallet.address as Address;
+  const receipt: Receipt = {
+    id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    createdAt: new Date().toISOString(),
+    label: input.label,
+    recipient: input.recipient,
+    currency: input.currency.code,
+    amountAtomic: input.amountAtomic.toString(),
+    taker: owner,
+    txs: {},
+    tagged: {},
+    status: "failed",
+    mode: "session",
+  };
+  let current: StepId = "check";
+  const step = (id: StepId, state: StepState, extra: Omit<StepUpdate, "id" | "state"> = {}) => {
+    current = id;
+    onStep({ id, state, ...extra });
+  };
+  const ensure = (r: { status: string; transactionHash?: Hex; detail?: string }, what: string): Hex => {
+    if (r.status !== "CONFIRMED" || !r.transactionHash)
+      throw new Error(`${what} didn't go through (Altana: ${r.status}). Nothing after it was sent.${r.transactionHash ? ` https://celoscan.io/tx/${r.transactionHash}` : ""}`);
+    return r.transactionHash;
+  };
+
+  try {
+    // 1. Checks
+    step("check", "running");
+    const token = input.currency.token;
+    if (stored.session.walletAddress.toLowerCase() !== owner.toLowerCase()) throw new Error("This session belongs to a different wallet.");
+    if (stored.session.expiry * 1000 <= Date.now()) throw new Error("Your session has expired. Give Errand a new one on the Session page.");
+    const allowedToken = sessionPayoutToken(stored);
+    if (!allowedToken || allowedToken.toLowerCase() !== token.address.toLowerCase())
+      throw new Error(`Your session only pays out in ${currencyByToken(allowedToken ?? "0x")?.token.symbol ?? "another currency"}. Pick that currency, or give Errand a new session.`);
+    const findings = checkErrandRequest({ localToken: token.address, amountAtomic: input.amountAtomic, recipient: input.recipient, payer: owner });
+    if (findings.length) throw new Error(explain(findings));
+    const preview = await previewCost(input.currency, input.amountAtomic);
+    if (preview.status !== "preview" || !preview.takerPays) throw new Error(`Textile can't price this right now (${preview.reason ?? preview.status}).`);
+    const cost = checkErrandCost(BigInt(preview.takerPays));
+    if (cost.length) throw new Error(explain(cost));
+    const maxTakerPays = (BigInt(preview.takerPays) * (10_000n + SLIPPAGE_BPS)) / 10_000n;
+    const { usdt } = await readBalances(owner);
+    if (usdt < maxTakerPays + SESSION_FEE_RESERVE)
+      throw new LowBalanceError(`Your Errand wallet needs about ${usdtShort(maxTakerPays + SESSION_FEE_RESERVE)} USD₮ (the conversion plus network fees). It has ${usdtShort(usdt)}.`);
+    const { keyed } = await api<{ keyed: boolean }>("/api/textile/config");
+    if (!keyed) throw new Error("Errand's Textile key isn't set up on this site, so session errands can't get a quote yet.");
+    step("check", "done", { detail: `Costs about ${formatUnitsExact(BigInt(preview.takerPays), 6)} USD₮. Checks passed.` });
+
+    // 2. Firm quote for the Altana wallet + R15
+    step("quote", "running", { detail: "Asking Textile for a firm quote…" });
+    const res = await api<FirmQuote | NoQuote>("/api/textile/quote", { currency: input.currency.code, buyAmount: input.amountAtomic.toString(), taker: owner });
+    if (res.status !== "quoted") throw new Error(`Textile has no quote right now (${(res as NoQuote).reason}). Try again in a minute.`);
+    const quote = res as FirmQuote;
+    const r15 = validateFirmQuote(quote, { taker: owner, sellToken: USDT.address, maxTakerPays, chainId: 42220, nowMs: Date.now() });
+    if (BigInt(quote.quote.buyAmount) < input.amountAtomic) r15.push(`Quote delivers less ${token.symbol} than asked.`);
+    if (r15.length) throw new Error(`R15 refused the quote: ${r15.join(" ")}`);
+    receipt.rfqId = quote.rfqId;
+    receipt.paidUsdt = quote.quote.takerPays;
+    receipt.feeUsdt = quote.quote.feeAmount;
+    step("quote", "done", { detail: `Firm quote: ${formatUnitsExact(BigInt(quote.quote.takerPays), 6)} USD₮ → ${formatLocal(input.currency, quote.quote.buyAmount)}.` });
+
+    // Build every call (untagged: the Altana SDK adds the tag), then R16 on all of them.
+    const takerPays = BigInt(quote.quote.takerPays);
+    const allowance = await publicClient.readContract({
+      address: USDT.address,
+      abi: [{ type: "function", name: "allowance", stateMutability: "view", inputs: [{ type: "address" }, { type: "address" }], outputs: [{ type: "uint256" }] }] as const,
+      functionName: "allowance",
+      args: [owner, TEXTILE_REACTOR],
+    });
+    const convertCalls: { to: Address; data: Hex }[] = [];
+    if (allowance > 0n && allowance < takerPays) convertCalls.push({ to: USDT.address, data: encodeApprove(TEXTILE_REACTOR, 0n) });
+    if (allowance < takerPays) convertCalls.push({ to: quote.transactions.approval.to, data: quote.transactions.approval.data });
+    convertCalls.push({ to: quote.transactions.swap.to, data: quote.transactions.swap.data });
+    const payout = buildPayout(token.address, input.recipient, input.amountAtomic);
+    const payCall = { to: payout.to, data: payout.data.slice(0, 2 + 8 + 128) as Hex }; // transfer(to, amount) without Errand's own suffix: the SDK tags it
+    const policy = r16Allowlist([...convertCalls, payCall], token.address);
+    if (policy.length) throw new Error(explain(policy));
+
+    // 3. Approve + convert, one session transaction, only while the quote is live
+    if (Date.parse(quote.quote.expiresAt) <= Date.now() + 5_000) throw new Error("The quote expired before it could be used. Please try again.");
+    step("approve", "running", { detail: "Errand is approving and converting in one transaction, inside your session…" });
+    const swapTx = ensure(await executeWithSession(stored, convertCalls), "The conversion");
+    receipt.txs.swap = swapTx;
+    step("approve", "done", { detail: allowance >= takerPays ? "Your earlier approval already covered it." : "Approved in the same transaction as the conversion." });
+    step("swap", "done", { tx: swapTx });
+
+    // 4. Textile settlement
+    step("settle", "running", { detail: "Waiting for Textile to confirm the fill…" });
+    await api("/api/textile/submit", { rfqId: quote.rfqId, claimToken: quote.claimToken, txHash: swapTx }).catch(() => undefined);
+    let status = await api<RfqStatus>("/api/textile/status", { rfqId: quote.rfqId, claimToken: quote.claimToken });
+    for (let i = 0; i < 30 && !isTerminal(status.status); i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      status = await api<RfqStatus>("/api/textile/status", { rfqId: quote.rfqId, claimToken: quote.claimToken });
+    }
+    if (status.status !== "filled") throw new Error(`Textile reports "${status.status}". Check the conversion on Celoscan: https://celoscan.io/tx/${swapTx}`);
+    step("settle", "done", { detail: "Textile confirmed the conversion." });
+
+    // 5. Pay the recipient, one session transaction
+    step("pay", "running", { detail: `Errand is paying ${formatLocal(input.currency, input.amountAtomic)} inside your session…` });
+    receipt.txs.payout = ensure(await executeWithSession(stored, [payCall]), "The payment");
+    step("pay", "done", { tx: receipt.txs.payout });
+
+    // 6. Tags, read back from Celo (verifyTx decodes Altana's relayed intents)
+    step("verify", "running");
+    for (const [name, hash] of Object.entries(receipt.txs)) {
+      if (!hash) continue;
+      try {
+        await assertTagged(publicClient as never, hash);
+        receipt.tagged[name] = true;
+      } catch {
+        receipt.tagged[name] = false;
+      }
+    }
+    step("verify", "done", { detail: Object.values(receipt.tagged).every(Boolean) ? "Every transaction carries Errand's tag." : "A transaction is missing the tag. See the receipt." });
+    receipt.status = "done";
+    saveReceipt(receipt);
+
+    // 7. Independent check on buy
+    step("tool", "running", { detail: "Errand is paying $0.01 on buy for an independent Celo node to check your receipt…" });
+    try {
+      receipt.buyCheck = await api<BuyCheck>("/api/receipt/verify", { txs: Object.values(receipt.txs).filter(Boolean) });
+      const b = receipt.buyCheck;
+      if (b.status === "checked") step("tool", b.ok ? "done" : "failed", { detail: b.ok ? `Chainstack confirmed all ${b.checked} transactions succeeded and carry the tag.` : "The independent node disagreed. See the receipt.", ...(b.paymentTx ? { tx: b.paymentTx } : {}) });
+      else step("tool", "skipped", { detail: b.reason });
+    } catch (e) {
+      receipt.buyCheck = { status: "skipped", reason: e instanceof Error ? e.message : String(e) };
+      step("tool", "skipped", { detail: "The independent check isn't available right now. Your receipt is still valid on Celoscan." });
+    }
+    saveReceipt(receipt);
+    return receipt;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    receipt.failure = message;
+    step(current, "failed", { detail: message });
+    saveReceipt(receipt);
+    if (e instanceof LowBalanceError) throw e;
+    throw new Error(message);
+  }
 }

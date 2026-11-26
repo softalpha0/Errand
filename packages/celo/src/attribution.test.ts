@@ -3,6 +3,7 @@ import {
   DEFAULT_ATTRIBUTION_CODE,
   attributionCode,
   attributionSuffix,
+  carriesErrandTag,
   hasErrandTag,
   tagCalldata,
 } from "./attribution.js";
@@ -38,5 +39,12 @@ describe("attribution", () => {
   it("rejects a malformed override", () => {
     process.env.ATTRIBUTION_CODE = "Not A Code!";
     expect(() => attributionCode()).toThrow();
+  });
+});
+
+describe("carriesErrandTag", () => {
+  it("finds the tag at the end of a direct transaction and refuses untagged input", () => {
+    expect(carriesErrandTag(tagCalldata("0xa9059cbb"))).toBe(true);
+    expect(carriesErrandTag("0xa9059cbb")).toBe(false);
   });
 });

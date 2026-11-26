@@ -90,3 +90,25 @@ export function decodePayout(data: Hex): { to: Address; amount: bigint } {
   const { args } = decodeFunctionData({ abi: transferAbi, data });
   return { to: args[0], amount: args[1] };
 }
+
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+
+/**
+ * Did this transaction pay exactly `amount` of `token` to `recipient`? Reads the ERC-20 Transfer logs,
+ * so it works for a direct transfer (EOA, MiniPay) and for a transfer inside an Altana relayed intent,
+ * where the transaction's own input is the relay's call, not the transfer.
+ */
+export function payoutInLogs(
+  logs: readonly { address: string; topics: readonly string[]; data: string }[],
+  expect: { token: Address; recipient: Address; amount: bigint; from?: Address },
+): boolean {
+  return logs.some(
+    (l) =>
+      l.address.toLowerCase() === expect.token.toLowerCase() &&
+      l.topics[0] === TRANSFER_TOPIC &&
+      l.topics.length === 3 &&
+      `0x${l.topics[2]!.slice(26)}`.toLowerCase() === expect.recipient.toLowerCase() &&
+      (!expect.from || `0x${l.topics[1]!.slice(26)}`.toLowerCase() === expect.from.toLowerCase()) &&
+      BigInt(l.data) === expect.amount,
+  );
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatUnitsExact } from "@errand/celo/tokens";
-import { ERRAND_AGENT, EXPIRY_CHOICES_DAYS, describeAllowlist, expiryFromNow, toAtomic6 } from "@errand/celo/session";
+import { EXPIRY_CHOICES_DAYS, describeAllowlist, expiryFromNow, toAtomic6 } from "@errand/celo/session";
 import { LOCAL_CURRENCIES, currencyByCode, currencyByToken, toAtomic, type LocalCurrency } from "@errand/celo/currencies";
 import { Button, Card, CardHeader, ErrorNote, Field, LinkButton, Pill, Skeleton, inputClass } from "@/components/ui";
 import { addressUrl, short, txUrl } from "@/lib/celo";
@@ -12,11 +12,12 @@ import { explainError, loadWallet, type StoredWallet } from "@/lib/wallet";
 type Phase = "loading" | "no-wallet" | "form" | "active" | "ended";
 
 /**
- * Granting stays closed until Altana confirms how to put Errand's attribution tag on grant
- * transactions (AGENTS.md → Decisions, 23 Nov: Benjamin chose to wait). Turn on with
- * NEXT_PUBLIC_GRANTS_OPEN=true in Vercel, then redeploy. Revoke is never gated.
+ * Granting is open to everyone when NEXT_PUBLIC_GRANTS_OPEN=true (Vercel, then redeploy).
+ * Until then, `?grants=open` on this page unlocks it for a test on your own wallet.
+ * Altana SDK 1.2.0 tags every execute (errand) transaction; grant/revoke are still untagged.
+ * Revoke is never gated.
  */
-const GRANTS_OPEN = process.env.NEXT_PUBLIC_GRANTS_OPEN === "true";
+const GRANTS_OPEN_ENV = process.env.NEXT_PUBLIC_GRANTS_OPEN === "true";
 
 function fmt(value: bigint, decimals: number, maxFraction = 4) {
   const [whole, fraction = ""] = formatUnitsExact(value, decimals).split(".");
@@ -42,6 +43,11 @@ function dateOf(epochSeconds: number) {
 
 export function SessionScreen() {
   const [phase, setPhase] = useState<Phase>("loading");
+  const [grantsOpen, setGrantsOpen] = useState(GRANTS_OPEN_ENV);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("grants") === "open") setGrantsOpen(true);
+  }, []);
+  const GRANTS_OPEN = grantsOpen;
   const [wallet, setWallet] = useState<StoredWallet | null>(null);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [usd, setUsd] = useState("5");
@@ -166,7 +172,7 @@ export function SessionScreen() {
         <Card>
           <CardHeader
             title="Errand's session on your wallet"
-            sub={`Agent ${short(ERRAND_AGENT.address)}`}
+            sub="Session key on this device: Errand's servers never hold it"
             aside={phase === "active" ? <Pill tone="approve">Active</Pill> : revoked ? <Pill tone="block">Revoked</Pill> : <Pill>Expired</Pill>}
           />
           <dl className="divide-y divide-line">
@@ -176,6 +182,13 @@ export function SessionScreen() {
             {session.grantTx ? <Line label="Granted in" value={short(session.grantTx)} href={txUrl(session.grantTx)} /> : null}
             {session.revokeTx ? <Line label="Revoked in" value={short(session.revokeTx)} href={txUrl(session.revokeTx)} /> : null}
           </dl>
+          {phase === "active" ? (
+            <div className="border-t border-line px-5 py-4">
+              <LinkButton href="/errand" size="sm">
+                Send money with this session →
+              </LinkButton>
+            </div>
+          ) : null}
         </Card>
         <Card>
           <CardHeader title="Errand may only call" sub="Anything else is refused by your wallet on Celo." />
@@ -312,14 +325,15 @@ export function SessionScreen() {
       <Card className="p-5">
         <h2 className="text-[15px] font-semibold">Grant the session</h2>
         <p className="mt-1 text-sm text-muted">
-          One passkey tap. The session key belongs to Errand's agent (<span className="num">{short(ERRAND_AGENT.address)}</span>), which has its own identity on Celo.
+          One passkey tap. It gives a new session key, created on this device, permission to run errands within these limits only. Errand&apos;s servers never
+          get it, and you can revoke it in one tap.
         </p>
         <Button className="mt-4" onClick={onGrant} disabled={!GRANTS_OPEN || !caps || !quote || shortOn || busy !== ""}>
           {busy === "grant" ? "Waiting for your passkey…" : "Grant session"}
         </Button>
         {!GRANTS_OPEN ? (
           <p className="mt-2 text-[13px] text-muted">
-            Granting opens soon. We're confirming with Altana how to label these transactions as Errand's on Celo. You can set your limits and check the cost now.
+            Granting opens after our first test on mainnet. You can set your limits and check the cost now.
           </p>
         ) : !quote ? (
           <p className="mt-2 text-[13px] text-muted">Check the cost first.</p>

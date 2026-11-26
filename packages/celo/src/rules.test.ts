@@ -5,7 +5,7 @@ import { LOCAL_CURRENCIES, currencyByCode, toAtomic } from "./currencies.js";
 import { TEXTILE_REACTOR } from "./session.js";
 import { CNGN, USDT } from "./tokens.js";
 import { encodeApprove } from "./textile.js";
-import { buildPayout, checkErrandCost, checkErrandRequest, decodePayout, r14Corridor, r16Allowlist, r17Tagged } from "./rules.js";
+import { buildPayout, checkErrandCost, checkErrandRequest, decodePayout, payoutInLogs, r14Corridor, r16Allowlist, r17Tagged } from "./rules.js";
 
 const SOMEONE = "0x1111111111111111111111111111111111111111";
 const WBRL = currencyByCode("BRL")!.token.address;
@@ -78,5 +78,29 @@ describe("payout", () => {
     expect(p.to).toBe(WBRL);
     expect(r17Tagged([p])).toEqual([]);
     expect(decodePayout(p.data)).toEqual({ to: SOMEONE, amount: 29_530_000_000_000_000_000n });
+  });
+});
+
+describe("payout in logs (works for direct and Altana relayed transactions)", () => {
+  // Real log from the first errand's payout, 25 Nov 2026 (tx 0xbc98…e4e7): 2,000 cNGN to the recipient.
+  const log = {
+    address: CNGN.address,
+    topics: [
+      "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+      "0x000000000000000000000000d80fc279ba93ec7a89c9daf8b1e430770b13d57c",
+      "0x00000000000000000000000082ac58f4be1bb904bbe99eb6f97bf526a43806ed",
+    ],
+    data: "0x0000000000000000000000000000000000000000000000000000000077359400",
+  };
+  const recipient = "0x82ac58F4BE1BB904bbe99Eb6f97Bf526A43806ED";
+  it("finds the exact payout", () => {
+    expect(payoutInLogs([log], { token: CNGN.address, recipient, amount: 2_000_000_000n })).toBe(true);
+    expect(payoutInLogs([log], { token: CNGN.address, recipient, amount: 2_000_000_000n, from: "0xd80fc279ba93ec7a89c9daf8b1e430770b13d57c" })).toBe(true);
+  });
+  it("refuses a different amount, token, recipient or sender", () => {
+    expect(payoutInLogs([log], { token: CNGN.address, recipient, amount: 1_999_000_000n })).toBe(false);
+    expect(payoutInLogs([log], { token: USDT.address, recipient, amount: 2_000_000_000n })).toBe(false);
+    expect(payoutInLogs([log], { token: CNGN.address, recipient: SOMEONE, amount: 2_000_000_000n })).toBe(false);
+    expect(payoutInLogs([log], { token: CNGN.address, recipient, amount: 2_000_000_000n, from: SOMEONE })).toBe(false);
   });
 });

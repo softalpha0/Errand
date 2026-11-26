@@ -1,5 +1,6 @@
 import type { Errand, PassportPublic, StandingErrand } from "@errand/core";
 import { readPassportToken } from "./passport";
+import { redactDeep } from "./redact";
 
 export const AGENT_URL = (process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8787").replace(/\/$/, "");
 
@@ -73,8 +74,8 @@ export const api = {
     accessCode?: string,
   ) =>
     request<{ id: string }>("/errands", { method: "POST", body: JSON.stringify(input), headers: accessCode ? { "x-access-code": accessCode } : {} }),
-  get: (id: string) => request<Errand>(`/errands/${encodeURIComponent(id)}`),
-  list: (limit = 20) => request<ErrandSummary[]>(`/errands?limit=${limit}`),
+  get: (id: string) => request<Errand>(`/errands/${encodeURIComponent(id)}`).then(redactDeep),
+  list: (limit = 20) => request<ErrandSummary[]>(`/errands?limit=${limit}`).then(redactDeep),
   answer: (id: string, questionId: string, answer: string) =>
     request<{ ok: true }>(`/errands/${encodeURIComponent(id)}/answer`, { method: "POST", body: JSON.stringify({ questionId, answer }) }),
   approveDemo: (id: string) => request<{ ok: true }>(`/errands/${encodeURIComponent(id)}/approve`, { method: "POST" }),

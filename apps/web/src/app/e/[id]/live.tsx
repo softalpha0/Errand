@@ -6,6 +6,7 @@ import { spentUsd, type Errand } from "@errand/core";
 import { DecisionRow } from "@/components/decision";
 import { AnswerCard, ApprovalCard, BudgetMeter, ModeNote, PlanCard, QuestionCard } from "@/components/errand-parts";
 import { Button, Card, CardHeader, ErrorNote, LinkButton, Money, Pill, Skeleton } from "@/components/ui";
+import { redactDeep } from "@/lib/redact";
 import { api } from "@/lib/api";
 import { STATUS_TEXT, timeOf } from "@/lib/format";
 
@@ -44,7 +45,7 @@ export function LiveErrand({ id }: { id: string }) {
       es = new EventSource(api.streamUrl(id));
       es.addEventListener("errand", (msg) => {
         try {
-          setE(JSON.parse((msg as MessageEvent).data) as Errand);
+          setE(redactDeep(JSON.parse((msg as MessageEvent).data) as Errand));
         } catch {
           /* ignore a malformed frame */
         }

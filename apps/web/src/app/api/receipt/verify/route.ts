@@ -3,7 +3,7 @@ import { createPublicClient, http, isHash, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { decodePaymentResponseHeader, wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { hasErrandTag } from "@errand/celo/attribution";
+import { assertTagged, carriesErrandTag } from "@errand/celo/attribution";
 import { USDT } from "@errand/celo/tokens";
 
 /**
@@ -62,9 +62,11 @@ export async function POST(req: Request) {
 
   // Free pre-check: only Errand's own successful, tagged transactions get a paid check.
   for (const hash of hashes) {
-    const [tx, rc] = await Promise.all([forno.getTransaction({ hash }).catch(() => null), forno.getTransactionReceipt({ hash }).catch(() => null)]);
-    if (!tx || !rc) return skipped(`Transaction ${hash.slice(0, 10)}… isn't on Celo yet.`);
-    if (rc.status !== "success" || !hasErrandTag(tx.input)) return skipped("Only Errand's own successful transactions are checked.");
+    const rc = await forno.getTransactionReceipt({ hash }).catch(() => null);
+    if (!rc) return skipped(`Transaction ${hash.slice(0, 10)}… isn't on Celo yet.`);
+    // assertTagged reads direct transactions and Altana relayed intents (attribution-tags 0.6.0).
+    const tagged = await assertTagged(forno as never, hash).then(() => true).catch(() => false);
+    if (rc.status !== "success" || !tagged) return skipped("Only Errand's own successful transactions are checked.");
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -104,7 +106,7 @@ export async function POST(req: Request) {
   const results: Result[] = hashes.map((hash, i) => {
     const rc = byId.get(i * 2 + 1) as { status?: string } | null | undefined;
     const tx = byId.get(i * 2 + 2) as { input?: Hex } | null | undefined;
-    return { hash, success: rc?.status === "0x1", tagged: Boolean(tx?.input && hasErrandTag(tx.input)) };
+    return { hash, success: rc?.status === "0x1", tagged: Boolean(tx?.input && carriesErrandTag(tx.input)) };
   });
   const checked: Checked = {
     status: "checked",

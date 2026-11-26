@@ -11,7 +11,7 @@
     "test": "echo \"web: no unit tests (UI is checked with screenshots, see docs/testing.md)\""
   },
   "dependencies": {
-    "@altananetwork/sdk": "1.1.0",
+    "@altananetwork/sdk": "1.2.0",
     "@errand/celo": "workspace:*",
     "@errand/core": "workspace:*",
     "@x402/evm": "2.32.0",

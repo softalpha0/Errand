@@ -9,6 +9,8 @@ import { ReceiptView } from "@/components/receipt-view";
 import { Button, Card, CardHeader, ErrorNote, Field, Pill, inputClass } from "@/components/ui";
 import { short, txUrl } from "@/lib/celo";
 import { receiptLink } from "@/lib/receipt-link";
+import { loadSession, sessionUsable, type StoredSession } from "@/lib/session";
+import { loadWallet, type StoredWallet } from "@/lib/wallet";
 import {
   LowBalanceError,
   MINIPAY_DEPOSIT_URL,
@@ -22,6 +24,8 @@ import {
   readBalances,
   receiptCurrency,
   runErrand,
+  runSessionErrand,
+  sessionPayoutToken,
   type Availability,
   type ConnectedWallet,
   type Preview,
@@ -65,11 +69,24 @@ export function ErrandScreen() {
   const [walletAvailable, setWalletAvailable] = useState(true);
   const [lowBalance, setLowBalance] = useState(false);
   const [origin, setOrigin] = useState("");
+  // The user's Altana wallet with an active Errand session on this device, if any.
+  const [errandWallet, setErrandWallet] = useState<{ wallet: StoredWallet; session: StoredSession & { deviceKey: `0x${string}` } } | null>(null);
+  const [useSession, setUseSession] = useState(false);
+  const [sessionUsdt, setSessionUsdt] = useState<bigint | null>(null);
 
   useEffect(() => {
     setHistory(loadReceipts());
     setWalletAvailable(hasBrowserWallet());
     setOrigin(window.location.origin);
+    const w = loadWallet();
+    const sess = w ? loadSession(w.address) : null;
+    if (w && sessionUsable(sess) && !inMiniPay()) {
+      setErrandWallet({ wallet: w, session: sess });
+      setUseSession(true);
+      readBalances(w.address as Address)
+        .then((b) => setSessionUsdt(b.usdt))
+        .catch(() => undefined);
+    }
     // MiniPay: connect without a button (zero-click), as MiniPay requires.
     if (inMiniPay()) void onConnect();
     currencyAvailability()
@@ -130,7 +147,9 @@ export function ErrandScreen() {
   }
 
   async function onRun() {
-    if (!wallet || amountAtomic === null) return;
+    if (amountAtomic === null) return;
+    if (useSession && errandWallet) return onRunSession();
+    if (!wallet) return;
     setError(null);
     setLowBalance(false);
     setReceipt(null);
@@ -153,8 +172,34 @@ export function ErrandScreen() {
     }
   }
 
+  async function onRunSession() {
+    if (!errandWallet || amountAtomic === null) return;
+    setError(null);
+    setLowBalance(false);
+    setReceipt(null);
+    setSteps({});
+    setRunning(true);
+    try {
+      const r = await runSessionErrand({ currency, amountAtomic, recipient: recipient.trim() as Address, label: label.trim().slice(0, 40) }, errandWallet.wallet, errandWallet.session, (u) =>
+        setSteps((s) => ({ ...s, [u.id]: u })),
+      );
+      setReceipt(r);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+      setHistory(loadReceipts());
+      readBalances(errandWallet.wallet.address as Address)
+        .then((b) => setSessionUsdt(b.usdt))
+        .catch(() => undefined);
+    }
+  }
+
+  const sessionToken = errandWallet ? sessionPayoutToken(errandWallet.session) : null;
+  const sessionCurrencyMismatch = Boolean(useSession && sessionToken && sessionToken.toLowerCase() !== currency.token.address.toLowerCase());
+
   const ready =
-    wallet && amountAtomic !== null && recipient.trim() !== "" && findings.length === 0 && costFindings.length === 0 && preview?.status === "preview" && !running && !unavailable;
+    (wallet || (useSession && errandWallet && !sessionCurrencyMismatch)) && amountAtomic !== null && recipient.trim() !== "" && findings.length === 0 && costFindings.length === 0 && preview?.status === "preview" && !running && !unavailable;
 
   return (
     <div className="flex flex-col gap-4">
@@ -244,7 +289,49 @@ export function ErrandScreen() {
       <Card>
         <CardHeader title="Pay from" sub="Your own wallet on Celo. You confirm each step in it." aside={wallet ? <Pill tone="approve">Connected</Pill> : null} />
         <div className="px-5 py-5">
-          {wallet?.isMiniPay ? (
+          {errandWallet ? (
+            <div className="mb-5 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setUseSession(true)}
+                aria-pressed={useSession}
+                disabled={running}
+                className={`rounded-xl border px-4 py-3 text-left ${useSession ? "border-accent bg-accent-soft" : "border-line-strong hover:border-ink/40"}`}
+              >
+                <span className="block text-[15px] font-medium">Your Errand wallet</span>
+                <span className="block text-[13px] text-muted">
+                  No prompts: Errand runs it inside your session
+                  {sessionUsdt !== null ? ` · ${usdt(sessionUsdt)}` : ""}
+                </span>
+                <span className="mt-1 block text-[12px] text-faint">Session until {new Date(errandWallet.session.session.expiry * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseSession(false)}
+                aria-pressed={!useSession}
+                disabled={running}
+                className={`rounded-xl border px-4 py-3 text-left ${!useSession ? "border-accent bg-accent-soft" : "border-line-strong hover:border-ink/40"}`}
+              >
+                <span className="block text-[15px] font-medium">Another wallet</span>
+                <span className="block text-[13px] text-muted">MetaMask or another Celo wallet; you confirm each step</span>
+              </button>
+            </div>
+          ) : null}
+          {useSession && errandWallet ? (
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-muted">
+                Errand will approve, convert and pay from your Errand wallet without asking again, only within your session&apos;s daily limits and allowed contracts.
+                You can revoke it any time on the{" "}
+                <a href="/session" className="text-accent underline decoration-accent/30 underline-offset-4">
+                  Session page
+                </a>
+                .
+              </p>
+              {sessionCurrencyMismatch ? (
+                <p className="text-sm text-ask">This session only pays out in another currency. Pick that currency above, or use another wallet.</p>
+              ) : null}
+            </div>
+          ) : wallet?.isMiniPay ? (
             <div className="flex flex-col gap-1">
               <span className="text-[15px] font-medium">Your MiniPay wallet</span>
               {balances ? <span className="num text-sm text-muted">{usdt(balances.usdt)} available · network fees are paid in USD₮</span> : null}

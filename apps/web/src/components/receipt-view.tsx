@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Hex } from "viem";
-import { hasErrandTag } from "@errand/celo/attribution";
+import { assertTagged } from "@errand/celo/attribution";
 import { currencyByCode } from "@errand/celo/currencies";
-import { decodePayout } from "@errand/celo/rules";
+import { payoutInLogs } from "@errand/celo/rules";
 import { formatUnitsExact } from "@errand/celo/tokens";
 import { CELO, short, txUrl } from "@/lib/celo";
 import { formatLocal } from "@/lib/errand";
@@ -44,17 +44,13 @@ export function ReceiptView({ r, shareUrl }: { r: SharedReceipt; shareUrl?: stri
     (async () => {
       const checks: Partial<Record<TxKey, Check>> = {};
       for (const [key, hash] of entries) {
-        const [tx, rc] = await Promise.all([publicClient.getTransaction({ hash }), publicClient.getTransactionReceipt({ hash })]);
-        const check: Check = { success: rc.status === "success", tagged: hasErrandTag(tx.input) };
+        const rc = await publicClient.getTransactionReceipt({ hash });
+        // assertTagged reads a direct transaction (MiniPay, MetaMask) and an Altana relayed intent alike.
+        const tagged = await assertTagged(publicClient as never, hash).then(() => true).catch(() => false);
+        const check: Check = { success: rc.status === "success", tagged };
         if (key === "payout") {
-          let p: { to: string; amount: bigint } | null = null;
-          try {
-            p = decodePayout(tx.input);
-          } catch {
-            p = null;
-          }
-          check.matches =
-            tx.to?.toLowerCase() === currency.token.address.toLowerCase() && p !== null && p.to.toLowerCase() === r.recipient.toLowerCase() && p.amount === BigInt(amount);
+          // The payment is read from the token's Transfer log, which looks the same whoever sent it.
+          check.matches = payoutInLogs(rc.logs, { token: currency.token.address, recipient: r.recipient, amount: BigInt(amount), from: r.taker });
         }
         checks[key] = check;
       }
