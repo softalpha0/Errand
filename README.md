@@ -1,6 +1,6 @@
 # Errand
 
-**Money errands, done for you.** Errand is an agent that runs errands with your money, inside limits you set. It pays people in their local money from your own wallet, buys things such as airtime, data and eSIMs, and checks every payment before it is made. Every errand ends with a receipt anyone can check.
+**Runs your money errands. Never breaks your limits.** Errand is an agent that runs errands with your money, inside limits you set. It pays people in their local money from your own wallet, buys things such as airtime, data and eSIMs, and checks every payment before it is made. Every errand ends with a receipt anyone can check.
 
 | | |
 |---|---|

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LiveRates } from "@/components/live-rates";
 import { Card, CardHeader, Eyebrow, LinkButton, Pill } from "@/components/ui";
-import { CELO, REPO_CELO_URL, addressUrl, short, txUrl } from "@/lib/celo";
+import { CELO, REPO_CELO_URL, REPO_URL, addressUrl, short, txUrl } from "@/lib/celo";
 
 const STEPS = [
   {
@@ -142,6 +142,35 @@ const STORY = [
   { date: "25 Nov 2026", title: "First Celo errand", body: "A user outside the team sends exactly 2,000 cNGN to a friend from their own MiniPay wallet. Every transaction tagged on Celo." },
 ];
 
+const LOG: { t: string; text: string; tag: string; tone: "approve" | "ask" | "neutral" }[] = [
+  { t: "09:12", text: "Checked the errand: Ada's wallet, and your balance covers it", tag: "Checked", tone: "neutral" },
+  { t: "09:12", text: "Firm price on Textile FX: 13.89 USD₮, within 2% of the preview", tag: "Priced", tone: "neutral" },
+  { t: "09:13", text: "Asked you to confirm the USD₮ approval", tag: "Asked you", tone: "ask" },
+  { t: "09:13", text: "Converted USD₮ to 20,000 cNGN · tagged", tag: "Converted", tone: "approve" },
+  { t: "09:14", text: "Paid 20,000 cNGN to Ada · tagged", tag: "Paid", tone: "approve" },
+  { t: "09:14", text: "A second Celo node confirmed the receipt ($0.01 on buy)", tag: "Verified", tone: "approve" },
+];
+
+const RULES: { rule: string; detail: string; tag: string }[] = [
+  { rule: "Pays only the person you named", detail: "The payment goes to the address you entered, in the currency you chose, for exactly the amount you asked.", tag: "always" },
+  { rule: "Never more than your limit", detail: "Pay someone: $1.10–$35 per errand while in testing. Buy for me: your budget and your most-per-payment.", tag: "you set it" },
+  { rule: "Talks to three contracts, nothing else", detail: "The USD₮ approval for Textile, Textile's reactor, and a transfer of the chosen stablecoin. Any other call is refused.", tag: "always" },
+  { rule: "Refuses a worse price", detail: "A firm quote more than 2% above the preview is refused before anything is signed.", tag: "always" },
+  { rule: "Never pays the same thing twice", detail: "Each purchase has one idempotency key, so a retry can't charge you again.", tag: "always" },
+  { rule: "Asks you when it isn't sure", detail: "Judgement calls, such as which package to buy, come back to you as a question.", tag: "always" },
+  { rule: "Writes every step down", detail: "Every Errand transaction carries its tag and a receipt anyone can re-check on Celo.", tag: "always" },
+  { rule: "Stop it in one tap", detail: "With an Altana session you can revoke Errand's access in one transaction. Built; switched on once Altana confirms tagging.", tag: "coming" },
+];
+
+const LIMITS = [
+  ["It isn't a bank.", "Errand never holds your money. It acts from your own wallet, and you confirm each step."],
+  ["Recipients get stablecoins, not bank money (yet).", "They receive cNGN, IDRX, wARS or wBRL in their wallet. Bank payouts are next."],
+  ["Payments can't be undone.", "Check the recipient's address with them first. Errand checks that it's valid, not that it's theirs."],
+  ["Altana sessions aren't on yet.", "Until they are, there's no spending allowance: every errand needs your confirmation."],
+  ["Buy-for-me errands pay on Base.", "They go through your Kite Passport in USDC on Base, not on Celo."],
+  ["Checks lower the risk; they don't remove it.", "Rules catch the wrong contract, price or recipient. They can't know a seller will deliver."],
+];
+
 const DOES = [
   {
     title: "Pays people for you",
@@ -167,60 +196,54 @@ export default function Home() {
       <section className="relative">
         <div aria-hidden className="glow glow-green -top-48 left-1/2 h-[620px] w-[920px] -translate-x-1/2" />
         <div aria-hidden className="glow glow-blue top-64 -right-48 h-[420px] w-[520px]" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:pt-24">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 pt-14 pb-20 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:pt-24">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[13px] text-muted">
-              <span className="pulse-dot size-1.5 rounded-full bg-accent" /> On Celo mainnet · in development
+              <span className="pulse-dot size-1.5 rounded-full bg-accent" /> Live on Celo mainnet
             </span>
-            <h1 className="mt-6 text-[52px] leading-[0.95] font-bold tracking-[-0.045em] sm:text-7xl lg:text-[92px]">
-              Money errands,
+            <h1 className="mt-6 text-[48px] leading-[0.95] font-bold tracking-[-0.045em] sm:text-7xl lg:text-[84px]">
+              Runs your money errands.
               <br />
-              <span className="text-spectrum">done for you.</span>
+              <span className="text-spectrum">Never breaks your limits.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Errand is an agent that runs money errands for you, inside limits you set: it pays people in their local money from your own wallet, and buys things
-              like airtime, data and eSIMs. Every payment is checked first. You keep the keys.
+              Errand pays people in their local money and buys things like airtime, data and eSIMs, from your own wallet. It checks every payment before it moves,
+              and writes every step down.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <LinkButton href="/errand" size="lg">
-                Send money <span aria-hidden>→</span>
+                Send your first errand <span aria-hidden>→</span>
               </LinkButton>
-              <LinkButton href="/wallet" size="lg" variant="secondary">
-                Create your wallet
+              <LinkButton href="#rules" size="lg" variant="secondary">
+                See the rules it can&apos;t break
               </LinkButton>
             </div>
+            <p className="mt-6 text-sm text-faint">You keep your keys. Errand never holds your money.</p>
           </div>
 
-          {/* Real conversion, shown as an app card */}
-          <div className="mx-auto w-full max-w-[320px] rounded-[44px] border border-white/10 bg-white/[0.04] p-3 shadow-[0_40px_120px_-30px_rgba(53,208,127,0.45)]">
-            <div className="rounded-[34px] bg-card p-5">
-              <div className="flex items-center justify-between text-[12px] text-muted">
-                <span>Receipt</span>
-                <Pill tone="approve">Filled</Pill>
+          {/* Example errand log */}
+          <div className="w-full rounded-[28px] border border-white/10 bg-white/[0.04] p-2 shadow-[0_40px_120px_-30px_rgba(53,208,127,0.45)]">
+            <div className="rounded-[22px] bg-card p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">Today&apos;s errand</p>
+                <span className="text-[12px] text-faint">Example</span>
               </div>
-              <div className="mt-4 rounded-3xl p-5" style={{ background: "linear-gradient(135deg, var(--ngn), var(--accent))", color: "#03140b" }}>
-                <p className="text-[12px] font-medium opacity-75">Converted on Textile FX</p>
-                <p className="num mt-1 text-[36px] leading-none font-bold">₦{CELO.textileSwap.naira}</p>
-                <p className="num mt-3 text-[12px] opacity-75">for 1.00 USD₮ · cNGN</p>
-              </div>
-              <dl className="mt-4 space-y-2.5 text-[13px]">
-                {[
-                  ["Network", "Celo mainnet"],
-                  ["Tag", CELO.attributionTag],
-                  ["Date", "24 Nov 2026"],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-baseline gap-2">
-                    <dt className="text-muted">{k}</dt>
-                    <span className="leader" />
-                    <dd className="num">{v}</dd>
-                  </div>
+              <p className="mt-1 text-[13px] text-muted">&ldquo;Send ₦20,000 to Ada.&rdquo;</p>
+              <ol className="mt-4 space-y-3">
+                {LOG.map((l) => (
+                  <li key={l.t + l.text} className="flex gap-3 text-[13px]">
+                    <span className="num w-11 shrink-0 text-faint">{l.t}</span>
+                    <span className="min-w-0 flex-1 leading-snug">{l.text}</span>
+                    <span className="shrink-0">
+                      <Pill tone={l.tone}>{l.tag}</Pill>
+                    </span>
+                  </li>
                 ))}
-              </dl>
-              <a href={txUrl(CELO.textileSwap.tx)} className="mt-4 flex items-center justify-between rounded-2xl bg-sunken px-4 py-3 text-sm hover:bg-line" rel="noreferrer">
-                <span className="num">{short(CELO.textileSwap.tx)}</span>
+              </ol>
+              <a href={txUrl(CELO.firstErrand.payoutTx)} className="mt-5 flex items-center justify-between rounded-2xl bg-sunken px-4 py-3 text-sm hover:bg-line" rel="noreferrer">
+                <span>See the first real errand</span>
                 <span className="text-accent">Celoscan ↗</span>
               </a>
-              <p className="mt-3 text-center text-[11px] text-faint">A real conversion from Errand’s test wallet</p>
             </div>
           </div>
         </div>
@@ -301,6 +324,36 @@ export default function Home() {
             ))}
           </ol>
         </div>
+      </section>
+
+      {/* Rules */}
+      <section id="rules" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-24 sm:px-6">
+        <Eyebrow>Rules it can&apos;t break</Eyebrow>
+        <h2 className="mt-3 max-w-3xl text-4xl leading-[1.02] font-bold tracking-[-0.035em] sm:text-6xl">Checked in code, before money moves.</h2>
+        <ul className="mt-12 grid gap-3 md:grid-cols-2">
+          {RULES.map((r) => (
+            <li key={r.rule} className="flex items-start justify-between gap-4 rounded-3xl border border-line bg-card p-5 sm:p-6">
+              <div>
+                <p className="text-lg font-semibold tracking-tight">{r.rule}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{r.detail}</p>
+              </div>
+              <span className="shrink-0">
+                <Pill tone={r.tag === "always" ? "approve" : r.tag === "coming" ? "neutral" : "ask"}>{r.tag}</Pill>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-6 text-sm text-faint">
+          Pay someone: rules R14–R17 and the errand checks in{" "}
+          <a href={`${REPO_URL}/blob/celo/packages/celo/src/rules.ts`} className="text-accent underline decoration-accent/30 underline-offset-4" rel="noreferrer">
+            packages/celo
+          </a>
+          . Buy for me: rules R1–R13 plus a SERV guard in{" "}
+          <a href={`${REPO_URL}/blob/celo/packages/core/src/guard.ts`} className="text-accent underline decoration-accent/30 underline-offset-4" rel="noreferrer">
+            packages/core
+          </a>
+          .
+        </p>
       </section>
 
       {/* For agents */}
@@ -443,11 +496,25 @@ export default function Home() {
         </p>
       </section>
 
+      {/* Limits */}
+      <section id="limits" className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-24 sm:px-6">
+        <Eyebrow>Know the limits</Eyebrow>
+        <h2 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-6xl">Better you hear it here.</h2>
+        <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {LIMITS.map(([t, d]) => (
+            <div key={t} className="rounded-3xl border border-line bg-card p-5 sm:p-6">
+              <p className="font-semibold tracking-tight">{t}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="mx-auto max-w-6xl px-4 pt-24 sm:px-6">
         <div className="relative overflow-hidden rounded-[32px] px-6 py-14 sm:px-12 sm:py-16" style={{ background: "linear-gradient(135deg, #35d07f, #2bb59a 50%, #3d8fd6)", color: "#03140b" }}>
-          <h2 className="max-w-xl text-5xl leading-[0.95] font-bold tracking-[-0.04em] sm:text-7xl">Start sending.</h2>
-          <p className="mt-4 max-w-md text-lg opacity-75">Create a wallet with a passkey, add USD₮, and pay someone in their own money.</p>
+          <h2 className="max-w-xl text-5xl leading-[0.95] font-bold tracking-[-0.04em] sm:text-7xl">Send your first errand.</h2>
+          <p className="mt-4 max-w-md text-lg opacity-75">Open it in MiniPay or any Celo wallet, add a little USD₮, and pay someone in their own money. Start small.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/errand" className="inline-flex h-13 items-center rounded-full bg-[#03140b] px-7 font-semibold text-white hover:opacity-90">
               Send money →
