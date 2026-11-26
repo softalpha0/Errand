@@ -11,6 +11,10 @@ const config: NextConfig = {
     config.resolve.extensionAlias = { ".js": [".ts", ".tsx", ".js"], ...(config.resolve.extensionAlias ?? {}) };
     return config;
   },
+  // errand-pearl.vercel.app (the SERV Hackathon 02 site) now forwards to the one Errand site.
+  async redirects() {
+    return [{ source: "/:path*", has: [{ type: "host", value: "errand-pearl.vercel.app" }], destination: "https://errand-thgw.vercel.app/:path*", permanent: true }];
+  },
   async headers() {
     return [
       {

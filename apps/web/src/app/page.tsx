@@ -80,6 +80,10 @@ const FACTS: Fact[] = [
 type StatusRow = { item: string; state: "live" | "try" | "building" | "next" };
 
 const STATUS: StatusRow[] = [
+  { item: "Buy for me: airtime and data through Kite Passport (USDC on Base), SERV checks on every payment", state: "live" },
+  { item: "Buy for me: eSIMs, gift cards, Amazon shopping and research", state: "try" },
+  { item: "Book for me: table bookings by AI phone call (US and Canada)", state: "try" },
+  { item: "Book for me: flights and hotels", state: "next" },
   { item: "Agent identity on Celo mainnet (ERC-8004 and Self Agent ID)", state: "live" },
   { item: "Attribution tag on every Errand transaction", state: "live" },
   { item: "Your own Altana wallet, created with a passkey (free, no transaction)", state: "try" },
@@ -94,6 +98,49 @@ const STATUS: StatusRow[] = [
 
 const STATE_LABEL = { live: "Live on mainnet", try: "Ready to try", building: "Building now", next: "Next" } as const;
 const STATE_TONE = { live: "approve", try: "approve", building: "ask", next: "neutral" } as const;
+
+type ErrandType = { name: string; href?: string; state: string; tone: "approve" | "ask" | "neutral"; body: string; items: string[]; color: string; where: string };
+
+const TYPES: ErrandType[] = [
+  {
+    name: "Pay someone",
+    href: "/errand",
+    state: "Live on Celo",
+    tone: "approve",
+    body: "Send an exact amount of local money to anyone. Errand converts your USD₮ on Textile FX and pays them from your own wallet, even inside MiniPay.",
+    items: ["cNGN (naira), IDRX (rupiah), wARS, wBRL", "First real errand: 25 Nov 2026"],
+    color: "var(--ngn)",
+    where: "Celo · Textile FX · MiniPay",
+  },
+  {
+    name: "Buy for me",
+    href: "/new",
+    state: "Live for airtime",
+    tone: "approve",
+    body: "Ask Errand to buy something. It plans the errand with a price on every step, checks each payment with SERV Reasoning, and pays sellers through your Kite Passport.",
+    items: ["Airtime and data in 180+ countries: live (₦100 MTN, 5 Nov 2026)", "eSIMs, gift cards, Amazon shopping, research: built, not yet run on mainnet"],
+    color: "var(--ars)",
+    where: "Kite Agent Passport · USDC on Base",
+  },
+  {
+    name: "Book for me",
+    href: "/new?example=6",
+    state: "Partly built",
+    tone: "ask",
+    body: "Reservations with the same limits, checks and receipts. Errand can already find a restaurant and phone it to book a table, through an AI call it pays for.",
+    items: ["Table bookings by AI phone call (US and Canada numbers): built, not yet run on mainnet", "Flights and hotels: next, not built"],
+    color: "var(--brl)",
+    where: "StablePhone via Kite Passport · roadmap",
+  },
+];
+
+const STORY = [
+  { date: "4 Nov 2026", title: "Errand starts", body: "Built for SERV Hackathon 02: an agent that buys things for you through your Kite Agent Passport, with SERV Reasoning checking every payment." },
+  { date: "5 Nov 2026", title: "First real errand", body: "₦100 of MTN airtime bought on mainnet through Kite Passport: 6 payments, $0.11 in total, confirmed by MTN." },
+  { date: "Nov 2026", title: "Attack benchmark", body: "20 attacks against the same errand: Kite caps alone let 18 through, Errand's rules 4, rules plus SERV 1." },
+  { date: "20 Nov 2026", title: "Errand comes to Celo", body: "Agents Open for Business begins: Errand gets an on-chain identity, pays in local stablecoins and sells payment checks to other agents." },
+  { date: "25 Nov 2026", title: "First Celo errand", body: "A user outside the team sends exactly 2,000 cNGN to a friend from their own MiniPay wallet. Every transaction tagged on Celo." },
+];
 
 const DOES = [
   {
@@ -131,7 +178,8 @@ export default function Home() {
               <span className="text-spectrum">done for you.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Errand is an agent that pays people in their local money (naira, rupiah, pesos, reais) from your own wallet, inside limits you set. You keep the keys.
+              Errand is an agent that runs money errands for you, inside limits you set: it pays people in their local money from your own wallet, and buys things
+              like airtime, data and eSIMs. Every payment is checked first. You keep the keys.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <LinkButton href="/errand" size="lg">
@@ -199,6 +247,45 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Errand types */}
+      <section id="types" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-24 sm:px-6">
+        <Eyebrow>Errands it runs</Eyebrow>
+        <h2 className="mt-3 max-w-3xl text-4xl leading-[1.02] font-bold tracking-[-0.035em] sm:text-6xl">One agent, more kinds of errands.</h2>
+        <div className="mt-12 grid gap-4 lg:grid-cols-3">
+          {TYPES.map((t) => {
+            const inner = (
+              <>
+                <div aria-hidden className="absolute -top-24 -right-24 size-56 rounded-full opacity-40" style={{ background: `radial-gradient(closest-side, ${t.color}, transparent)` }} />
+                <div className="relative flex items-center justify-between gap-3">
+                  <h3 className="text-2xl font-semibold tracking-tight">{t.name}</h3>
+                  <Pill tone={t.tone}>{t.state}</Pill>
+                </div>
+                <p className="relative mt-3 leading-relaxed text-muted">{t.body}</p>
+                <ul className="relative mt-4 space-y-1.5 text-sm">
+                  {t.items.map((i) => (
+                    <li key={i} className="flex gap-2">
+                      <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full" style={{ background: t.color }} />
+                      {i}
+                    </li>
+                  ))}
+                </ul>
+                <p className="num relative mt-5 text-[12px] text-faint">{t.where}</p>
+                {t.href ? <p className="relative mt-4 text-sm font-semibold text-accent">Open {t.name.toLowerCase()} →</p> : null}
+              </>
+            );
+            return t.href ? (
+              <Link key={t.name} href={t.href} className="relative overflow-hidden rounded-3xl border border-line bg-card p-6 hover:border-line-strong sm:p-7">
+                {inner}
+              </Link>
+            ) : (
+              <div key={t.name} className="relative overflow-hidden rounded-3xl border border-dashed border-line-strong bg-card/50 p-6 sm:p-7">
+                {inner}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* How it works */}
       <section id="how" className="scroll-mt-20 border-y border-white/[0.06] bg-card/40">
         <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
@@ -258,6 +345,30 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Story */}
+      <section id="story" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-24 sm:px-6">
+        <Eyebrow>Errand&apos;s story</Eyebrow>
+        <h2 className="mt-3 max-w-3xl text-4xl leading-[1.02] font-bold tracking-[-0.035em] sm:text-6xl">Built before Celo. Growing on Celo.</h2>
+        <ol className="relative mt-12 border-l border-line-strong pl-6 sm:pl-8">
+          {STORY.map((e) => (
+            <li key={e.title} className="relative pb-10 last:pb-0">
+              <span aria-hidden className="absolute top-1.5 -left-[31px] size-3 rounded-full bg-accent sm:-left-[39px]" />
+              <p className="num text-sm text-accent">{e.date}</p>
+              <h3 className="mt-1 text-xl font-semibold tracking-tight">{e.title}</h3>
+              <p className="mt-1.5 max-w-2xl leading-relaxed text-muted">{e.body}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <LinkButton href="/stats" variant="secondary" size="sm">
+            See the attack benchmark
+          </LinkButton>
+          <LinkButton href="/r/e_My979K17" variant="secondary" size="sm">
+            The first receipt (airtime, 5 Nov)
+          </LinkButton>
+        </div>
+      </section>
+
       {/* On chain */}
       <section id="onchain" className="mx-auto max-w-6xl scroll-mt-20 px-4 sm:px-6">
         <Eyebrow>On Celo mainnet today</Eyebrow>
@@ -312,7 +423,7 @@ export default function Home() {
       <section id="status" className="mx-auto max-w-6xl scroll-mt-20 px-4 pt-24 sm:px-6">
         <Eyebrow>Build status</Eyebrow>
         <h2 className="mt-3 text-4xl font-bold tracking-[-0.035em] sm:text-6xl">What runs today.</h2>
-        <p className="mt-4 max-w-2xl text-muted">Only what has run on Celo mainnet is marked live. “Ready to try” works today but hasn’t made a mainnet transaction yet.</p>
+        <p className="mt-4 max-w-2xl text-muted">Only what has run on mainnet (Celo, or Base for Kite errands) is marked live. “Ready to try” is built and tested but hasn’t made a mainnet payment yet.</p>
         <ul className="mt-10 divide-y divide-line rounded-[var(--radius-card)] border border-line bg-card">
           {STATUS.map((row) => (
             <li key={row.item} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">

@@ -2,7 +2,7 @@
 
 Read this first, every session. Then read, in this order: `PRD.md` → `docs/celo/RULES.md` → `docs/celo/SPONSORS.md` → `docs/celo/BUILD-PLAN.md`. Update **Progress** and **Decisions** at the end of every phase.
 
-> This file is for the `celo` branch (Agents Open for Business hackathon). The SERV Hackathon 02 version of this file lives on `main` and at tag `pre-celo-hackathon`. Don't merge `celo` into `main`.
+> This file is for the `celo` branch (Agents Open for Business hackathon). The SERV Hackathon 02 starting point is tag `pre-celo-hackathon`. Since 26 Nov (SERV results announced) `main` is fast-forwarded to `celo`: one codebase, one website.
 
 ## Project
 
@@ -72,7 +72,7 @@ If a vendor's docs disagree with this repo, the vendor wins: fix the code, fix S
 ### Repo hygiene (Benjamin's standing rules)
 - Commit + push after setup, after each feature, after important fixes, before big changes, and at the end of every session. Descriptive conventional commit messages. Verify the push worked.
 - Never commit secrets: `.env`, `.self/`, private keys, API keys. Only `.env.example` with empty values (the attribution tag is not a secret and is allowed).
-- **Never touch `main`**, `errand-pearl.vercel.app`, or the existing Render services (SERV judging; the organiser asked not to interfere with the submission build). Celo deploys go to **new** Vercel/Render projects.
+- `main` follows `celo` (fast-forward with `git push origin celo:main`). `errand-pearl.vercel.app` only redirects to **https://errand-thgw.vercel.app** (host redirect in `apps/web/next.config.ts`); never change the errand-thgw domain (passkey wallets are bound to it). The SERV agent on Render powers **Buy for me** on the one site; change its env only with Benjamin.
 - One README, kept updated. No extra doc files beyond the ones in this pack unless Benjamin asks.
 - Never claim a feature in the README, video or posts that hasn't run on mainnet. Demo-mode runs are labelled simulated.
 - No personal data about users in the repo unless they agreed. Never put private keys, full phone numbers or emails in evidence.
@@ -131,6 +131,7 @@ Dark base (`#07090a`), large bold display type (Geist Sans, tight tracking), Gei
   - [x] Agent card: Guard endpoint added, `x402Support: true`; home page shows Errand Guard ("Ready to try" until the first paid check).
   - [x] `pnpm --filter @errand/guard-celo pay-check [-- --verified]`: pays one check from a test wallet (`.self/test-payer.key`), optional Self signing as agent 214, records to `evidence/celo/guard-checks.jsonl`.
 - [ ] Phase 6 real users (≥ 3 independent). **1 of 3** (25 Nov, MiniPay; Benjamin confirmed he did not fund the payer; recipient confirmed receipt; names pending consent).
+- [x] 26 Nov: **project submitted on Loops House** (tracks: Stablecoin Corridors, Self Agent ID, Altana; not Agent Vault) in time for AskBots round 1. Demo video (2:54, synthetic narration + burned-in subtitles, uploaded by Benjamin to YouTube), 4 screenshots of the live site, named-user and track answers. Editable until the deadline: add the X post link, the user's name, more users, Altana hashes if unlocked.
 - [ ] Phase 7 freeze (Thu 3 Dec), README, video. Then complete the Loops submit form (needs live URL, video, named user; other answers ready: agentId 10107, Self 214, tag, PayTo = agent wallet).
 - [ ] Phase 8 submit (Sun 6 Dec, before 18:00 Lagos).
 
@@ -179,6 +180,11 @@ Dark base (`#07090a`), large bold display type (Geist Sans, tight tracking), Gei
 - 25 Nov: Altana livestream (RULES.md → Altana livestream notes): Altana names remittances limited by session rules as a use case it wants, so Errand's pitch fits the track as is. Q1/Q2 were not answered; re-asked in Altana's Telegram. Altana product reviews (5,000 XP each, specific + reproducible, in their bug-report channel) are worth filing for the SDK gaps we hit.
 - 25 Nov: Errand's paid tool on buy = an independent receipt check on Chainstack's Celo RPC ($0.01 per errand), not LLM inference: it is useful to the user (a second node confirms the receipt) and counts as real buy use. It pays from a separate **tools wallet**, never from the agent wallet (whose key stays off servers) or the test wallet.
 - 25 Nov: MiniPay support targets running Errand *inside* MiniPay for the hackathon (open the site in MiniPay), **not** a MiniPay listing: listing rules forbid free-text recipient addresses and non-MiniPay tokens (cNGN), which are Errand's core flow.
+- 26 Nov: **Bank payouts are roadmap, not built.** cNGN redemption to a Nigerian bank account is a merchant API (docs.cngn.co, Redeem permission); merchant verification costs **₦100,000** plus KYB review with no published timeline (app.cngn.co). Benjamin chose not to pay it now; asked in the hackathon Telegram for a hackathon route. Public copy says recipients get cNGN in their wallet; "bank payouts next".
+- 26 Nov: **Shopping, bills and bookings are roadmap only** ("more errand types on the same wallet, limits and receipts"). Never claim them in the README, video or posts. Card checkouts would need Agent Vault, which lists the US + 7 Americas countries, not Nigeria.
+- 26 Nov: Demo video narration uses a free local voice (Piper, en_US-ryan-high) for the whole video after ElevenLabs credits ran out mid-generation; the YouTube description says the narration is synthetic. Wording: the recipient got **2,000 cNGN (a naira stablecoin)** in their wallet, never "naira in their bank". The video doesn't open with Nigeria (Benjamin's call: "Across many emerging markets…").
+- 26 Nov: The user's phone recording in the video shows the recipient's first name (typed label). Recipient consent to be named is still pending; blur it or confirm consent before posting the video publicly.
+- 26 Nov: **One product, one website** (Benjamin, after SERV Hackathon 02 results: Errand didn't win). errand-thgw.vercel.app is the only site; errand-pearl.vercel.app redirects there (308, path kept, so old receipt links work). The site shows three errand types: **Pay someone** (Celo, live), **Buy for me** (the SERV/Kite build: airtime and data live on Base, eSIMs, gift cards, Amazon, research built), **Book for me** (table bookings by AI phone call via StablePhone, US/Canada, built, not run on mainnet; flights and hotels not built). New "Errand's story" timeline (4 Nov start → 25 Nov first Celo errand) shows Errand predates the Celo hackathon. README rewritten for both. CI now runs on `celo` too. Buy-for-me on errand-thgw needs `NEXT_PUBLIC_AGENT_URL` on Vercel and the agent's `WEB_ORIGIN` to include errand-thgw (HUMAN).
 
 ## Blockers
 

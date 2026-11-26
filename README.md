@@ -1,58 +1,98 @@
 # Errand
 
-**Give an agent the errand. Keep control of the money.** Errand is an agent that researches and buys things for you, such as airtime, data, eSIMs and gift cards. It pays sellers through your **Kite Agent Passport**, within the limits you approve with your passkey. Before each payment, **SERV Reasoning** checks that the payment belongs to your errand.
-
-![CI](https://github.com/softalpha0/Errand/actions/workflows/ci.yml/badge.svg) ![License: MIT](https://img.shields.io/badge/license-MIT-black) ![Built on SERV Reasoning](https://img.shields.io/badge/built%20on-SERV%20Reasoning-1d6a4c) ![Pays with Kite Passport](https://img.shields.io/badge/pays%20with-Kite%20Passport-1d6a4c)
+**Money errands, done for you.** Errand is an agent that runs errands with your money, inside limits you set. It pays people in their local money from your own wallet, buys things such as airtime, data and eSIMs, and checks every payment before it is made. Every errand ends with a receipt anyone can check.
 
 | | |
 |---|---|
-| **Live app** | https://errand-pearl.vercel.app |
-| **Demo video** (2:54) | _add link_ |
-| **Real receipt from a mainnet run** | https://errand-pearl.vercel.app/r/e_My979K17 |
-| **Attack benchmark** | https://errand-pearl.vercel.app/stats |
-| **Track** | SERV Hackathon 02, Track 02 (Kite) |
+| **Live site** | https://errand-thgw.vercel.app |
+| **First real Celo errand** | 2,000 cNGN paid from MiniPay to a person outside the team: [Celoscan](https://celoscan.io/tx/0xbc98dba3494297855374c797b939fc761964de23d119ab86f9e2541a1fd1e4e7) |
+| **First real Kite errand** | ₦100 of MTN airtime bought through Kite Passport: [receipt](https://errand-thgw.vercel.app/r/e_My979K17) |
+| **Agent identity** | ERC-8004 agent **#10107** · Self Agent ID **#214** · attribution tag `celo_511bb691f2f0` |
+| **Hackathons** | SERV Hackathon 02 (Kite track, Nov 2026) · Agents Open for Business on Celo (Loops House, Nov–Dec 2026) |
 
-![A real receipt: six payments through Kite Passport, $0.11 in total, each linked to its transaction on Base](evidence/screenshots/readme-receipt.png)
+## Contents
 
-## Try it (judges start here)
-
-1. Open https://errand-pearl.vercel.app. You can look around, read receipts and see the Results page without logging in.
-2. To run an errand with real money, go to **Your Passport** and connect **your own Kite Passport**. Kite emails you a code, and Errand pays from your own wallet. Each spending session also needs your passkey. A Kite account with $1–2 of USDC is enough.
-3. Click **Start an errand** and choose an example. For instance: "Send ₦100 MTN airtime to +234…, then email me the receipt." Budget $2, at most $1 per payment.
-4. You'll see the plan and a price for each step. Approve the Kite session, then watch each payment get checked and paid. When it's done, you get the answer and a receipt.
-
-**No Kite wallet? Switch the network to Test.** At the top of **Start an errand** there's a **Mainnet / Test** switch. A Test errand runs the same SERV plan and every payment check, with payments and seller replies simulated and labelled, so nothing is charged and no wallet or access code is needed. (Kite's own testnet can't be used for this: its faucet is off for production accounts, and the sellers only accept mainnet USDC.)
-
-If you choose Mainnet without connecting a Passport, errands are paid from Errand's own wallet. That needs an access code: _put it in the submission form_.
+- [The problem](#the-problem)
+- [What Errand does](#what-errand-does)
+- [Errand's story](#errands-story)
+- [Try it](#try-it)
+- [Proof on mainnet](#proof-on-mainnet)
+- [How it works](#how-it-works)
+- [What's live and what isn't](#whats-live-and-what-isnt)
+- [Run it yourself](#run-it-yourself)
+- [Known limitations](#known-limitations)
+- [What's next](#whats-next)
+- [Credits and license](#credits-and-license)
 
 ## The problem
 
-Agents can now pay for things by themselves. A spending limit stops an agent spending $50 when you said $5. It doesn't stop waste inside the limit, such as:
+Many people now hold digital dollars, but the people they pay (a supplier, a landlord, family) need local money, airtime or a booking. Doing it by hand means converting, copying wallet addresses and checking every payment yourself, across several apps.
 
-- paying twice for the same thing;
-- buying the wrong product at the right price;
-- following a web page that says "also buy the premium bundle".
+Agents could do this, but most need full control of your wallet. A spending limit helps, yet it doesn't stop waste inside the limit: paying twice, buying the wrong product at the right price, or following a seller's page that says "also buy the premium bundle". In Errand's attack benchmark, spending caps alone let **18 of 20** attacks through.
 
-So someone who wants an agent to send airtime to family still has to hand it a wallet and hope.
+## What Errand does
 
-## The solution
+You say what you want and set the limits. Errand plans the errand with a price on every step, checks each payment before it happens, pays, and gives you a receipt.
 
-Errand checks every single payment before it happens, and asks you when it isn't sure.
+| Errand type | What it does | Where it runs | Status |
+|---|---|---|---|
+| **Pay someone** ([/errand](https://errand-thgw.vercel.app/errand)) | Sends an exact amount of local money to anyone: converts your USD₮ on Textile FX into cNGN (naira), IDRX (rupiah), wARS or wBRL and pays it from your own wallet, even inside MiniPay | Celo | **Live** |
+| **Buy for me** ([/new](https://errand-thgw.vercel.app/new)) | Buys airtime and data (180+ countries), eSIMs, gift cards, Amazon orders, or researches before buying. SERV Reasoning checks each payment; sellers are paid through your own Kite Agent Passport | Kite Passport, USDC on Base | **Live** for airtime and data; the rest built and tested |
+| **Book for me** | Finds a restaurant and phones it to book a table, through a paid AI phone call (US and Canada numbers) | Kite Passport (StablePhone) | Built and tested, not yet run on mainnet. Flights and hotels are next |
 
-1. **You give the errand and its limits.** For example: total budget, most per payment, how long it may run, and "ask me above $X".
-2. **SERV plans it with a price on every step.** Errand then asks Kite for **one session with exactly those limits**, and you approve it with your passkey. Errand can't raise its own limit.
-3. **Every payment goes through two checks.** First come 13 fixed rules: only sellers in the catalog, only the listed price, only the people you named, never pay twice, and stay under your caps. Then a **SERV guard graph** decides whether the payment fits your task. SERV can make a decision stricter, never looser. When the choice is yours, for example which airtime package, Errand asks you.
-4. **You get the answer and a receipt.** The receipt lists every payment with the price the seller quoted first, the reason it was approved, and a link to its transaction on Base.
+Errand is also **open for business to other agents**:
 
-### Proof it works
+- **Errand Guard** (https://errand-guard-celo.onrender.com) is a paid x402 API on Celo. Any agent pays **$0.01 USD₮** to have a payment checked before it sends it. **Self Agent ID** decides who is served: agents with a verified human behind them get 100 checks a day, unknown agents 3. Refusals happen before payment, so nobody pays for a "no".
+- Errand **pays for its own tools**: after every Celo errand it pays $0.01 on **buy** for a Chainstack Celo node to confirm the receipt independently.
 
-**A real run on mainnet (5 Nov 2026).**
-- 6 payments through Kite Passport, **$0.11 in total**, settled in USDC on Base.
-- **₦100 of MTN airtime** arrived; MTN confirmed it by SMS at 19:55.
-- The receipt was emailed through StableEmail.
-- Receipt: [/r/e_My979K17](https://errand-pearl.vercel.app/r/e_My979K17).
+## Errand's story
 
-**Attack benchmark.** The same errand was run against 20 attacks and 9 real payments, in three setups:
+Errand existed before the Celo hackathon. It was built for SERV Hackathon 02 and then extended on Celo. Compare the tag [`pre-celo-hackathon`](https://github.com/softalpha0/Errand/tree/pre-celo-hackathon) with the `celo` branch to see exactly what was added for Celo.
+
+| Date | What happened |
+|---|---|
+| 4 Nov 2026 | Errand starts, for SERV Hackathon 02: an agent that buys things through your Kite Agent Passport, with SERV Reasoning checking every payment |
+| 5 Nov 2026 | First real errand: ₦100 of MTN airtime bought on mainnet through Kite Passport, 6 payments, $0.11 in total, confirmed by MTN |
+| Nov 2026 | Attack benchmark: caps alone let 18 of 20 attacks through, Errand's rules 4, rules plus SERV 1 |
+| 20 Nov 2026 | Agents Open for Business on Celo begins. Errand gets an on-chain identity (ERC-8004 #10107, Self Agent ID #214) |
+| 24 Nov 2026 | Errand Guard live on Celo with Self Agent ID; first tagged Textile FX conversion |
+| 25 Nov 2026 | First real Celo errand: a user outside the team sends exactly 2,000 cNGN to a friend from their own MiniPay wallet |
+
+## Try it
+
+**Pay someone (Celo).**
+1. Open https://errand-thgw.vercel.app/errand inside **MiniPay** (Settings → About → tap the version 7 times → Developer Settings → Load Test Page, with testnet off), or in a browser with a Celo wallet such as MetaMask.
+2. Pick a currency, enter the amount they should receive and their Celo wallet address. You need about $1.50 of USD₮ for a ₦2,000 errand.
+3. Press **Send** and confirm three times: the USD₮ approval, the conversion, the payment. Inside MiniPay, network fees are paid in USD₮.
+4. You get a receipt that re-checks every transaction on Celo. Share it with the **Share receipt** button.
+
+The recipient receives the local stablecoin (for example cNGN, ₦1 each) in their wallet, not in a bank account.
+
+**Buy for me (Kite).**
+1. Open https://errand-thgw.vercel.app/new and pick an example, such as "Airtime for family".
+2. To pay for real, connect your own Kite Passport on **Your Passport** ([/connect](https://errand-thgw.vercel.app/connect)); $1–2 of USDC is enough. Or switch the network to **Test** to run the same plan and checks with simulated payments.
+3. Approve the Kite session with your passkey and watch each payment get checked and paid.
+
+## Proof on mainnet
+
+**Celo** (every Errand transaction carries `celo_511bb691f2f0`; full details in [evidence/celo](evidence/celo)):
+
+| What | Transaction |
+|---|---|
+| First real errand: USD₮ approval | [0xed7c…1b5b](https://celoscan.io/tx/0xed7cea6c68f20c2cf33d9b3d54d24a23142ebddad4da14ed7d65962a27a21b5b) |
+| First real errand: Textile FX conversion (RFQ `rfq_QoLfOy6xctjILf6f`) | [0x1a26…004e](https://celoscan.io/tx/0x1a260a0db329d452ed7c25d48c7e83bc6c217e8a37c2c5f50b0d6975df4a004e) |
+| First real errand: 2,000 cNGN to a recipient outside the team | [0xbc98…e4e7](https://celoscan.io/tx/0xbc98dba3494297855374c797b939fc761964de23d119ab86f9e2541a1fd1e4e7) |
+| Errand pays $0.01 on buy for an independent receipt check | [0xa0ac…1304](https://celoscan.io/tx/0xa0ac79b7c953592e46bdd84a11c9f2250171189a8bffbc42543727e796e91304) |
+| Errand Guard paid check, Self-verified caller (agent 214) | [0x2108…1c03](https://celoscan.io/tx/0x210833696cf0e63cd10a4871a090dabee6d36b8c2532269cd1df3ebf46661c03) |
+| Errand Guard paid check, unverified caller | [0x4781…a606](https://celoscan.io/tx/0x4781a9ca5856fba1c683793ff5868e848430c1221da74c719999e439742ea606) |
+| ERC-8004 registration (agent #10107), tagged | [0x8b60…2b7c](https://celoscan.io/tx/0x8b6048637d36104e7c89d85efee0e1be8e9696fa7f00e485b79b9ee76f162b7c) |
+| Builder's test conversion, 1 USD₮ → ₦1,445.12 cNGN (test wallet, not a user) | [0x9731…528b](https://celoscan.io/tx/0x9731a44d6f3b8c117059d313b33ace04ce3ca8b2e5420b476a5efdcb1b42528b) |
+
+The first errand was run by an independent user with a wallet they funded themselves; the recipient confirmed the money arrived ([evidence/celo/first-errand.md](evidence/celo/first-errand.md)).
+
+**Kite (Base):** 6 payments through Kite Passport, $0.11 in total, settled in USDC on Base; ₦100 of MTN airtime arrived and MTN confirmed it by SMS. Receipt: [/r/e_My979K17](https://errand-thgw.vercel.app/r/e_My979K17).
+
+**Attack benchmark** (the same errand against 20 attacks and 9 real payments, [evidence/benchmark.md](evidence/benchmark.md), live at [/stats](https://errand-thgw.vercel.app/stats)):
 
 | Setup | Attacks paid | Real payments still paid |
 |---|---|---|
@@ -60,75 +100,59 @@ Errand checks every single payment before it happens, and asks you when it isn't
 | Errand's fixed rules (R1–R13) | 4 of 20 | 9 of 9 |
 | Rules + SERV guard graph | **1 of 20** | **9 of 9** |
 
-The attacks the rules miss are the ones that need judgement, such as the wrong eSIM at the right price. That is where SERV does the work. You can re-run the benchmark with `pnpm benchmark`. Every case is listed in [evidence/benchmark.md](evidence/benchmark.md) and on the Results page.
-
-![Results page: without a guard 18 of 20 attacks get paid, with Errand 1](evidence/screenshots/readme-results.png)
-
-## Features
-
-Only what has run for real is marked **Live**.
-
-| Feature | Status |
-|---|---|
-| Plan with SERV (Kronos, strict JSON), one Kite session per errand, approved with your passkey | **Live** |
-| 13 fixed rules + SERV guard graph (`guard-v2`) on every payment; asks you when unsure | **Live** |
-| Mobile airtime and data in 180+ countries (Bitrefill) | **Live**: ₦100 MTN top-up |
-| Email the result or receipt (StableEmail) | **Live** |
-| Receipt with the quoted price, the reason and an on-chain link for every payment | **Live** |
-| Connect your own Kite Passport (your wallet, your passkey) | **Live** |
-| Country picker; the country is guessed from your time zone | **Live** |
-| Mainnet / Test switch: run any errand with simulated payments, no wallet needed | Built and tested in code |
-| Attack benchmark (rules and SERV columns) | **Run** with the live SERV key |
-| Research with sources (StableEnrich), eSIMs and gift cards (Bitrefill), "research, then buy only if…" | Built and unit-tested. Not yet run on mainnet |
-| Second opinions from Reppo's evaluator panel on judgement calls (ship / review / block), and a Reppo grade for every finished run | Rebuilt on Reppo's new Eval API (Nov 2026), tested in code; first live grades pending |
-| Repeat errands from your Kite allowance ("keep Mum's data topped up, at most $1 a day") | Built and tested. Not yet run on mainnet |
-| Amazon through Kite shopping (you confirm the order summary; rule R13 checks the charge) | Built and tested. Not yet run on mainnet |
-| Telegram bot linked to your own Passport | Built; tested against a mock Telegram API |
-| MCP server for AI assistants ([docs/mcp.md](docs/mcp.md)) | Tested over stdio |
-| Errand Guard: a paid x402 service on Kite, where any agent pays $0.01 to check a payment first | Built on [kite-x402-hono](https://github.com/BrKDDD/kite-x402-hono), deployed on Kite mainnet at https://errand-guard.onrender.com; submitted to Kite's catalog in [gokite-ai/kite-x402-services#8](https://github.com/gokite-ai/kite-x402-services/pull/8). The first paid call waits on Kite allowlisting the host |
-
-There are 88 unit tests (62 core, 26 agent). They run on every push in GitHub Actions.
-
-<table><tr>
-<td><img src="evidence/screenshots/readme-landing.png" alt="Landing page" width="100%"></td>
-<td><img src="evidence/screenshots/readme-new.png" alt="Start an errand: budget, limits and country" width="100%"></td>
-<td width="24%"><img src="evidence/screenshots/readme-receipt-phone.png" alt="The receipt on a phone" width="100%"></td>
-</tr></table>
-
 ## How it works
 
 ```mermaid
 flowchart LR
-  U[You] --> W[Web app · Telegram · MCP] --> A[Errand agent]
-  A -->|plan, check, read, answer| S[SERV Reasoning]
-  A -->|kpass session execute| K[Kite Agent Passport] --> Sellers[Bitrefill · StableEnrich · StableEmail]
-  A -.->|second opinion, grades| R[Reppo]
+  U[You] --> W[errand-thgw.vercel.app]
+  W -->|Pay someone| C[Your wallet on Celo: MiniPay / MetaMask]
+  C -->|firm quote, approve, swap| T[Textile FX]
+  C -->|tagged cNGN transfer| R[Recipient]
+  W -->|independent check, $0.01| B[buy: Chainstack Celo RPC]
+  W -->|Buy for me / Book for me| A[Errand agent]
+  A -->|plan + check each payment| S[SERV Reasoning]
+  A -->|session with your limits| K[Kite Agent Passport] --> Sellers[Bitrefill · StableEnrich · StableEmail · StablePhone]
+  O[Other agents] -->|x402, $0.01, Self Agent ID| G[Errand Guard on Celo]
 ```
 
-| Step | What does it |
+**Pay someone, step by step** (code in [apps/web/src/lib/errand.ts](apps/web/src/lib/errand.ts), rules in [packages/celo](packages/celo)):
+
+1. **Check:** a supported currency, an amount worth $1.10–$35, a real recipient that isn't you, and a balance that covers the conversion plus network fees.
+2. **Quote:** a firm Textile FX quote for the *exact* amount the recipient should get. Rule R15 refuses a quote more than 2% above the preview.
+3. **Build and check every call:** R16 allows only the USD₮ approval to Textile's reactor, Textile's reactor, and `transfer()` on the chosen stablecoin. R17 refuses any call without Errand's tag.
+4. **Approve → wait → recheck expiry → swap → Textile confirms the fill → pay the recipient.**
+5. **Verify:** each transaction is read back from Celo for the tag, then Errand pays $0.01 on buy for a second node to confirm.
+
+**Buy for me, step by step** (code in [apps/agent](apps/agent) and [packages/core](packages/core)):
+
+1. SERV plans the errand with a price on every step; Errand asks Kite for **one session with exactly your limits**, approved with your passkey.
+2. Every payment passes 13 fixed rules (only catalog sellers, only the listed price, only the people you named, never pay twice, stay under your caps), then a **SERV guard graph** decides whether it fits your task. SERV can only make a decision stricter.
+3. You get the answer and a receipt with the quoted price, the reason and an on-chain link for every payment.
+
+## What's live and what isn't
+
+Only what has run on mainnet is marked **Live**.
+
+| Feature | Status |
 |---|---|
-| Plan | SERV `gpt-5.4-mini-serv-kronos`, strict JSON schema; plan checked against your limits |
-| Money and limits | Kite Passport: `kpass session create --separate` with your caps and time limit, passkey approval, `kpass session execute` with an idempotency key for each payment |
-| Check each payment | Rules R1–R13 in [packages/core](packages/core), then the SERV guard graph (`gr_…` on `/v1/responses`). [docs/serv-guard-graph.md](docs/serv-guard-graph.md) |
-| Read each paid response | SERV PromptGuard. Any purchase that a seller's text suggests is blocked (R1) |
-| Answer | Strict JSON with citations |
+| Pay someone on Celo: Textile FX conversion + exact cNGN payout, tagged | **Live** (25 Nov 2026) |
+| Works inside MiniPay: no connect button, network fees in USD₮ | **Live** |
+| Receipts that re-check every transaction on Celo when opened | **Live** |
+| Errand pays for its own tools on buy | **Live** |
+| Errand Guard on Celo x402 with Self Agent ID tiers | **Live** |
+| ERC-8004 + Self Agent ID identity | **Live** |
+| Buy for me: airtime and data through Kite Passport | **Live** (5 Nov 2026) |
+| Buy for me: eSIMs, gift cards, Amazon shopping, research | Built and tested, not yet run on mainnet |
+| Book for me: table bookings by AI phone call (US and Canada) | Built and tested, not yet run on mainnet |
+| Altana passkey wallet + session (daily cap, contract allowlist, expiry, one-tap revoke) | Built and live on the site; granting switched off until Altana confirms how grant/revoke transactions can carry the attribution tag |
+| Repeat errands, Telegram bot, MCP server, Reppo second opinions | Built and tested |
+| Flights and hotels; payouts straight to bank accounts | Not built |
 
-More detail: [docs/architecture.md](docs/architecture.md), [docs/kite-integration.md](docs/kite-integration.md) (including what we learned from the first live payments), [docs/reppo-loop.md](docs/reppo-loop.md).
+Tests: 161 in total: 46 (Celo package), 20 (Errand Guard on Celo), 61 (core rules), 34 (agent). They run in GitHub Actions on every push to `main` and `celo`.
 
-## Tech stack
+## Run it yourself
 
-- **Language and repo:** TypeScript monorepo (pnpm workspaces).
-- **Web:** Next.js 15, Tailwind CSS 4, Geist. Hosted on Vercel.
-- **Agent:** Hono on Node 22 with Kite's `kpass` CLI. Runs in Docker on Render.
-- **Storage:** Postgres on Neon.
-- **Partners:** SERV Reasoning through the OpenAI SDK, Kite Agent Passport, Reppo.
-- **Sellers in Kite's catalog:** Bitrefill, StableEnrich, StableEmail.
-- **Errand Guard:** Bun + Hono on [kite-x402-hono](https://github.com/BrKDDD/kite-x402-hono), one of the Kite track's priority repos.
-- **Other:** the MCP TypeScript SDK, Vitest and GitHub Actions.
-
-## Run it locally
-
-You need Node 22 and pnpm (through corepack). On Windows, run these in PowerShell:
+You need Node 22 and pnpm (through corepack). On Windows, run these in PowerShell, one at a time:
 
 ```powershell
 git clone https://github.com/softalpha0/Errand.git
@@ -136,6 +160,10 @@ git clone https://github.com/softalpha0/Errand.git
 
 ```powershell
 cd Errand
+```
+
+```powershell
+git checkout celo
 ```
 
 ```powershell
@@ -158,64 +186,55 @@ Copy-Item .env.example apps\web\.env.local
 pnpm dev
 ```
 
-Open http://localhost:3000. With the defaults (`ERRAND_MODE=demo`), payments and seller replies are simulated and labelled as simulated on every screen, so you need no keys. Check everything with `pnpm test` and `pnpm typecheck`.
+Open http://localhost:3000. Check everything with `pnpm test` and `pnpm typecheck`.
 
-To run with real payments, set the variables below in `.env`. The full steps for Render and Vercel are in [docs/deploy.md](docs/deploy.md).
+The main settings (all listed in [.env.example](.env.example)):
 
 | Variable | What it's for |
 |---|---|
-| `ERRAND_MODE` | `demo` (simulated) or `live` (real payments through Kite) |
-| `PORT`, `WEB_ORIGIN` | Agent port; the web app's address (for CORS and links in emails) |
-| `ERRAND_ACCESS_CODE` | Required before Errand's own wallet can pay (people with their own Passport don't need it) |
-| `DEFAULT_COUNTRY`, `MAX_BUDGET_USD` | Fallback country; most one errand may spend |
-| `SERV_API_KEY`, `SERV_BASE_URL`, `SERV_PLAN_MODEL`, `SERV_MODEL` | SERV Reasoning ([console.openserv.ai](https://console.openserv.ai)) |
-| `SERV_GUARD_GRAPH_ID`, `SERV_GUARD_VERSION` | The guard graph you create from [docs/serv-guard-graph.md](docs/serv-guard-graph.md), and its label |
-| `KPASS_BIN`, `KPASS_WORKDIR`, `KITE_SESSION_TTL`, `KITE_AGENT_TYPE` | Kite's `kpass` CLI. First run `kpass login` and `kpass agent:register --type errand` |
-| `PASSPORTS_DIR` | Where each connected person's Kite login is kept |
-| `STANDING_POLL_MS` | How often repeat errands are checked |
-| `REPPO_API_KEY`, `REPPO_BASE_URL`, `REPPO_ENABLED`, `REPPO_POLL_MS` | Reppo second opinions and grades (paid from your Reppo credits, free to users) |
-| `DOLPHIN_API_KEY`, `DOLPHIN_BASE_URL`, `DOLPHIN_MODEL` | Optional: wording of emails |
-| `GUARD_SERVICE_TOKEN` | Shared secret for Errand Guard's paid `/check` |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_USERS`, `TELEGRAM_BUDGET_USD`, `TELEGRAM_MAX_PER_PAYMENT_USD` | Optional Telegram bot |
-| `DATABASE_URL` | Postgres (for example Neon); empty = in memory |
-| `NEXT_PUBLIC_AGENT_URL`, `NEXT_PUBLIC_REPO_URL` | Web app: where the agent is, and the repo link |
+| `TEXTILE_API_KEY` | Textile FX key, so firm quotes need no wallet signature (required for MiniPay) |
+| `TOOLS_PAYER_KEY` | Errand's tools wallet, which pays $0.01 on buy for the independent receipt check |
+| `X402_API_KEY`, `PAY_TO` | Errand Guard on Celo: the x402 facilitator key and the address that gets paid |
+| `NEXT_PUBLIC_AGENT_URL` | Where the Buy-for-me agent runs |
+| `ERRAND_MODE`, `SERV_API_KEY`, `KPASS_BIN`, … | The Buy-for-me agent: SERV Reasoning, Kite's `kpass` CLI and sellers. See [docs/deploy.md](docs/deploy.md) |
+
+Useful scripts: `pnpm --filter @errand/celo textile-swap` (dry-run a Textile conversion), `pnpm --filter @errand/guard-celo pay-check` (pay Errand Guard once), `pnpm --filter @errand/celo tools-wallet`, `pnpm benchmark`.
 
 ### Project layout
 
 ```
-apps/agent/          Agent server: runner, SERV client, kpass wrapper, sellers, Reppo, Passports, Telegram, repeat errands
-apps/web/            Next.js app: landing, start an errand, live errand, receipt, Results, Your Passport, Repeat
+apps/web/            The website: Pay someone, Buy for me, wallet, session, receipts, Results
+apps/agent/          Buy-for-me agent: SERV client, Kite kpass wrapper, sellers, Reppo, Telegram, repeat errands
+apps/guard-celo/     Errand Guard on Celo: x402 + Self Agent ID
 apps/mcp/            MCP server
-kite-service/        Errand Guard, a paid x402 service on Kite
-packages/core/       Types, seller catalog, rules R1–R13, plan checks, attack benchmark (unit-tested)
-docs/                Architecture, guard graph prompt, Kite, Reppo, deploy, build log
-evidence/            Benchmark results and screenshots
+kite-service/        The earlier Errand Guard on Kite
+packages/celo/       Celo: tokens, attribution tags, Textile FX client, rules R14–R17, currencies, sessions
+packages/core/       Types, seller catalog, rules R1–R13, plan checks, attack benchmark
+evidence/            Benchmark, Celo transactions, screenshots
+docs/                Architecture, sellers, deploy, Celo rules and sponsor notes
 ```
 
 ## Known limitations
 
-- Reppo grades and second opinions use Errand's own Reppo credits: 440 per evaluation, so the 22,000 sign-up credits cover about 50. When they run out, grading pauses and second opinions come back to the user as questions.
+- Recipients of "Pay someone" get a local stablecoin in their wallet. Payout straight to a Nigerian bank account needs cNGN's merchant redemption API, which isn't set up yet.
+- Altana sessions are built but switched off until Altana confirms how grant and revoke transactions can carry the attribution tag, so today you confirm each step in your own wallet.
+- Errand Guard's daily limits are kept in memory and reset when the service restarts. It runs on Render's free plan, so the first call after a quiet spell can take about a minute.
 - Gift card codes and eSIM QR codes go to the paying wallet's Bitrefill account. Errand confirms delivery but doesn't show the code.
-- Kite's metered and subscription payments aren't released yet. Repeat errands therefore use the Kite allowance: one run per day or week, capped per run.
-- Render's free plan sleeps, so the first request after a quiet spell can take about a minute.
-
-## Team
-
-- **Benjamin Ugochukwu** ([GitHub @softalpha0](https://github.com/softalpha0)): design, code, and the live runs.
+- MiniPay support is for running Errand inside MiniPay, not a MiniPay listing.
 
 ## What's next
 
-- Run research, eSIMs and gift cards on mainnet.
-- Move repeat errands to Kite's metered and subscription payments when Kite releases them.
-- List Errand in Kite's agent directory ([docs/kite-directory.md](docs/kite-directory.md)), and move Errand Guard to `live` once Kite allowlists it.
-- Use Reppo's grades as training signal: preference pairs from approved and refused payments, as in Reppo's 2027 roadmap.
+- Altana sessions: Errand works within a daily limit you set and can be switched off in one tap.
+- Payouts straight to bank accounts, so recipients don't need a crypto wallet.
+- Run eSIMs, gift cards, shopping and table bookings on mainnet; add flights and hotels.
+- More independent users, and more local stablecoins as Textile adds liquidity.
 
-## Built during the hackathon
+## Team
 
-All of it was built between 3 and 15 Nov 2026. See [docs/build-log.md](docs/build-log.md).
+**Benjamin Ugochukwu** ([GitHub @softalpha0](https://github.com/softalpha0), [X @tweetBysoft](https://x.com/tweetBysoft)): design, code and the live runs.
 
 ## Credits and license
 
-Built with SERV Reasoning by OpenServ, Kite Agent Passport and Reppo. Sellers: Bitrefill, StableEnrich, StableEmail. Errand Guard's wrapper is Kite's `kite-x402-services` template (Apache-2.0).
+Built on Celo with Textile FX, MiniPay, Self Agent ID, ERC-8004, x402 and buy (Celo Core Co.), and with SERV Reasoning by OpenServ, Kite Agent Passport and Reppo. Sellers: Bitrefill, StableEnrich, StableEmail, StablePhone.
 
 Errand is released under the [MIT License](LICENSE).

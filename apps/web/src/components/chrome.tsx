@@ -23,13 +23,16 @@ export function Header() {
             How it works
           </Link>
           <Link href="/errand" className="rounded-full px-3 py-2 text-muted hover:text-ink">
-            Send
+            Pay someone
           </Link>
-          <Link href="/#agents" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
+          <Link href="/new" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink sm:block">
+            Buy for me
+          </Link>
+          <Link href="/#agents" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink lg:block">
             For agents
           </Link>
-          <Link href="/#status" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink md:block">
-            Status
+          <Link href="/#story" className="hidden rounded-full px-3 py-2 text-muted hover:text-ink lg:block">
+            Story
           </Link>
           <a href={REPO_CELO_URL} className="hidden rounded-full px-3 py-2 text-muted hover:text-ink md:block" rel="noreferrer">
             Source
@@ -50,7 +53,7 @@ export function Footer() {
         <div className="max-w-sm">
           <Logo />
           <p className="mt-3 leading-relaxed">
-            Built for Agents Open for Business on Celo (Loops House). Wallets by Altana, currency conversion by Textile FX, agent identity by Self Agent ID and ERC-8004.
+            Errand began on 4 Nov 2026 for SERV Hackathon 02 (Kite Passport, SERV Reasoning) and grew on Celo for Agents Open for Business (Loops House): wallets by Altana and MiniPay, currency conversion by Textile FX, agent identity by Self Agent ID and ERC-8004.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-x-10 gap-y-2">
@@ -58,7 +61,13 @@ export function Footer() {
             Your wallet
           </Link>
           <Link href="/errand" className="hover:text-ink">
-            New errand
+            Pay someone
+          </Link>
+          <Link href="/new" className="hover:text-ink">
+            Buy for me
+          </Link>
+          <Link href="/stats" className="hover:text-ink">
+            Attack benchmark
           </Link>
           <Link href="/#onchain" className="hover:text-ink">
             On Celo mainnet
