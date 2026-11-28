@@ -42,7 +42,7 @@ The organisers said on the kickoff stream that livestream dates may be updated. 
 | Attribution tag | `celo_511bb691f2f0` (issued by Loops House on enrol, 20 Nov 2026) |
 | Repo | https://github.com/softalpha0/Errand · branch `celo` · start tag `pre-celo-hackathon` |
 | Agent wallet | **Not chosen yet.** Entered later (at submission, or with the Celo button in the Loops playground). Keep the **same one for the whole event**: the score is tied to it. Register its ERC-8004 identity from that wallet. |
-| SERV hackathon constraint | `main`, the live app `errand-pearl.vercel.app`, and the existing Render services stay untouched (organiser asked not to interfere with the submission build). |
+| SERV hackathon constraint | Ended 26 Nov (SERV results announced). `main` now follows `celo`; `errand-pearl.vercel.app` redirects (308) to **https://errand-thgw.vercel.app**, the only live site. |
 
 ## Tracks
 

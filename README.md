@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Live site** | https://errand-thgw.vercel.app |
+| **Live site** | https://errand-thgw.vercel.app (the only site; the old errand-pearl.vercel.app redirects here with a 308) |
 | **First real Celo errand** | 2,000 cNGN paid from MiniPay to a person outside the team: [Celoscan](https://celoscan.io/tx/0xbc98dba3494297855374c797b939fc761964de23d119ab86f9e2541a1fd1e4e7) |
 | **First real Kite errand** | ₦100 of MTN airtime bought through Kite Passport: [receipt](https://errand-thgw.vercel.app/r/e_My979K17) |
 | **Agent identity** | ERC-8004 agent **#10107** · Self Agent ID **#214** · attribution tag `celo_511bb691f2f0` |
@@ -15,6 +15,7 @@
 - [The problem](#the-problem)
 - [What Errand does](#what-errand-does)
 - [Errand's story](#errands-story)
+- [Built during the hackathon](#built-during-the-hackathon)
 - [Try it](#try-it)
 - [Proof on mainnet](#proof-on-mainnet)
 - [How it works](#how-it-works)
@@ -57,6 +58,20 @@ Errand existed before the Celo hackathon. It was built for SERV Hackathon 02 and
 | 20 Nov 2026 | Agents Open for Business on Celo begins. Errand gets an on-chain identity (ERC-8004 #10107, Self Agent ID #214) |
 | 24 Nov 2026 | Errand Guard live on Celo with Self Agent ID; first tagged Textile FX conversion |
 | 25 Nov 2026 | First real Celo errand: a user outside the team sends exactly 2,000 cNGN to a friend from their own MiniPay wallet |
+
+## Built during the hackathon
+
+Agents Open for Business started on **20 Nov 2026**. Everything Celo-related was written from that day on the `celo` branch. The starting point is the tag [`pre-celo-hackathon`](https://github.com/softalpha0/Errand/tree/pre-celo-hackathon) (the SERV Hackathon 02 build), and the full difference is here: [compare `pre-celo-hackathon...celo`](https://github.com/softalpha0/Errand/compare/pre-celo-hackathon...celo).
+
+**Built from 20 Nov (new for Celo):**
+
+- `packages/celo`: Celo tokens and decimals checks, ERC-8021 attribution tags, the Textile FX RFQ client, rules R14–R17 and the errand checks, local currencies (cNGN, IDRX, wARS, wBRL, wMXN, wCOP), Altana session permissions, 49 tests.
+- Agent identity on Celo: ERC-8004 registration (agent #10107, tagged) and Self Agent ID (#214).
+- `apps/guard-celo`: Errand Guard on Celo x402 with Self Agent ID tiers, 20 tests, live on Render.
+- The website for Celo (`apps/web`): Altana passkey wallet, sessions (caps, allowlist, expiry, revoke), Pay someone with live Textile prices, MiniPay support (no connect button, network fees in USD₮), receipts that re-check every transaction on Celo, the $0.01 independent check paid on buy, Altana session errands with a device session key (SDK 1.2.0 tags), personal details masked on receipts, and the redesign.
+- Merging both builds into one site, with the old address redirecting.
+
+**Built before 20 Nov (SERV Hackathon 02, 3–15 Nov):** the Buy for me agent (`apps/agent`: SERV Reasoning, Kite Agent Passport, sellers, Reppo, Telegram, repeat errands), rules R1–R13 and the attack benchmark (`packages/core`), the MCP server, and the Kite version of Errand Guard (`kite-service`).
 
 ## Try it
 

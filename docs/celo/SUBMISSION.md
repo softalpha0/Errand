@@ -64,4 +64,4 @@ Script at ~130 words/min, captions, notifications off, browser zoom ~125%, finis
 - [ ] No secrets in the repo or visible in the browser (`git log -p | Select-String "PRIVATE_KEY"` returns nothing meaningful; keys only in host dashboards).
 - [ ] Every link opened from another device / private window.
 - [ ] Self-evaluation with the Loops skill done; biggest gap fixed.
-- [ ] `main`, `errand-pearl.vercel.app` and the SERV Render services untouched.
+- [ ] Every public link points at https://errand-thgw.vercel.app (errand-pearl.vercel.app only redirects there).
